@@ -1,0 +1,42 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Custom media queries for hover and pointer support */
+@layer utilities {
+  /* Hide on touch devices, show on mouse devices */
+  @media (hover: hover) and (pointer: fine) {
+    .pointer-fine\:flex {
+      display: flex;
+    }
+    .pointer-fine\:block {
+      display: block;
+    }
+    .pointer-fine\:group-hover\:bg-black\/8:is(.group:hover *) {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+    .pointer-fine\:group-hover\:opacity-100:is(.group:hover *) {
+      opacity: 1;
+    }
+  }
+  
+  @media not all and (hover: hover) and (pointer: fine) {
+    .pointer-fine\:flex,
+    .pointer-fine\:block {
+      display: none;
+    }
+  }
+}
+
+/* Viewport height utilities */
+@layer base {
+  :root {
+    --header-height: 57px;
+  }
+  
+  @media (min-width: 768px) {
+    :root {
+      --header-height: 65px;
+    }
+  }
+}
