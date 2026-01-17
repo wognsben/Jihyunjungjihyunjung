@@ -443,7 +443,7 @@ export const Text = () => {
         </AnimatePresence>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-6 md:px-12 pt-20 md:pt-20 pb-24 flex flex-col md:flex-row gap-8 md:gap-24 relative">
+      <div className="w-full px-6 md:px-12 pt-28 md:pt-32 pb-24 flex flex-col md:flex-row gap-8 md:gap-24 relative">
 
         {/* ------------------------------------------------------- */}
         {/* SIDEBAR (Desktop: Sticky, Mobile: Hidden on Scroll)     */}
@@ -452,7 +452,7 @@ export const Text = () => {
             style={{ opacity: sidebarOpacity }}
             className={`
                md:w-1/4 lg:w-1/5 md:h-[calc(100vh-5rem)] 
-               md:sticky md:top-20 z-30 flex flex-col gap-6 md:gap-12 
+               md:sticky md:top-32 z-30 flex flex-col gap-6 md:gap-12 
                transition-all duration-300 ease-out
                ${showFloatingBar ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : 'opacity-100'}
             `}

@@ -796,12 +796,12 @@ export const About = () => {
       ref={containerRef} 
       className="fixed inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-foreground selection:text-background"
     >
-      <div className="w-full h-full max-w-screen-xl mx-auto px-6 md:px-12 relative flex">
+      <div className="w-full h-full px-6 md:px-12 relative flex">
         
         {/* ------------------------------------------------------- */}
         {/* LEFT COLUMN (FIXED)                                     */}
         {/* ------------------------------------------------------- */}
-        <div className="hidden md:flex flex-col w-[20%] h-full pt-32 md:pt-48 relative z-20 pointer-events-none">
+        <div className="hidden md:flex flex-col w-[20%] h-full pt-28 md:pt-32 relative z-20 pointer-events-none">
            {/* Top: Profile */}
            <div className="flex flex-col gap-6 max-w-full pointer-events-auto">
              <RevealText delay={0.2}>
@@ -848,7 +848,7 @@ export const About = () => {
         >
           <div 
             ref={contentRef}
-            className="absolute top-0 right-0 w-full md:w-[80%] pt-32 md:pt-48 pb-32 flex flex-col gap-20 will-change-transform"
+            className="absolute top-0 right-0 w-full md:w-[80%] pt-28 md:pt-32 pb-32 flex flex-col gap-20 will-change-transform"
           >
             {/* Mobile Header */}
             <div className="md:hidden flex flex-col gap-6 mb-12">
