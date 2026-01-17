@@ -443,7 +443,7 @@ export const Text = () => {
         </AnimatePresence>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-6 md:px-12 pt-24 md:pt-24 pb-24 flex flex-col md:flex-row gap-8 md:gap-24 relative">
+      <div className="max-w-screen-xl mx-auto px-6 md:px-12 pt-20 md:pt-20 pb-24 flex flex-col md:flex-row gap-8 md:gap-24 relative">
 
         {/* ------------------------------------------------------- */}
         {/* SIDEBAR (Desktop: Sticky, Mobile: Hidden on Scroll)     */}
@@ -451,14 +451,14 @@ export const Text = () => {
         <motion.div 
             style={{ opacity: sidebarOpacity }}
             className={`
-               md:w-1/4 lg:w-1/5 md:h-[calc(100vh-6rem)] 
-               md:sticky md:top-24 z-30 flex flex-col gap-6 md:gap-12 
+               md:w-1/4 lg:w-1/5 md:h-[calc(100vh-5rem)] 
+               md:sticky md:top-20 z-30 flex flex-col gap-6 md:gap-12 
                transition-all duration-300 ease-out
                ${showFloatingBar ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : 'opacity-100'}
             `}
         >
           {/* GHOST SEARCH BAR */}
-          <div className="relative group w-full pt-2">
+          <div className="relative group w-full">
             <div className="relative flex items-center border-b border-foreground/20 pb-2 transition-colors duration-300 focus-within:border-foreground">
                 <div className="mr-3 text-muted-foreground">
                    <Search size={16} strokeWidth={1.5} />
