@@ -133,6 +133,8 @@ export const WorkGrid = ({ works }: WorkGridProps) => {
   useLayoutEffect(() => {
     if (!wrapperRef.current || !contentRef.current || !ScrollSmoother) return;
 
+    let tickerCleanup: (() => void) | null = null;
+
     // Wait a tick to ensure DOM is fully rendered
     const ctx = gsap.context(() => {
       // Create Smoother
@@ -146,33 +148,46 @@ export const WorkGrid = ({ works }: WorkGridProps) => {
       smootherRef.current = smoother;
 
       // Apply Lag Effects per Column (Reference Logic)
-      // "Center-Out" Lag distribution for architectural feel
       if (!isMobile) {
-        const numColumns = columnCount;
-        const mid = (numColumns - 1) / 2;
-        const baseLag = 0.5; // From Reference
-        const lagScale = 0.2; // Adjusted for 4 columns (Reference used 0.1 for more cols)
+        const cols = columnRefs.current.filter(Boolean);
+        
+        // 1. Setup gsap.quickTo for performance
+        const yToFuncs = cols.map(col => gsap.quickTo(col, "y", { duration: 0.8, ease: "power3.out" }));
+        
+        // 2. Define Ticker function
+        const updateSkew = () => {
+          // Safety check
+          if (!smoother) return;
+          
+          const velocity = smoother.getVelocity();
+          const normalizedVel = velocity / 500;
+          
+          yToFuncs.forEach((yTo, i) => {
+             // Even columns move opposite to Odd columns
+             const isEven = i % 2 === 0;
+             const dir = isEven ? 1 : -1;
+             
+             // Calculate target Y offset (Parallax shift)
+             const targetY = normalizedVel * dir * 30; 
+             
+             // Update the tween target dynamically
+             yTo(targetY);
+          });
+        };
 
-        columnRefs.current.forEach((col, i) => {
-          if (!col) return;
-          
-          // Calculate distance from center
-          const distance = Math.abs(i - mid);
-          // Calculate lag: Center is slowest (or has base lag), edges have more lag
-          const lag = baseLag + (distance * lagScale);
-          
-          // Apply effect
-          smoother.effects(col, { speed: 1, lag: lag });
-        });
+        // 3. Add listener and store cleanup
+        gsap.ticker.add(updateSkew);
+        tickerCleanup = () => gsap.ticker.remove(updateSkew);
       }
 
     }, wrapperRef);
 
     return () => {
+      if (tickerCleanup) tickerCleanup();
       ctx.revert();
       smootherRef.current = null;
     };
-  }, [columnCount, sortOrder, isMobile]); // Re-run when layout changes
+  }, [columnCount, sortOrder, isMobile]); // Re-run when layout changes // Re-run when layout changes
 
   return (
     <div ref={wrapperRef} id="smooth-wrapper" className="w-full h-full bg-background text-foreground">
