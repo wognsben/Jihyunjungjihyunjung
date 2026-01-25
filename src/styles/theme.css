@@ -124,6 +124,11 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Demo 1 Colors */
+  --color-bg: #e1ddd8;
+  --color-bg-shift: #1e2227;
+  --color-link: #fbae4e;
+  
   /* Fonts - All Unified to Pretendard for Clean Minimal Look */
   --font-sans: "Pretendard", "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-serif: "Pretendard", "Space Grotesk", serif; /* Replaced Serif with Sans for consistency */
@@ -138,7 +143,7 @@
   body {
     @apply bg-background text-foreground;
   }
-
+  
   /**
   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.

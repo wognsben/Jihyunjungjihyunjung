@@ -10,12 +10,13 @@ interface PremiumScrollSliderProps {
 export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: PremiumScrollSliderProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isDark, setIsDark] = useState(true); // 내부 UI용 밝기 상태 추가
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // 이미지 밝기 감지 함수 (Canvas API 사용)
   const analyzeImageBrightness = (imageSrc: string) => {
     const img = new Image();
-    img.crossOrigin = "Anonymous"; // GitHub raw 이미지 등 외부 이미지 접근 허용
+    img.crossOrigin = "Anonymous"; 
     img.src = imageSrc;
     
     img.onload = () => {
@@ -24,7 +25,6 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // 성능을 위해 분석용 캔버스 크기를 작게 설정
         canvas.width = 50;
         canvas.height = 50;
         ctx.drawImage(img, 0, 0, 50, 50);
@@ -33,12 +33,10 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         const data = imageData.data;
         let totalBrightness = 0;
 
-        // 픽셀 샘플링
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
-          // HSP Color Model을 이용한 밝기 계산 (인간의 눈에 더 정확함)
           const brightness = Math.sqrt(
             0.299 * (r * r) +
             0.587 * (g * g) +
@@ -48,23 +46,22 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         }
 
         const avgBrightness = totalBrightness / (data.length / 4);
-        
-        // 밝기가 128 미만이면 어두운 배경 -> 텍스트는 밝게(isDark=true로 가정하여 전달하거나, 의미에 맞게 조정)
-        // 여기서는 isDark가 "배경이 어두운가?"를 의미한다고 가정
         const isDarkBackground = avgBrightness < 128;
+        
+        setIsDark(isDarkBackground); // 내부 상태 업데이트
         
         if (onBrightnessChange) {
           onBrightnessChange(isDarkBackground);
         }
       } catch (e) {
-        console.warn("Brightness detection failed (likely CORS):", e);
-        // 실패 시 기본값 (어두운 배경 -> 흰 글씨)
+        console.warn("Brightness detection failed:", e);
+        setIsDark(true); // 실패 시 기본값
         if (onBrightnessChange) onBrightnessChange(true);
       }
     };
 
     img.onerror = () => {
-       // 로드 실패 시 안전하게 기본값 처리
+       setIsDark(true);
        if (onBrightnessChange) onBrightnessChange(true);
     };
   };
@@ -190,11 +187,15 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         </div>
       ))}
 
-      {/* Navigation UI - Bottom Left */}
+      {/* Navigation UI - Bottom Left (Smart Contrast) */}
       <nav className="fixed left-8 bottom-8 z-30">
         <div className="flex flex-col gap-3">
           {/* Label */}
-          <span className="text-white/40 font-mono text-[10px] uppercase tracking-wider">
+          <span 
+            className={`font-mono text-[10px] uppercase tracking-wider transition-colors duration-700 ${
+              isDark ? 'text-white/40' : 'text-black/40'
+            }`}
+          >
             Variations
           </span>
           
@@ -205,10 +206,10 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
                 key={work.id}
                 onClick={() => navigateToSlide(index)}
                 disabled={isTransitioning}
-                className={`font-mono text-xs transition-colors duration-300 ${
+                className={`font-mono text-xs transition-all duration-300 ${
                   index === activeIndex
-                    ? 'text-white font-bold'
-                    : 'text-white/30 hover:text-white/60'
+                    ? (isDark ? 'text-white font-bold' : 'text-black font-bold')
+                    : (isDark ? 'text-white/30 hover:text-white/60' : 'text-black/30 hover:text-black/60')
                 }`}
                 style={{
                   letterSpacing: '0.05em',

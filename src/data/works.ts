@@ -1,9 +1,21 @@
+export interface RelatedArticle {
+  id: string;
+  title: string;
+  author?: string;
+  summary: string;
+  thumbnail?: string;
+  link?: string;
+}
+
 export interface Work {
   id: string;
   title_ko: string;
   title_en: string;
   title_jp: string;
   year?: number;
+  yearCaption_ko?: string;
+  yearCaption_en?: string;
+  yearCaption_jp?: string;
   medium_ko?: string;
   medium_en?: string;
   medium_jp?: string;
@@ -23,6 +35,7 @@ export interface Work {
   galleryImages: string[];
   selected: boolean;
   order: number;
+  relatedArticles?: RelatedArticle[];
 }
 
 /**
@@ -36,6 +49,9 @@ export const worksData: Work[] = [
     title_en: "Nonfiction",
     title_jp: "ノンフィクション",
     year: 2024,
+    yearCaption_ko: "초기 컨셉 단계",
+    yearCaption_en: "Initial Concept Phase",
+    yearCaption_jp: "初期コンセプト段階",
     medium_ko: "설치 미술",
     medium_en: "Installation Art",
     medium_jp: "インスタレーション",
@@ -43,14 +59,37 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "갤러리 설치 작업",
     oneLineInfo_en: "Gallery Installation",
     oneLineInfo_jp: "ギャラリーインスタレーション",
-    description_ko: "상세 설명이 들어가는 공간입니다.",
-    description_en: "Description placeholder.",
-    description_jp: "詳細説明が入る場所です。",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.\n\n데이터 파일(data/works.ts)에서 이 내용을 수정하여 프로젝트의 의도, 배경, 디자인 컨셉 등을 자유롭게 기술할 수 있습니다.",
+    description_en: "This is the area for the detailed project description.\n\nYou can modify this content in the data file (data/works.ts) to describe the project's intent, background, and design concept.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。\n\nデータファイル(data/works.ts)でこの内容を修正し、プロジェクトの意図、背景、デザインコンセプトなどを自由に記述できます。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/nonfiction-scaled.jpg"
     ],
     selected: true,
-    order: 1
+    order: 1,
+    relatedArticles: [
+      {
+        id: "a1",
+        title: "Theia",
+        author: "Brian Isett",
+        summary: "Pondering the age-old question his young daughter will inevitably ask—Where did the Moon come from?—biologist Brian Isett uncovers the story of how the Earth got Her seasonal song.",
+        thumbnail: "https://raw.githubusercontent.com/wognsben/gallery/main/14.jpg", // Placeholder
+      },
+      {
+        id: "a2",
+        title: "A Hollow Bone",
+        author: "Terry Tempest Williams",
+        summary: "Terry Tempest Williams reflects on the sacred nature of hollow spaces and the resonance they hold within the landscape of memory.",
+        thumbnail: "https://raw.githubusercontent.com/wognsben/gallery/main/20.jpg", // Placeholder
+      },
+      {
+        id: "a3",
+        title: "A River Reborn",
+        author: "Ben Goldfarb",
+        summary: "Investigating the restoration of ancient waterways and how they reshape not only the land but the communities that depend on them.",
+        thumbnail: "https://raw.githubusercontent.com/wognsben/gallery/main/11.jpg", // Placeholder
+      }
+    ]
   },
   {
     id: "2",
@@ -58,10 +97,16 @@ export const worksData: Work[] = [
     title_en: "025S Mockup",
     title_jp: "モックアップ",
     year: 2023,
+    yearCaption_ko: "프로토타입 제작",
+    yearCaption_en: "Prototyping",
+    yearCaption_jp: "プロトタイプ製作",
     thumbnail: "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/025S_mockup-scaled.jpg",
     oneLineInfo_ko: "디자인 목업",
     oneLineInfo_en: "Design Mockup",
     oneLineInfo_jp: "デザインモックアップ",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.\n\n데이터 파일(data/works.ts)에서 이 내용을 수정하여 프로젝트의 의도, 배경, 디자인 컨셉 등을 자유롭게 기술할 수 있습니다.",
+    description_en: "This is the area for the detailed project description.\n\nYou can modify this content in the data file (data/works.ts) to describe the project's intent, background, and design concept.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。\n\nデータファイル(data/works.ts)でこの内容を修正し、プロジェクトの意図、背景、デザインコンセプトなどを自由に記述できます。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/025S_mockup-scaled.jpg"
     ],
@@ -78,6 +123,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "사진 작업",
     oneLineInfo_en: "Photography Work",
     oneLineInfo_jp: "写真作業",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.\n\n데이터 파일(data/works.ts)에서 이 내용을 수정하여 프로젝트의 의���, 배경, 디자인 컨셉 등을 자유롭게 기술할 수 있습니다.",
+    description_en: "This is the area for the detailed project description.\n\nYou can modify this content in the data file (data/works.ts) to describe the project's intent, background, and design concept.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。\n\nデータファイル(data/works.ts)でこの内容を修正し、プロジェクトの意図、背景、デザインコンセプトなどを自由に記述できます。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/025S-%EC%8B%9C%EA%B0%84%EC%9D%98%EC%A2%8C%ED%91%9C-%EB%B3%B5%EC%82%AC.jpg"
     ],
@@ -94,6 +142,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "사진 작업",
     oneLineInfo_en: "Photography Work",
     oneLineInfo_jp: "写真作業",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.\n\n데이터 파일(data/works.ts)에서 이 내용을 수정하여 프로젝트의 의도, 배경, 디자인 컨셉 등을 자유롭게 기술할 수 있습니다.",
+    description_en: "This is the area for the detailed project description.\n\nYou can modify this content in the data file (data/works.ts) to describe the project's intent, background, and design concept.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。\n\nデータファイル(data/works.ts)でこの内容を修正し、プロジェクトの意図、背景、デザインコンセプトなどを自由に記述できます。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/025S-%EC%8B%9C%EA%B0%84%EC%9D%98%EC%A2%8C%ED%91%9C-%EB%B3%B5%EC%82%AC.jpg"
     ],
@@ -110,6 +161,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "사진 작업",
     oneLineInfo_en: "Photography Work",
     oneLineInfo_jp: "写真作業",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.\n\n데이터 파일(data/works.ts)에서 이 내용을 수정하여 프로젝트의 의도, 배경, 디자인 컨셉 등을 자유롭게 기술할 수 있습니다.",
+    description_en: "This is the area for the detailed project description.\n\nYou can modify this content in the data file (data/works.ts) to describe the project's intent, background, and design concept.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。\n\nデータファイル(data/works.ts)でこの内容を修正し、プロジェクトの意図、背景、デザインコンセプトなどを自由に記述できます。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/78415c49/025S-%EC%8B%9C%EA%B0%84%EC%9D%98%EC%A2%8C%ED%91%9C-%EB%B3%B5%EC%82%AC.jpg"
     ],
@@ -126,6 +180,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "디지털 아트",
     oneLineInfo_en: "Digital Art",
     oneLineInfo_jp: "デジタルアート",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/6.jpg"
     ],
@@ -141,6 +198,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "무대 디자인",
     oneLineInfo_en: "Stage Design",
     oneLineInfo_jp: "舞台デザイン",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/7.jpg"
     ],
@@ -156,6 +216,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "공간 디자인",
     oneLineInfo_en: "Space Design",
     oneLineInfo_jp: "空間デザイン",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/8.jpg"
     ],
@@ -172,6 +235,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "사진 아카이브",
     oneLineInfo_en: "Photo Archive",
     oneLineInfo_jp: "写真アーカイブ",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/9.jpg"
     ],
@@ -188,6 +254,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "조명 설치",
     oneLineInfo_en: "Light Installation",
     oneLineInfo_jp: "照明インスタレーション",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/10.jpg"
     ],
@@ -204,6 +273,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "도시 재생 프로젝트",
     oneLineInfo_en: "Urban Regeneration Project",
     oneLineInfo_jp: "都市再生プロジェクト",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/11.jpg"
     ],
@@ -220,6 +292,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "환경 조각",
     oneLineInfo_en: "Environmental Sculpture",
     oneLineInfo_jp: "環境彫刻",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/12.jpg"
     ],
@@ -236,6 +311,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "사운드 아트",
     oneLineInfo_en: "Sound Art",
     oneLineInfo_jp: "サウンドアート",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/13.jpg"
     ],
@@ -252,6 +330,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "미디어 파사드",
     oneLineInfo_en: "Media Facade",
     oneLineInfo_jp: "メディアファサード",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/14.jpg"
     ],
@@ -268,6 +349,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "구조물 디자인",
     oneLineInfo_en: "Structure Design",
     oneLineInfo_jp: "構造物デザイン",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/15.jpg"
     ],
@@ -284,6 +368,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "설치 미술",
     oneLineInfo_en: "Installation Art",
     oneLineInfo_jp: "インスタレーションアート",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/16.jpg"
     ],
@@ -300,6 +387,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "전시 기획",
     oneLineInfo_en: "Exhibition Planning",
     oneLineInfo_jp: "展示企画",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/17.jpg"
     ],
@@ -316,6 +406,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "혼합 매체",
     oneLineInfo_en: "Mixed Media",
     oneLineInfo_jp: "ミクストメディア",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/18.jpg"
     ],
@@ -332,6 +425,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "거울 설치",
     oneLineInfo_en: "Mirror Installation",
     oneLineInfo_jp: "鏡インスタレーション",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/19.jpg"
     ],
@@ -348,6 +444,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "키네틱 아트",
     oneLineInfo_en: "Kinetic Art",
     oneLineInfo_jp: "キネティックアート",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/20.jpg"
     ],
@@ -364,6 +463,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "공공 조형물",
     oneLineInfo_en: "Public Sculpture",
     oneLineInfo_jp: "公共造形物",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/21.jpg"
     ],
@@ -380,6 +482,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "재료 실험",
     oneLineInfo_en: "Material Experiment",
     oneLineInfo_jp: "材料実験",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/22.jpg"
     ],
@@ -396,6 +501,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "영상 설치",
     oneLineInfo_en: "Video Installation",
     oneLineInfo_jp: "映像インスタレーション",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/23.jpg"
     ],
@@ -412,6 +520,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "미니멀리즘",
     oneLineInfo_en: "Minimalism",
     oneLineInfo_jp: "ミニマリズム",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/24.jpg"
     ],
@@ -428,6 +539,9 @@ export const worksData: Work[] = [
     oneLineInfo_ko: "초기작",
     oneLineInfo_en: "Early Work",
     oneLineInfo_jp: "初期作",
+    description_ko: "이곳은 프로젝트에 대한 상세 설명이 위치하는 영역입니다.",
+    description_en: "This is the area for the detailed project description.",
+    description_jp: "ここはプロジェクトの詳細説明が配置される領域です。",
     galleryImages: [
       "https://raw.githubusercontent.com/wognsben/gallery/main/25.jpg"
     ],

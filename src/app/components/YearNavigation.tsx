@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Work } from '@/data/works';
 import { YearPreview } from './YearPreview';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ScrambleText } from '@/app/components/ui/ScrambleText';
 
 interface YearNavigationProps {
   allWorks: Work[];
@@ -107,7 +108,7 @@ export const YearNavigation = ({ allWorks, currentYear }: YearNavigationProps) =
                       block text-2xl md:text-3xl tracking-tight transition-opacity duration-200
                       ${isActive ? 'opacity-100' : 'opacity-30'}
                       ${isHovered ? 'opacity-100' : ''}
-                      hover:opacity-100
+                      hover:opacity-100 font-mono
                     `}
                   >
                     {year}

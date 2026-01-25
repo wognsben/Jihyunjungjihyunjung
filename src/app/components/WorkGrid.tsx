@@ -1,8 +1,7 @@
-import { useState, useRef, useLayoutEffect, useMemo } from 'react';
+import { useRef, useLayoutEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { worksData, Work } from '@/data/works';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
-import { WorkDetail } from './WorkDetail';
+import { PremiumImage } from '@/app/components/ui/PremiumImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -12,7 +11,6 @@ if (typeof window !== 'undefined') {
 
 export const WorkGrid = () => {
   const { lang } = useLanguage();
-  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
   
@@ -56,11 +54,18 @@ export const WorkGrid = () => {
       const cols = columnRefs.current.filter(Boolean);
       
       const yToFuncs = cols.map((col, i) => {
+        // Create distinct physics for each column
         const dist = Math.abs(i - 1.5);
+        
         return gsap.quickTo(col, "y", { 
-          duration: 0.6 + (dist * 0.1), 
-          ease: "power2.out" 
+          duration: 0.8 + (dist * 0.1), 
+          ease: "power3.out"
         });
+      });
+
+      // Initialize columns
+      cols.forEach((col) => {
+         gsap.set(col, { marginTop: "0px" });
       });
 
       ScrollTrigger.create({
@@ -71,10 +76,16 @@ export const WorkGrid = () => {
           const velocity = self.getVelocity();
           const scrollY = self.scroll();
           const topDamping = Math.min(1, scrollY / 200);
-          const dragFactor = -0.05; 
+          
+          // Refined physics
+          const dragFactor = -0.06; 
           let targetY = velocity * dragFactor * topDamping;
+          
           targetY = Math.max(-100, Math.min(100, targetY));
-          yToFuncs.forEach((yTo) => yTo(targetY));
+          
+          yToFuncs.forEach((yTo) => {
+             yTo(targetY);
+          });
         }
       });
     }, containerRef);
@@ -83,19 +94,16 @@ export const WorkGrid = () => {
   }, []);
 
   const getTitle = (work: Work) => lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
-
-  if (selectedWorkId) {
-    return <WorkDetail workId={selectedWorkId} />;
-  }
+  const getMedium = (work: Work) => lang === 'ko' ? work.medium_ko : (lang === 'jp' ? work.medium_jp : work.medium_en);
 
   return (
-    <div ref={containerRef} className="w-full min-h-screen bg-background text-foreground pt-40 pb-20 px-[5vw]">
-      <div className="flex flex-col md:flex-row gap-[5vw] w-full items-start justify-center">
+    <div ref={containerRef} className="w-full min-h-screen bg-background text-foreground pt-32 pb-20 px-4 md:px-6">
+      <div className="flex flex-col md:flex-row gap-1 w-full items-start justify-center">
         {columns.map((colWorks, colIndex) => (
           <div 
             key={`col-${colIndex}`}
             ref={el => { columnRefs.current[colIndex] = el; }}
-            className="flex flex-col gap-[5vw] flex-1 w-full md:w-1/4 will-change-transform"
+            className="flex flex-col gap-1 flex-1 w-full md:w-1/4 will-change-transform"
           >
             {colWorks.map((work) => (
               <div 
@@ -103,49 +111,58 @@ export const WorkGrid = () => {
                 className="relative group cursor-pointer w-full select-none"
                 onClick={() => {
                   window.location.hash = `#/work/${work.id}`;
-                  setSelectedWorkId(work.id);
                 }}
               >
                 {/* 
                    Premium Aspect Ratio & Interaction
                    - Container: 4/3
-                   - Scale Duration: 1200ms (Slow, Heavy feel)
                 */}
                 <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-zinc-800">
-                  <ImageWithFallback
+                  <PremiumImage
                     src={work.thumbnail || work.galleryImages[0]}
                     alt={getTitle(work)}
-                    className="w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.05]"
+                    className="w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03]"
+                    containerClassName="w-full h-full"
                   />
                   
-                  {/* 
-                      Cinematic Gradient Layer
-                      - Taller gradient (h-2/3) for smoother fade
-                      - Pure black at bottom for absolute text clarity
-                  */}
-                  <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out" />
-
-                  {/* 
-                      Premium Typography Layout
-                      - Aligned to bottom
-                      - Title: Tracking-tight for modern look
-                      - Year: Mono font, slight transparency for hierarchy
-                  */}
-                  <div className="absolute inset-x-0 bottom-0 p-6 md:p-7 flex flex-row items-end justify-between 
-                                translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 
-                                transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-10">
-                    
-                    {/* Title: High Contrast, Tight Spacing */}
-                    <h3 className="text-[15px] md:text-base lg:text-lg font-medium text-white tracking-tight leading-none truncate max-w-[80%] antialiased drop-shadow-sm">
-                      {getTitle(work)}
-                    </h3>
-
-                    {/* Year: Subtle, Technical feel */}
-                    <span className="text-[11px] md:text-xs font-light text-white/70 tracking-widest font-mono antialiased">
+                  {/* 1. Archive Stamp (Year) - Top Right Corner */}
+                  <div className="absolute top-4 right-4 z-20 pointer-events-none overflow-hidden">
+                    <div 
+                      className="
+                        px-2.5 py-1 
+                        bg-black/20 backdrop-blur-sm border border-white/10 rounded-md
+                        text-white/90 font-mono text-[10px] tracking-widest
+                        translate-y-[-150%] opacity-0
+                        group-hover:translate-y-0 group-hover:opacity-100
+                        transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] delay-75
+                      "
+                    >
                       {work.year}
-                    </span>
-                    
+                    </div>
                   </div>
+
+                  {/* 2. Architect's Label (Title & Medium) - Center */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                     <div 
+                       className="
+                         flex items-center gap-3 px-5 py-2.5 
+                         bg-black/30 backdrop-blur-md border border-white/20 rounded-full 
+                         opacity-0 translate-y-4 scale-95
+                         group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100
+                         transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+                         shadow-2xl shadow-black/20
+                       "
+                     >
+                       <span className="text-white font-bold text-sm tracking-widest uppercase text-shadow-sm">
+                         {getTitle(work)}
+                       </span>
+                       <span className="w-px h-3 bg-white/40" aria-hidden="true" />
+                       <span className="text-white/80 font-mono text-xs tracking-wider uppercase">
+                         {getMedium(work)}
+                       </span>
+                     </div>
+                  </div>
+
                 </div>
               </div>
             ))}

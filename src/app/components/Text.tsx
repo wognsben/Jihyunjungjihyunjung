@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { motion, AnimatePresence } from 'motion/react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
+import { textData, Category } from '@/data/texts';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(TextPlugin);
@@ -13,227 +14,6 @@ if (typeof window !== 'undefined') {
 // ----------------------------------------------------------------------
 // Types & Data
 // ----------------------------------------------------------------------
-
-type Category = 'All' | 'Article' | 'Note' | 'Review';
-
-interface TextItem {
-  id: string;
-  year: string;
-  category: Category;
-  author: {
-    en: string;
-    ko: string;
-    jp: string;
-  };
-  title: {
-    en: string;
-    ko: string;
-    jp: string;
-  };
-  link: string;
-  image: string; // Added image field
-}
-
-// Data with images populated from user input (25 items filled, 3 empty)
-// UPDATED: Using raw.githubusercontent.com for reliable CORS support
-const textData: TextItem[] = [
-  { 
-    id: 'post-1585', year: '2024', category: 'Article', 
-    author: { en: 'Hyejin Mun', ko: '문혜진', jp: 'Hyejin Mun' },
-    title: { en: 'Poking the Side of Sculpture', ko: '조각의 옆구리를 슬쩍 찌르기 : 있는 듯 없는 듯 부지런한 정지현의 사물들', jp: '조각의 옆구리를 슬쩍 찌르기' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/1.jpg'
-  },
-  { 
-    id: 'post-1587', year: '2024', category: 'Article', 
-    author: { en: 'Soyeon Ahn', ko: '안소연', jp: 'Soyeon Ahn' },
-    title: { en: '〈Hang-Dog〉 The Bird on the Roof Outside', ko: '〈행도그〉 저 창문 밖 지붕 위의 새', jp: '〈Hang-Dog〉 窓の外の屋根の上の鳥' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/10.jpg'
-  },
-  { 
-    id: 'post-1429', year: '2023', category: 'Article', 
-    author: { en: 'Hanbum Lee', ko: '이한범', jp: 'Hanbum Lee' },
-    title: { en: '〈Gouge〉 / Sculpture Gone Far', ko: '〈가우지〉 / 멀리가는 조각', jp: '〈Gouge〉 / 遠くへ行く彫刻' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/11.jpg'
-  },
-  { 
-    id: 'post-1410', year: '2022', category: 'Article', 
-    author: { en: 'Wonhwa Yoon', ko: '윤원화', jp: 'Wonhwa Yoon' },
-    title: { en: '〈Gouge〉 / Invisible Sculpture', ko: '〈가우지〉 / 보이지 않는 조각', jp: '〈Gouge〉 / 見えない彫刻' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/12.jpg'
-  },
-  { 
-    id: 'post-1220', year: '2021', category: 'Article', 
-    author: { en: 'Hanbum Lee', ko: '이한범', jp: 'Hanbum Lee' },
-    title: { en: 'Unapproachable Land & Person with a Bag', ko: '갈 수 없는 땅 & 가방을 든 사람', jp: '行けない土地 & 鞄を持った人' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/13.jpg'
-  },
-  { 
-    id: 'post-1191', year: '2021', category: 'Article', 
-    author: { en: 'Jeongwon Ye', ko: '예정원', jp: 'Jeongwon Ye' },
-    title: { en: 'Alley Play of Loose Community 〈Room Adventure_with VR〉', ko: '느슨한 공동체의 골목놀이 〈방구석 대모험_VR끼고〉', jp: '緩やかな共同体の路地遊び' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/14.jpg'
-  },
-  { 
-    id: 'post-947', year: '2019', category: 'Article', 
-    author: { en: 'Yuki Konno', ko: '콘노 유키', jp: 'Yuki Konno' },
-    title: { en: '〈Multipurpose Henry〉 / Plus Plus Minus', ko: '〈다목적 헨리〉 / 더하기 더하기 빼기', jp: '〈Multipurpose Henry〉 / 足す足す引く' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/15.jpg'
-  },
-  { 
-    id: 'post-840', year: '2019', category: 'Article', 
-    author: { en: 'Yunkyoung Kim', ko: '김윤경', jp: 'Yunkyoung Kim' },
-    title: { en: '〈Multipurpose Henry〉 / Is this world worthy to be destroyed?', ko: '〈다목적 헨리〉 / 이 세상은 파괴할 만한 가치가 있을까?', jp: '〈Multipurpose Henry〉 / この世界は破壊される価値があるか？' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/16.jpg'
-  },
-  { 
-    id: 'post-822', year: '2019', category: 'Article', 
-    author: { en: 'Hyokyoung Jeon', ko: '전효경', jp: 'Hyokyoung Jeon' },
-    title: { en: "Jihyun Jung: Practice of 'Making'", ko: "정지현: ‘만들기’의 실천", jp: "Jihyun Jung: ‘作る’の実践" }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/17.jpg'
-  },
-  { 
-    id: 'post-931', year: '2019', category: 'Review', 
-    author: { en: 'Hanbum Lee', ko: '이한범', jp: 'Hanbum Lee' },
-    title: { en: '〈Once a Day〉 / A Stage Contemplating the World of Objects', ko: '〈하루 한 번〉 / 사물의 세계를 사유하는 무대', jp: '〈一日一回〉 / 物の世界を思惟する舞台' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/18.jpg'
-  },
-  { 
-    id: 'post-933', year: '2018', category: 'Note', 
-    author: { en: 'Table Talk', ko: '테이블 토크', jp: 'Table Talk' },   
-    title: { en: '〈Once a Day〉 / Story of Three', ko: '〈하루 한 번〉 / 셋의 이야기', jp: '〈一日一回〉 / 三つの話' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/19.jpg'
-  },
-  { 
-    id: 'post-636', year: '2017', category: 'Review', 
-    author: { en: 'Haeju Kim', ko: '김해주', jp: 'Haeju Kim' },
-    title: { en: '〈Dawn Breaks, Seoul〉 / Time of Adventure', ko: '〈도운브레익스,서울〉 / 모험의 시간', jp: '〈Dawn Breaks, Seoul〉 / 冒険の時間' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/2.jpg'
-  },
-  { 
-    id: 'post-662', year: '2016', category: 'Review', 
-    author: { en: 'Jee Young Maeng', ko: '맹지영', jp: 'Jee Young Maeng' },
-    title: { en: '〈Gomyomsom〉 / Resisting Signification', ko: '〈곰염섬〉 / 의미화를 거스르기', jp: '〈Gomyomsom〉 / 意味化に逆らう' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/20.jpg'
-  },
-  { 
-    id: 'post-604', year: '2016', category: 'Review', 
-    author: { en: 'Hanbum Lee', ko: '이한범', jp: 'Hanbum Lee' },
-    title: { en: '〈Gomyomsom〉 / I Would Choose Not To', ko: '〈곰염섬〉 / 안 하는 편을 택하겠습니다', jp: '〈Gomyomsom〉 / しない方を選びます' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/21.jpg'
-  },
-  { 
-    id: 'post-606', year: '2016', category: 'Review', 
-    author: { en: 'Anonymous', ko: 'Anonymous', jp: 'Anonymous' },
-    title: { en: '〈Gomyomsom〉 / Walking Between Shaking and Overlapping Framing', ko: '〈곰염섬〉 / 흔들리고 중첩되는 프레이밍 사이에서 거닐기', jp: '〈Gomyomsom〉 / 揺れて重なるフレーミングの間を歩く' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/22.jpg'
-  },
-  { 
-    id: 'post-611', year: '2016', category: 'Review', 
-    author: { en: 'Kyunghwan Yeo', ko: '여경환', jp: 'Kyunghwan Yeo' },
-    title: { en: '〈Gomyomsom〉', ko: '〈곰염섬〉', jp: '〈Gomyomsom〉' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/23.jpg'
-  },
-  { 
-    id: 'post-608', year: '2016', category: 'Review', 
-    author: { en: 'Bbyabbya Kim', ko: '김뺘뺘', jp: 'Bbyabbya Kim' },
-    title: { en: 'Thinking of ◼︎◼︎◼︎ Repeatedly', ko: '◼︎◼︎◼︎을 자꾸 생각하기', jp: '◼︎◼︎◼︎を何度も考える' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/24.jpg'
-  },
-  { 
-    id: 'post-520', year: '2016', category: 'Note', 
-    author: { en: 'Junghyun Kim', ko: '김정현', jp: 'Junghyun Kim' },
-    title: { en: 'Memo or Before Words', ko: '메모 또는 낱말 이전', jp: 'メモまたは言葉以前' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/25.jpg'
-  },
-  { 
-    id: 'post-501', year: '2014', category: 'Note', 
-    author: { en: 'Jee Young Maeng', ko: '맹지영', jp: 'Jee Young Maeng' },   
-    title: { en: 'Story about Conversation', ko: '대화에 관한 이야기: 반복적 혹은 분절된 대화', jp: '会話についての物語' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/3.jpg'
-  },
-  { 
-    id: 'post-342', year: '2014', category: 'Review', 
-    author: { en: 'Jee Young Maeng', ko: '맹지영', jp: 'Jee Young Maeng' },
-    title: { en: 'Using The Ear In Order To Hear', ko: '듣기 위해 귀를 사용한 일', jp: '聞くために耳を使ったこと' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/4.jpg'
-  },
-  { 
-    id: 'post-341', year: '2013', category: 'Review', 
-    author: { en: 'Sujin Park', ko: '박수진', jp: 'Sujin Park' },
-    title: { en: 'Bird Eat Bird', ko: 'Bird Eat Bird', jp: 'Bird Eat Bird' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/5.jpg'
-  },
-  { 
-    id: 'post-340', year: '2013', category: 'Review', 
-    author: { en: 'Areum Woo', ko: '우아름', jp: 'Areum Woo' },
-    title: { en: 'Bird Eat Bird', ko: 'Bird Eat Bird', jp: 'Bird Eat Bird' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/6.jpg'
-  },
-  { 
-    id: 'post-339', year: '2012', category: 'Note', 
-    author: { en: 'Jihyun Jung', ko: '정지현', jp: 'Jihyun Jung' },
-    title: { en: 'Same but Different Landscape', ko: '매일 비슷하면서 다른 풍경', jp: '毎日似ているようで違う風景' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/7.jpg'
-  },
-  { 
-    id: 'post-338', year: '2011', category: 'Article', 
-    author: { en: 'Seulbi Lee', ko: '이슬비', jp: 'Seulbi Lee' },
-    title: { en: 'Missed Spot 2', ko: '빗나간 자리 2', jp: '外れた場所 2' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/8.jpg'
-  },
-  { 
-    id: 'post-337', year: '2011', category: 'Article', 
-    author: { en: 'Areum Woo', ko: '우아름', jp: 'Areum Woo' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場所' }, 
-    link: '#',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/9.jpg'
-  },
-  { 
-    id: 'post-336', year: '2011', category: 'Review', 
-    author: { en: 'Young-geul Kim', ko: '김영글', jp: 'Young-geul Kim' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場所' }, 
-    link: '#',
-    image: ''
-  },
-  { 
-    id: 'post-334', year: '2011', category: 'Note', 
-    author: { en: 'Jihyun Jung', ko: '정지현', jp: 'Jihyun Jung' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場所' }, 
-    link: '#',
-    image: ''
-  },
-  { 
-    id: 'post-333', year: '2010', category: 'Review', 
-    author: { en: 'Jiyeon Kim', ko: '김지연', jp: 'Jiyeon Kim' },
-    title: { en: 'Unspoken Words', ko: '못다한 말', jp: '言えなかった言葉' }, 
-    link: '#',
-    image: ''
-  },
-];
 
 const categories: Category[] = ['All', 'Article', 'Note', 'Review'];
 
@@ -420,15 +200,15 @@ export const Text = () => {
       {/* ------------------------------------------------------- */}
       <div 
         ref={imagePreviewRef}
-        className="fixed top-0 left-0 pointer-events-none z-50 hidden md:block"
-        style={{ x: 0, y: 0 }} // Initial position
+        className="fixed top-0 left-0 pointer-events-none z-50 hidden md:block" 
+        style={{ x: 0, y: 0 }} 
       >
         <AnimatePresence mode="wait">
             {hoveredImage && hoveredImage !== '' && (
                 <motion.div
                     key={hoveredImage}
-                    initial={{ opacity: 0, scale: 0.9, x: 20, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 20, y: 20 }} // Offset from cursor
+                    initial={{ opacity: 0, scale: 0.9, x: 20, y: 20 }} // Reset offset
+                    animate={{ opacity: 1, scale: 1, x: 20, y: 20 }} 
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className="relative"
@@ -436,7 +216,7 @@ export const Text = () => {
                     <img 
                         src={hoveredImage} 
                         alt="Preview" 
-                        className="w-80 h-auto max-h-[400px] object-cover shadow-2xl rounded-sm bg-background/50 backdrop-blur-sm"
+                        className="w-80 h-auto max-h-[400px] object-cover shadow-2xl rounded-sm"
                     />
                 </motion.div>
             )}
@@ -557,43 +337,46 @@ export const Text = () => {
                 transition={{ duration: 0.4, delay: index * 0.05 }}
                 onMouseEnter={() => setHoveredImage(item.image)}
                 onMouseLeave={() => setHoveredImage(null)}
-                className="group relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 hover:bg-foreground/[0.02] md:-mx-6 md:px-6 cursor-pointer"
+                className="group/item relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 md:-mx-6 md:px-6 cursor-pointer rounded-lg overflow-hidden"
               >
-                <div className="flex flex-col md:grid md:grid-cols-[1fr_200px_80px] md:gap-8 md:items-baseline">
+                {/* Hover Background (Matches About.tsx style) */}
+                <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
+
+                <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_200px_80px] md:gap-8 md:items-baseline">
                   
                   {/* Title Area + Category */}
                   <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
                     {/* Category Label (Desktop & Mobile) */}
-                    <span className="text-[10px] font-mono text-muted-foreground/60 w-16 shrink-0">
+                    <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-[var(--color-bg)]/70 w-16 shrink-0 transition-colors duration-300">
                        {item.category.toLowerCase()}
                     </span>
                     
-                    <h3 className="font-serif text-sm font-light leading-snug group-hover:translate-x-1 transition-transform duration-300">
+                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-[var(--color-bg)] text-foreground">
                       <FormattedTitle text={item.title[lang]} />
                     </h3>
                   </div>
 
                   {/* Mobile Layout */}
-                  <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)]"> {/* Indent to align with title */}
+                  <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)] group-hover/item:text-[var(--color-bg)]/70 transition-colors duration-300"> {/* Indent to align with title */}
                      <span>{item.author[lang]}</span>
-                     <span className="w-[1px] h-3 bg-foreground/20"></span>
+                     <span className="w-[1px] h-3 bg-foreground/20 group-hover/item:bg-[var(--color-bg)]/20 transition-colors duration-300"></span>
                      <span className="font-mono text-xs">{item.year}</span>
                   </div>
 
                   {/* Desktop Layout */}
-                  <div className="hidden md:block order-2 mt-2 md:mt-0 md:group-hover:translate-x-1 transition-transform duration-300 delay-75">
-                    <span className="text-xs font-light text-muted-foreground group-hover:text-foreground transition-colors">
+                  <div className="hidden md:block order-2 mt-2 md:mt-0 md:group-hover/item:translate-x-1 transition-transform duration-300 delay-75">
+                    <span className="text-xs font-light text-muted-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300">
                       {item.author[lang]}
                     </span>
                   </div>
-                  <div className="hidden md:block order-3 mt-1 md:mt-0 md:text-right md:group-hover:translate-x-1 transition-transform duration-300 delay-100">
-                    <span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">
+                  <div className="hidden md:block order-3 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
+                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300">
                       {item.year}
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:-translate-x-2 transition-all duration-300 text-muted-foreground text-sm">
+                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-[var(--color-bg)] text-sm z-10">
                   →
                 </div>
               </motion.a>

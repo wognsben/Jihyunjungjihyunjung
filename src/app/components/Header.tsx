@@ -28,40 +28,30 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
     }
   };
 
-  // Dynamic color based on background brightness (only for index page)
-  const textColor = currentView === 'index' 
-    ? (isDarkBackground ? 'text-white' : 'text-black')
-    : 'text-[var(--premium-black)]'; // Premium black for Work/Text/About pages
+  // --------------------------------------------------------------------------------
+  // [Architect's Solution] Smart Contrast System
+  // Mix-blend-mode: difference를 사용하여 배경색에 관계없이 항상 최적의 대비를 확보합니다.
+  // 흰 배경 -> 텍스트가 검정으로 반전
+  // 검정 배경 -> 텍스트가 흰색으로 반전
+  // --------------------------------------------------------------------------------
   
-  const textColorInactive = currentView === 'index'
-    ? (isDarkBackground ? 'text-white/40' : 'text-black/40')
-    : 'text-[var(--premium-black)]/40';
-  
-  const textColorHover = currentView === 'index'
-    ? (isDarkBackground ? 'hover:text-white/70' : 'hover:text-black/70')
-    : 'hover:text-[var(--premium-black-soft)]';
-  
-  const textColorLangInactive = currentView === 'index'
-    ? (isDarkBackground ? 'text-white/30 hover:text-white/60' : 'text-black/30 hover:text-black/60')
-    : 'text-[var(--premium-black)]/30 hover:text-[var(--premium-black)]/60';
-  
-  const borderColor = currentView === 'index'
-    ? (isDarkBackground ? 'bg-white' : 'bg-black')
-    : 'bg-[var(--premium-black)]';
-  
-  const separatorColor = currentView === 'index'
-    ? (isDarkBackground ? 'text-white/15' : 'text-black/15')
-    : 'text-[var(--premium-black)]/15';
+  // 항상 밝은 색상(White)을 기본으로 설정합니다.
+  // mix-blend-difference가 적용되면 배경에 따라 자동으로 반전됩니다.
+  const baseColor = 'text-white'; 
+  const inactiveColor = 'text-white/60'; // 가독성을 위해 불투명도 상향 조정 (40% -> 60%)
+  const hoverColor = 'hover:text-white';
+  const borderColor = 'bg-white';
+  const separatorColor = 'text-white/30';
 
   return (
     <header 
-      className="fixed top-0 left-0 right-0 z-50"
+      className="fixed top-0 left-0 right-0 z-50 mix-blend-difference"
       style={{
-        backgroundColor: 'transparent', // All pages now have transparent header
+        backgroundColor: 'transparent',
         borderBottom: 'none',
       }}
     >
-      <div className="px-6 md:px-12 py-4 md:py-6">
+      <div className="px-6 md:px-12 py-4 md:py-6 text-white">
         {/* Logo + Navigation */}
         <div className="flex flex-col gap-3 md:gap-4">
           {/* Top Row: Logo + Language */}
@@ -71,14 +61,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
               text="jihyunjung"
               onClick={() => onNavigate('index')}
               isActive={false}
-              className="text-lg md:text-xl"
-              style={{
-                fontWeight: 300,
-                letterSpacing: '-0.01em',
-              }}
-              activeColor={textColor}
-              inactiveColor={textColor}
-              hoverColor={textColorHover}
+              className="text-lg md:text-xl font-light tracking-tight"
+              activeColor={baseColor}
+              inactiveColor={baseColor}
+              hoverColor={hoverColor}
               underlineColor={borderColor}
               showUnderline={false}
             />
@@ -89,14 +75,11 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
                 <span key={language.code} className="flex items-center gap-2">
                   <button
                     onClick={() => setLang(language.code)}
-                    className={`text-[10px] md:text-xs uppercase tracking-wider transition-all font-mono ${
+                    className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light ${
                       lang === language.code 
-                        ? textColor 
-                        : textColorLangInactive
+                        ? 'text-white' 
+                        : 'text-white/50 hover:text-white'
                     }`}
-                    style={{
-                      letterSpacing: '0.1em',
-                    }}
                   >
                     {language.label}
                   </button>
@@ -114,13 +97,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
               text="WORK"
               onClick={() => handleNavClick('work')}
               isActive={currentView === 'work'}
-              className="text-xs md:text-sm uppercase font-mono"
-              style={{
-                letterSpacing: '0.15em',
-              }}
-              activeColor={textColor}
-              inactiveColor={textColorInactive}
-              hoverColor={textColorHover}
+              className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+              activeColor="text-white"
+              inactiveColor={inactiveColor}
+              hoverColor={hoverColor}
               underlineColor={borderColor}
             />
 
@@ -128,13 +108,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
               text="TEXT"
               onClick={() => handleNavClick('text')}
               isActive={currentView === 'text'}
-              className="text-xs md:text-sm uppercase font-mono"
-              style={{
-                letterSpacing: '0.15em',
-              }}
-              activeColor={textColor}
-              inactiveColor={textColorInactive}
-              hoverColor={textColorHover}
+              className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+              activeColor="text-white"
+              inactiveColor={inactiveColor}
+              hoverColor={hoverColor}
               underlineColor={borderColor}
             />
 
@@ -142,13 +119,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
               text="ABOUT"
               onClick={() => handleNavClick('about')}
               isActive={currentView === 'about'}
-              className="text-xs md:text-sm uppercase font-mono"
-              style={{
-                letterSpacing: '0.15em',
-              }}
-              activeColor={textColor}
-              inactiveColor={textColorInactive}
-              hoverColor={textColorHover}
+              className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+              activeColor="text-white"
+              inactiveColor={inactiveColor}
+              hoverColor={hoverColor}
               underlineColor={borderColor}
             />
           </nav>
@@ -160,17 +134,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
-        
-        /* Text shadow - stronger for index page (over images), subtle for other pages */
-        header h1,
-        header button,
-        header nav button,
-        header span {
-          text-shadow: ${currentView === 'index' 
-            ? '0 1px 8px rgba(0, 0, 0, 0.5), 0 2px 16px rgba(0, 0, 0, 0.3)' 
-            : '0 1px 2px rgba(255, 255, 255, 0.3)'
-          };
-        }
+        /* Mix-blend-mode를 사용할 때는 그림자가 오히려 가독성을 해칠 수 있어 제거하거나 최소화합니다 */
       `}</style>
     </header>
   );
