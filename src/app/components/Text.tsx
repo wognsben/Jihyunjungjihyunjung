@@ -2,10 +2,11 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Footer } from '@/app/components/Footer';
 import { Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWorks } from '@/contexts/WorkContext';
 import { motion, AnimatePresence } from 'motion/react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
-import { textData, Category } from '@/data/texts';
+import { Category } from '@/data/texts';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(TextPlugin);
@@ -63,6 +64,7 @@ export const Text = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const { lang } = useLanguage();
+  const { texts } = useWorks();
   
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
@@ -81,7 +83,7 @@ export const Text = () => {
 
   // Filter Logic
   const filteredData = useMemo(() => {
-    return textData.filter((item) => {
+    return texts.filter((item) => {
       if (activeCategory !== 'All' && item.category !== activeCategory) return false;
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
@@ -96,7 +98,7 @@ export const Text = () => {
       }
       return true;
     });
-  }, [activeCategory, searchQuery, lang]);
+  }, [activeCategory, searchQuery, lang, texts]);
 
   // Scroll & Intersection Logic
   useEffect(() => {

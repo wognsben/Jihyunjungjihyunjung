@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { worksData } from '@/data/works';
-import { textData } from '@/data/texts';
+import { useWorks } from '@/contexts/WorkContext';
 import { ArrowLeft } from 'lucide-react';
 import { YearNavigation } from './YearNavigation';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
@@ -23,11 +22,12 @@ const calculateDistance = (x1: number, y1: number, x2: number, y2: number) => {
 
 export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const { lang } = useLanguage();
+  const { works, texts } = useWorks();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [isMagnetic, setIsMagnetic] = useState(false);
 
   // Find the work by ID
-  const work = worksData.find(w => w.id === workId);
+  const work = works.find(w => w.id === workId);
 
   // ESC key handler
   useEffect(() => {
@@ -360,7 +360,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                   <div className="sticky top-40">
                     {(() => {
                         const article = work.relatedArticles[0];
-                        const textItem = textData.find(t => t.id === article.id);
+                        const textItem = texts.find(t => t.id === article.id);
                         const title = textItem ? textItem.title[lang] : article.title;
                         const author = textItem ? textItem.author[lang] : article.author;
                         const summary = textItem?.summary ? textItem.summary[lang] : article.summary;
@@ -396,7 +396,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                 <div className="md:col-span-7 lg:col-span-8">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12">
                     {work.relatedArticles.map((article) => {
-                       const textItem = textData.find(t => t.id === article.id);
+                       const textItem = texts.find(t => t.id === article.id);
                        const title = textItem ? textItem.title[lang] : article.title;
                        const author = textItem ? textItem.author[lang] : article.author;
                        const category = textItem ? textItem.category : 'Article';
@@ -445,7 +445,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
           {/* Year Navigation - Vertical List */}
           <div className="mt-32 pt-12 border-t border-border">
-            <YearNavigation allWorks={worksData} currentYear={work.year} />
+            <YearNavigation allWorks={works} currentYear={work.year} />
           </div>
         </div>
       </div>

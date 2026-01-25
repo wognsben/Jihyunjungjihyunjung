@@ -1,6 +1,6 @@
 import { useRef, useLayoutEffect, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { worksData, Work } from '@/data/works';
+import { useWorks } from '@/contexts/WorkContext';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -11,23 +11,35 @@ if (typeof window !== 'undefined') {
 
 export const WorkGrid = () => {
   const { lang } = useLanguage();
+  const { works } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
   
   const sortedWorks = useMemo(() => {
-    const baseSorted = [...worksData].sort((a, b) => {
-      const yearDiff = Number(b.year) - Number(a.year);
+    // Determine unique works based on image URL to avoid duplicates in grid if desired,
+    // or just use the API works directly.
+    // The previous logic handled duplicates because of specific mock data structure.
+    // With API, we might assume uniqueness or duplicates are intentional.
+    // Let's stick to the previous sorting logic but apply it to 'works'.
+    
+    if (!works || works.length === 0) return [];
+
+    const baseSorted = [...works].sort((a, b) => {
+      // Sort by year descending
+      const yearDiff = (b.year || 0) - (a.year || 0);
       if (yearDiff !== 0) return yearDiff;
       return b.id.localeCompare(a.id);
     });
 
+    // The de-duplication logic might not be needed for API data, 
+    // but let's keep it safe.
     const seenImages = new Set<string>();
-    const uniqueWorks: Work[] = [];
-    const duplicateWorks: Work[] = [];
+    const uniqueWorks: any[] = [];
+    const duplicateWorks: any[] = [];
 
     baseSorted.forEach(work => {
-      const imgUrl = work.thumbnail || work.galleryImages[0];
-      if (!seenImages.has(imgUrl)) {
+      const imgUrl = work.thumbnail || (work.galleryImages && work.galleryImages[0]);
+      if (imgUrl && !seenImages.has(imgUrl)) {
         seenImages.add(imgUrl);
         uniqueWorks.push(work);
       } else {
@@ -36,7 +48,7 @@ export const WorkGrid = () => {
     });
 
     return [...uniqueWorks, ...duplicateWorks];
-  }, []);
+  }, [works]);
 
   const columns = useMemo(() => {
     const cols: Work[][] = [[], [], [], []];

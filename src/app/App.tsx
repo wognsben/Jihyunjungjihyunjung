@@ -3,9 +3,8 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AnimatePresence } from 'motion/react';
 import '@/styles/fonts.css';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { WorkProvider, useWorks } from '@/contexts/WorkContext';
 import { Header } from '@/app/components/Header';
-// Footer is currently unused in App.tsx based on the read output
-// import { Footer } from '@/app/components/Footer'; 
 import { PremiumScrollSlider } from '@/app/components/PremiumScrollSlider';
 import { WorkGrid } from '@/app/components/WorkGrid';
 import { WorkDetail } from '@/app/components/WorkDetail';
@@ -13,16 +12,22 @@ import { About } from '@/app/components/About';
 import { Text } from '@/app/components/Text';
 import { NoiseOverlay } from '@/app/components/effects/NoiseOverlay';
 import { PageTransition } from '@/app/components/ui/PageTransition';
-import { getSelectedWorks, getAllWorks } from '@/data/works';
 
 type View = 'index' | 'work' | 'work-detail' | 'about' | 'text';
 
-function App() {
+function AppContent() {
+  const { works, isLoading } = useWorks();
   const [currentView, setCurrentView] = useState<View>('index');
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
-  const selectedWorks = getSelectedWorks();
-  const allWorks = getAllWorks();
+  
+  // Select top 5 works for the slider if 'selected' logic is not fully present, 
+  // or use the 'selected' flag if available.
+  const selectedWorks = works.length > 0 
+    ? (works.filter(w => w.selected).length > 0 
+        ? works.filter(w => w.selected).slice(0, 5) 
+        : works.slice(0, 5))
+    : [];
 
   // Handle hash-based routing
   useEffect(() => {
@@ -71,19 +76,14 @@ function App() {
 
   // Scroll to top whenever view changes
   useEffect(() => {
-    // Immediate scroll reset to ensure the new page starts at the top
     window.scrollTo(0, 0);
-    
-    // Safety check for mobile browsers or delayed rendering
     const timeoutId = setTimeout(() => {
       window.scrollTo(0, 0);
     }, 10);
-
     return () => clearTimeout(timeoutId);
   }, [currentView, selectedWorkId]);
 
   const handleNavigate = (view: View) => {
-    // Optimistic update for faster UI response
     setCurrentView(view);
     
     let hash = '#/';
@@ -94,41 +94,59 @@ function App() {
     window.location.hash = hash;
   };
 
+  // Optional: Loading state
+  if (isLoading && works.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground animate-pulse tracking-widest text-xs uppercase">
+          Loading Archives...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <NoiseOverlay />
+      <Header currentView={currentView} onNavigate={handleNavigate} isDarkBackground={isDarkBackground} />
+      
+      <AnimatePresence mode="wait">
+        {currentView === 'index' ? (
+          <PageTransition key="index" className="fixed inset-0 z-0">
+            <PremiumScrollSlider 
+              works={selectedWorks} 
+              onBrightnessChange={setIsDarkBackground}
+            />
+          </PageTransition>
+        ) : currentView === 'work-detail' ? (
+          <PageTransition key={`work-detail-${selectedWorkId}`} className="min-h-screen">
+            <WorkDetail workId={selectedWorkId} />
+          </PageTransition>
+        ) : currentView === 'about' ? (
+          <PageTransition key="about" className="min-h-screen">
+            <About />
+          </PageTransition>
+        ) : currentView === 'text' ? (
+          <PageTransition key="text" className="min-h-screen">
+            <Text />
+          </PageTransition>
+        ) : (
+          <PageTransition key="work" className="min-h-screen">
+            <WorkGrid />
+          </PageTransition>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function App() {
   return (
     <HelmetProvider>
       <LanguageProvider>
-        <div className="min-h-screen bg-background text-foreground">
-          <NoiseOverlay />
-          {/* Header shows on all pages */}
-          <Header currentView={currentView} onNavigate={handleNavigate} isDarkBackground={isDarkBackground} />
-          
-          <AnimatePresence mode="wait">
-            {currentView === 'index' ? (
-              <PageTransition key="index" className="fixed inset-0 z-0">
-                <PremiumScrollSlider 
-                  works={selectedWorks} 
-                  onBrightnessChange={setIsDarkBackground}
-                />
-              </PageTransition>
-            ) : currentView === 'work-detail' ? (
-              <PageTransition key={`work-detail-${selectedWorkId}`} className="min-h-screen">
-                <WorkDetail workId={selectedWorkId} />
-              </PageTransition>
-            ) : currentView === 'about' ? (
-              <PageTransition key="about" className="min-h-screen">
-                <About />
-              </PageTransition>
-            ) : currentView === 'text' ? (
-              <PageTransition key="text" className="min-h-screen">
-                <Text />
-              </PageTransition>
-            ) : (
-              <PageTransition key="work" className="min-h-screen">
-                <WorkGrid works={allWorks} />
-              </PageTransition>
-            )}
-          </AnimatePresence>
-        </div>
+        <WorkProvider>
+          <AppContent />
+        </WorkProvider>
       </LanguageProvider>
     </HelmetProvider>
   );

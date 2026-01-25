@@ -61,7 +61,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true }: Hea
               text="jihyunjung"
               onClick={() => onNavigate('index')}
               isActive={false}
-              className="text-lg md:text-xl font-light tracking-tight"
+              className="text-lg md:text-xl font-extralight tracking-tight"
               activeColor={baseColor}
               inactiveColor={baseColor}
               hoverColor={hoverColor}

@@ -22,6 +22,11 @@ export const PremiumImage = ({
 
   // Preload image
   useEffect(() => {
+    if (!src) {
+      setHasError(true);
+      return;
+    }
+    
     const img = new Image();
     img.src = src;
     img.onload = () => setIsLoaded(true);
@@ -31,13 +36,23 @@ export const PremiumImage = ({
   return (
     <div className={`relative overflow-hidden bg-[#F0F0F0] dark:bg-[#1A1A1A] ${aspectRatio} ${containerClassName}`}>
       {/* Skeleton / Loading State - Subtle Pulse */}
-      {!isLoaded && (
+      {!isLoaded && !hasError && (
         <div className="absolute inset-0 animate-pulse bg-neutral-200/50 dark:bg-neutral-800/50 z-10" />
       )}
 
+      {/* Error / No Image State */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 z-20">
+          <span className="text-[10px] uppercase tracking-widest text-neutral-400 font-mono">
+            No Image
+          </span>
+        </div>
+      )}
+
       {/* Actual Image */}
-      <ImageWithFallback
-        src={src}
+      {!hasError && (
+        <ImageWithFallback
+          src={src}
         alt={alt}
         className={`
           w-full h-full object-cover transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]
@@ -49,6 +64,7 @@ export const PremiumImage = ({
         decoding="async"
         {...props}
       />
+      )}
     </div>
   );
 };
