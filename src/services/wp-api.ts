@@ -13,20 +13,28 @@ const api = axios.create({
 // Helper to decode HTML entities in titles (e.g. "Dn&#038;D" -> "DnD")
 const decode = (str: string) => he.decode(str || '');
 
+// Helper to get full size URL by removing WP resolution suffix (e.g. -150x150)
+const getFullSizeUrl = (url: string): string => {
+  if (!url) return '';
+  // Matches -150x150.jpg, -300x200.png, -1024x768.webp etc. at the end of filename
+  return url.replace(/-\d+x\d+(\.[a-zA-Z]+)$/, '$1');
+};
+
 // Extract images from HTML content
 const extractImagesFromContent = (html: string): string[] => {
   const regex = /<img[^>]+src="([^">]+)"/g;
   const images: string[] = [];
   let match;
   while ((match = regex.exec(html)) !== null) {
-    images.push(match[1]);
+    images.push(getFullSizeUrl(match[1])); // Always try to get full size
   }
   return images;
 };
 
 // Transform WP Post to Application Work Interface
 const transformWork = (post: WPPost, lang: string): Work => {
-  const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+  const rawFeaturedImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+  const featuredImage = getFullSizeUrl(rawFeaturedImage);
   const contentImages = extractImagesFromContent(post.content.rendered);
   
   // Combine featured image + content images, removing duplicates
@@ -84,7 +92,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
 const transformText = (post: WPPost): TextItem => {
   const title = decode(post.title.rendered);
   const summary = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
-  const featuredImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+  const featuredImage = getFullSizeUrl(post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '');
   
   // Determine category from taxonomy
   let category: Category = 'Article';
