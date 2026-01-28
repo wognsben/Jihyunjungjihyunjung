@@ -45,10 +45,10 @@ const BlurReveal = ({ children, className, delay = 0 }: { children: string, clas
   return <p ref={elementRef} className={className}>{children}</p>;
 };
 
-import { YearNavigation } from './YearNavigation';
 import { GalleryItem } from '@/app/components/work/GalleryItem';
 import { SeoHead } from '@/app/components/seo/SeoHead';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
+import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
 
 interface WorkDetailProps {
   workId: string | null;
@@ -184,6 +184,10 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
   const handleClose = () => {
     window.location.hash = '#/work';
+  };
+
+  const handleWorkClick = (clickedWorkId: number) => {
+    window.location.hash = `#/work/${clickedWorkId}`;
   };
 
   const getTitle = () => {
@@ -494,11 +498,14 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           </div>
         )}
 
-        {/* Footer Navigation */}
-        <div className="mt-40 pt-12 border-t border-black/5 dark:border-white/5">
-          <YearNavigation allWorks={works} currentYear={work.year} />
-        </div>
+      </div>
 
+      {/* 🆕 INFINITE WORK GRID - Silent Luxury Exploration Zone */}
+      <div className="mt-40 border-t border-white/5">
+        <InfiniteWorkGrid 
+          works={works} 
+          onWorkClick={handleWorkClick}
+        />
       </div>
       
       <ScrollToTop />
