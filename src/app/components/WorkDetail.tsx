@@ -281,16 +281,6 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               )}
             </div>
 
-            {/* Column 3: Medium / Category */}
-            <div className="md:col-span-3 lg:col-span-2">
-              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
-                Category
-              </span>
-              <span className="block text-sm font-mono text-foreground/70">
-                {work.category}
-              </span>
-            </div>
-
              {/* Column 4: Client (If exists) or Empty */}
              <div className="md:col-span-2 lg:col-span-2">
               {work.client && (

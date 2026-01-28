@@ -190,16 +190,23 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
             // Silent Luxury Caption: 극도로 절제된 디자인
             const caption = document.createElement('div');
             caption.classList.add('infinite-grid-caption');
-            
-            caption.innerHTML = `
-              <span style="font-family: 'Italiana', serif; font-size: 0.75rem; letter-spacing: 0.1em; opacity: 0.9; color: black;">
-                ${workTitle}
-              </span>
-              <span style="font-family: 'Courier New', monospace; font-size: 0.65rem; opacity: 0.5; margin-left: 0.5rem; color: black;">
-                ${workYear}
-              </span>
-            `;
             caption.style.marginTop = '0.75rem';
+            caption.style.display = 'flex';
+            caption.style.alignItems = 'baseline';
+            caption.style.gap = '0.5rem';
+            
+            // 제목 span
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'font-serif text-xs tracking-wider opacity-90 text-black';
+            titleSpan.textContent = workTitle;
+            
+            // 연도 span
+            const yearSpan = document.createElement('span');
+            yearSpan.className = 'font-mono text-[0.65rem] opacity-50 text-black';
+            yearSpan.textContent = workYear;
+            
+            caption.appendChild(titleSpan);
+            caption.appendChild(yearSpan);
 
             const split = new SplitType(caption, { types: 'lines' });
             if (split.lines) {
@@ -286,13 +293,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       });
     };
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const factor = 0.35; // Slightly dampened for elegance
-      scrollRef.current.target.x -= e.deltaX * factor;
-      scrollRef.current.target.y -= e.deltaY * factor;
-    };
-
     const onMouseDown = (e: MouseEvent) => {
       e.preventDefault();
       dragRef.current.isDragging = true;
@@ -323,6 +323,10 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
     };
 
     const render = () => {
+      // Auto-scroll animation: gentle continuous movement
+      scrollRef.current.target.x += 0.2; // Slow horizontal drift
+      scrollRef.current.target.y += 0.1; // Subtle vertical drift
+      
       scrollRef.current.current.x += (scrollRef.current.target.x - scrollRef.current.current.x) * scrollRef.current.ease;
       scrollRef.current.current.y += (scrollRef.current.target.y - scrollRef.current.current.y) * scrollRef.current.ease;
 
@@ -372,7 +376,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
     resize();
     window.addEventListener('resize', resize);
-    window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('mousemove', onMouseMove);
     container.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
@@ -381,7 +384,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
     return () => {
       window.removeEventListener('resize', resize);
-      window.removeEventListener('wheel', onWheel);
       window.removeEventListener('mousemove', onMouseMove);
       container.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
@@ -391,7 +393,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   }, [works, onWorkClick]);
 
   return (
-    <div className="infinite-grid-section relative w-full" style={{ minHeight: '100vh' }}>
+    <div className="infinite-grid-section relative w-full" style={{ height: '70vh' }}>
       {/* Cynical Hint: Appears briefly then fades */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10 animate-fade-out" style={{ animationDelay: '2s', animationDuration: '2s', animationFillMode: 'forwards' }}>
         <span className="text-black/20 text-xs uppercase tracking-[0.3em] font-light">
@@ -402,7 +404,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       {/* Infinite Grid Container */}
       <div
         ref={containerRef}
-        className="infinite-grid-container relative w-full h-screen overflow-hidden bg-white"
+        className="infinite-grid-container relative w-full h-full overflow-hidden bg-white"
         style={{ cursor: 'grab' }}
       />
 
