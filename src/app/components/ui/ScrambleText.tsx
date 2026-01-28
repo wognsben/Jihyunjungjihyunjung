@@ -19,11 +19,12 @@ export const ScrambleText = ({
   scrambleSpeed = 30,
   preserveSpace = true,
 }: ScrambleTextProps) => {
-  const [displayText, setDisplayText] = useState('');
+  const [displayText, setDisplayText] = useState(text); // 초기값을 text로 변경
   const [isAnimating, setIsAnimating] = useState(false);
   const elementRef = useRef<HTMLSpanElement>(null);
   const startTimeRef = useRef<number>(0);
   const rafRef = useRef<number>(0);
+  const hasAnimatedRef = useRef(false); // 최초 애니메이션 여부 추적
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -72,31 +73,35 @@ export const ScrambleText = ({
       rafRef.current = requestAnimationFrame(animate);
     };
 
-    // Intersection Observer to trigger when visible
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isAnimating) {
-          timeout = setTimeout(startAnimation, delay);
-          observer.disconnect(); // Only play once
-        }
-      },
-      { threshold: 0.1 }
-    );
+    // 이미 애니메이션이 실행된 경우 (언어 전환 등)
+    if (hasAnimatedRef.current) {
+      // 바로 애니메이션 시작 (IntersectionObserver 없이)
+      timeout = setTimeout(startAnimation, 0);
+    } else {
+      // 최초 로드 시에만 IntersectionObserver 사용
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !isAnimating) {
+            hasAnimatedRef.current = true; // 최초 애니메이션 완료 표시
+            timeout = setTimeout(startAnimation, delay);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1 }
+      );
 
-    if (elementRef.current) {
-      // Set initial placeholder text (full scramble)
-      let initial = '';
-      for (let i = 0; i < text.length; i++) {
-        if (preserveSpace && text[i] === ' ') initial += ' ';
-        else initial += CHARS[Math.floor(Math.random() * CHARS.length)];
+      if (elementRef.current) {
+        observer.observe(elementRef.current);
       }
-      setDisplayText(initial);
-      
-      observer.observe(elementRef.current);
+
+      return () => {
+        observer.disconnect();
+        clearTimeout(timeout);
+        cancelAnimationFrame(rafRef.current);
+      };
     }
 
     return () => {
-      observer.disconnect();
       clearTimeout(timeout);
       cancelAnimationFrame(rafRef.current);
     };

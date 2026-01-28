@@ -21,6 +21,11 @@ export interface TextItem {
     ko: string;
     jp: string;
   };
+  content?: {
+    en: string;
+    ko: string;
+    jp: string;
+  };
 }
 
 export const textData: TextItem[] = [
@@ -69,7 +74,7 @@ export const textData: TextItem[] = [
     summary: {
       en: "Biologist Brian Isett uncovers the story of how the Earth got Her seasonal song, pondering the age-old question his young daughter will inevitably ask—Where did the Moon come from?",
       ko: "생물학자 브라이언 아이셋이 딸아이가 언젠가 물어볼 오래된 질문, '달은 어디서 왔을까?'를 고민하며 지구가 어떻게 계절의 노래를 갖게 되었는지에 대한 이야기를 들려줍니다.",
-      jp: "生物学者のブライアン・アイセットが、幼い娘がいずれ尋ねるであろう「月はどこから来たのか？」という古くからの問いに思いを馳せながら、地球がどのようにして季節の歌を持つようになったのかという物語を紐解きます。"
+      jp: "生物学者のブライ언・アイセットが、幼い娘がいずれ尋ねるであろう「月はどこから来たのか？」という古くからの問いに思い를馳せながら、地球がどのようにして季節の歌を持つようになったのかという物語を紐해킵니다。"
     }
   },
   { 
@@ -81,7 +86,7 @@ export const textData: TextItem[] = [
     summary: {
       en: "Terry Tempest Williams reflects on the sacred nature of hollow spaces and the resonance they hold within the landscape of memory.",
       ko: "테리 템페스트 윌리엄스가 텅 빈 공간의 신성함과 기억의 풍경 속에서 그것이 갖는 울림에 대해 성찰합니다.",
-      jp: "テリー・テンペスト・ウィリアムズが、空洞の神聖な性質と、それが記憶の風景の中で持つ共鳴について考察します。"
+      jp: "テリー・テンペ스트・ウィリアムズが、空洞の神聖な性질と、それが記憶の風景の中で持つ共鳴について考察します。"
     }
   },
   { 
@@ -189,7 +194,7 @@ export const textData: TextItem[] = [
   },
   { 
     id: 'post-608', year: '2016', category: 'Review', 
-    author: { en: 'Bbyabbya Kim', ko: '김뺘뺘', jp: 'Bbyabbya Kim' },
+    author: { en: 'Bbyabbya Kim', ko: '김뺘paRepository', jp: 'Bbyabbya Kim' },
     title: { en: 'Thinking of ◼︎◼︎◼︎ Repeatedly', ko: '◼︎◼︎◼︎을 자꾸 생각하기', jp: '◼︎◼︎◼︎を何度も考える' }, 
     link: '#/text',
     image: 'https://raw.githubusercontent.com/wognsben/gallery/main/24.jpg'
@@ -260,7 +265,7 @@ export const textData: TextItem[] = [
   { 
     id: 'post-334', year: '2011', category: 'Note', 
     author: { en: 'Jihyun Jung', ko: '정지현', jp: 'Jihyun Jung' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場所' }, 
+    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場소' }, 
     link: '#/text',
     image: ''
   },

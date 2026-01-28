@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { fetchWorks, fetchTexts } from '@/services/wp-api';
 import { Work } from '@/data/works';
 import { TextItem } from '@/data/texts';
@@ -15,12 +14,13 @@ interface WorkContextType {
 const WorkContext = createContext<WorkContextType | undefined>(undefined);
 
 export const WorkProvider = ({ children }: { children: ReactNode }) => {
-  const { lang } = useLanguage();
   const [works, setWorks] = useState<Work[]>([]);
   const [texts, setTexts] = useState<TextItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch data only once on mount (Korean data only)
+  // Translation will be handled at component level using DeepL
   useEffect(() => {
     let isMounted = true;
     
@@ -28,19 +28,15 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       setError(null);
       try {
+        // Fetch Korean data only (no longer depends on lang)
         const [fetchedWorks, fetchedTexts] = await Promise.all([
-          fetchWorks(lang),
-          fetchTexts(lang)
+          fetchWorks('ko'),
+          fetchTexts('ko')
         ]);
         
         if (isMounted) {
-          // If API returns empty (e.g. connection error or no posts), 
-          // consider falling back to mock data or just showing empty.
-          // For production, we usually want to show empty or error.
-          // But to be safe during dev if API fails:
           if (fetchedWorks.length === 0 && fetchedTexts.length === 0) {
-             console.warn('WordPress API returned no data. Using mock data as fallback? No, serving empty.');
-             // Uncomment to fallback: setWorks(mockWorks);
+             console.warn('WordPress API returned no data.');
              setWorks([]);
              setTexts([]);
           } else {
@@ -52,8 +48,6 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
         if (isMounted) {
           console.error('Failed to load WordPress data', err);
           setError('Failed to load data');
-          // Fallback to mock data on error?
-          // setWorks(mockWorks); 
         }
       } finally {
         if (isMounted) {
@@ -67,7 +61,7 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       isMounted = false;
     };
-  }, [lang]);
+  }, []); // Removed lang dependency - fetch only once
 
   const getWorkById = (id: string) => works.find(w => w.id === id);
 

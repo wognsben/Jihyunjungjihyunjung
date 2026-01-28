@@ -3,6 +3,7 @@ import { Footer } from '@/app/components/Footer';
 import { Search, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
+import { useTranslatedTexts } from '@/hooks/useTranslatedTexts';
 import { motion, AnimatePresence } from 'motion/react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
@@ -64,7 +65,8 @@ export const Text = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const { lang } = useLanguage();
-  const { texts } = useWorks();
+  const { texts: originalTexts } = useWorks();
+  const { texts } = useTranslatedTexts(originalTexts);
   
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
@@ -331,7 +333,7 @@ export const Text = () => {
           <div className="flex flex-col mt-4 md:mt-0">
             {filteredData.map((item, index) => (
               <motion.a
-                href={item.link}
+                href={`#/text/${item.id}`}
                 key={item.id}
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -344,7 +346,7 @@ export const Text = () => {
                 {/* Hover Background (Matches About.tsx style) */}
                 <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
 
-                <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_200px_80px] md:gap-8 md:items-baseline">
+                <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_80px] md:gap-8 md:items-baseline">
                   
                   {/* Title Area + Category */}
                   <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
@@ -360,18 +362,11 @@ export const Text = () => {
 
                   {/* Mobile Layout */}
                   <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)] group-hover/item:text-[var(--color-bg)]/70 transition-colors duration-300"> {/* Indent to align with title */}
-                     <span>{item.author[lang]}</span>
-                     <span className="w-[1px] h-3 bg-foreground/20 group-hover/item:bg-[var(--color-bg)]/20 transition-colors duration-300"></span>
                      <span className="font-mono text-xs">{item.year}</span>
                   </div>
 
-                  {/* Desktop Layout */}
-                  <div className="hidden md:block order-2 mt-2 md:mt-0 md:group-hover/item:translate-x-1 transition-transform duration-300 delay-75">
-                    <span className="text-xs font-light text-muted-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300">
-                      {item.author[lang]}
-                    </span>
-                  </div>
-                  <div className="hidden md:block order-3 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
+                  {/* Desktop Layout - Year Only (Author removed as it's in title) */}
+                  <div className="hidden md:block order-2 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
                     <span className="text-xs font-mono text-muted-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300">
                       {item.year}
                     </span>

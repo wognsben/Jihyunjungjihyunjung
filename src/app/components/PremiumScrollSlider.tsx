@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Work } from '@/data/works';
+import { PremiumImage } from '@/app/components/ui/PremiumImage';
 
 interface PremiumScrollSliderProps {
   works: Work[];
@@ -10,11 +11,16 @@ interface PremiumScrollSliderProps {
 export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: PremiumScrollSliderProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isDark, setIsDark] = useState(true); // 내부 UI용 밝기 상태 추가
+  const [isDark, setIsDark] = useState(true); 
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // 이미지 밝기 감지 함수 (Canvas API 사용)
+  // 이미지 밝기 감지 함수 (Canvas API 사용) - 비활성화 가능성 고려
+  // GitHub Raw 이미지는 CORS 이슈로 인해 Canvas tainting이 발생할 수 있음
+  // 이 경우 안전하게 기본값(Dark)을 반환하도록 처리
   const analyzeImageBrightness = (imageSrc: string) => {
+    if (!imageSrc) return;
+    
+    // Create a detached image specifically for analysis
     const img = new Image();
     img.crossOrigin = "Anonymous"; 
     img.src = imageSrc;
@@ -27,6 +33,8 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
 
         canvas.width = 50;
         canvas.height = 50;
+        
+        // This line might throw SecurityError if CORS headers are missing
         ctx.drawImage(img, 0, 0, 50, 50);
 
         const imageData = ctx.getImageData(0, 0, 50, 50);
@@ -37,6 +45,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
+          // Standard luminance formula
           const brightness = Math.sqrt(
             0.299 * (r * r) +
             0.587 * (g * g) +
@@ -48,14 +57,13 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         const avgBrightness = totalBrightness / (data.length / 4);
         const isDarkBackground = avgBrightness < 128;
         
-        setIsDark(isDarkBackground); // 내부 상태 업데이트
+        setIsDark(isDarkBackground); 
+        if (onBrightnessChange) onBrightnessChange(isDarkBackground);
         
-        if (onBrightnessChange) {
-          onBrightnessChange(isDarkBackground);
-        }
       } catch (e) {
-        console.warn("Brightness detection failed:", e);
-        setIsDark(true); // 실패 시 기본값
+        // Silent fail on CORS or other canvas errors -> Default to Dark theme
+        console.warn("Brightness analysis skipped (CORS/Canvas):", e);
+        setIsDark(true); 
         if (onBrightnessChange) onBrightnessChange(true);
       }
     };
@@ -68,13 +76,23 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
 
   // 활성 슬라이드 변경 시 밝기 감지 실행
   useEffect(() => {
-    if (works[activeIndex]) {
-      analyzeImageBrightness(works[activeIndex].thumbnail);
+    if (works && works.length > 0 && works[activeIndex]) {
+      // Run analysis in background, don't block rendering
+      const currentWork = works[activeIndex];
+      // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
+      const imageSrc = (currentWork.galleryImages && currentWork.galleryImages[0]) || currentWork.thumbnail;
+      analyzeImageBrightness(imageSrc);
     }
   }, [activeIndex, works]);
 
+  // 안전장치: works가 비어있으면 로딩 중 표시
+  if (!works || works.length === 0) {
+    return <div className="fixed inset-0 bg-black flex items-center justify-center text-white/20 text-xs tracking-widest uppercase">Loading Visuals...</div>; 
+  }
+
   // 슬라이드 이동 함수
   const navigateToSlide = (targetIndex: number) => {
+
     if (isTransitioning || targetIndex === activeIndex) return;
     
     setIsTransitioning(true);
@@ -86,6 +104,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
       setIsTransitioning(false);
     }, 1000);
   };
+
 
   // 휠 및 터치 이벤트 핸들링
   useEffect(() => {
@@ -166,7 +185,10 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none">
       {/* Background Images */}
-      {works.map((work, index) => (
+      {works.map((work, index) => {
+        // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
+        const imageSrc = (work.galleryImages && work.galleryImages[0]) || work.thumbnail;
+        return (
         <div
           key={work.id}
           className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
@@ -174,18 +196,19 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           }`}
           aria-hidden={index !== activeIndex}
         >
-          {/* HTML img 태그를 사용하여 원본 화질 유지 */}
-          <img
-            src={work.thumbnail}
+          {/* Use PremiumImage for consistent loading behavior */}
+          <PremiumImage
+            src={imageSrc}
             alt={work.title_en}
             className="w-full h-full object-cover"
+            containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}
           />
           {/* 미세한 딤 처리 (선택 사항 - 텍스트 가독성용) */}
           <div className="absolute inset-0 bg-black/10 pointer-events-none" />
         </div>
-      ))}
+      )})}
 
       {/* Navigation UI - Bottom Left (Smart Contrast) */}
       <nav className="fixed left-8 bottom-8 z-30">

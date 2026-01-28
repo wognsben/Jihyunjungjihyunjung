@@ -43,7 +43,13 @@ export interface WPPost {
     'wp:featuredmedia'?: WPImage[];
     'wp:term'?: WPCategory[][];
   };
-  // Custom fields might appear as direct properties or under 'acf' if they installed ACF later
-  // Based on user input, they are NOT using custom fields for title, but maybe for others.
-  // We will assume standard fields for now.
+  acf?: {
+    youtube_url?: string;
+    related_texts?: WPPost[]; // ACF Relationship field returns post objects
+    [key: string]: any;
+  };
+  meta?: {
+    youtube_url?: string;
+    [key: string]: any;
+  };
 }

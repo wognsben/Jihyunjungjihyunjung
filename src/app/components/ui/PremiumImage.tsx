@@ -55,7 +55,7 @@ export const PremiumImage = ({
           src={src}
         alt={alt}
         className={`
-          w-full h-full object-cover transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]
+          transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]
           ${isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-md'}
           ${className}
         `}

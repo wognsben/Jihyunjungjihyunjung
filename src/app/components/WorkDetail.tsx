@@ -2,9 +2,53 @@ import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { ArrowLeft } from 'lucide-react';
+import gsap from 'gsap';
+import SplitType from 'split-type';
+
+// Minimal Blur Reveal Component (Refined for Silent Luxury)
+const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
+  const elementRef = useRef<HTMLParagraphElement>(null);
+  
+  useEffect(() => {
+    if (!elementRef.current) return;
+    
+    const split = new SplitType(elementRef.current, { types: 'words' });
+    const words = split.words;
+    
+    if (!words) return;
+
+    gsap.set(words, { 
+      opacity: 0, 
+      filter: 'blur(10px)', 
+      y: 10, 
+      willChange: 'filter, opacity, transform'
+    });
+
+    const ctx = gsap.context(() => {
+      gsap.to(words, {
+        opacity: 1,
+        filter: 'blur(0px)',
+        y: 0,
+        duration: 1.2, // Slower, more elegant
+        stagger: 0.015, 
+        ease: 'power2.out', 
+        delay: delay
+      });
+    }, elementRef);
+
+    return () => {
+      ctx.revert();
+      split.revert();
+    };
+  }, [children, delay]); 
+
+  return <p ref={elementRef} className={className}>{children}</p>;
+};
+
 import { YearNavigation } from './YearNavigation';
-import { PremiumImage } from '@/app/components/ui/PremiumImage';
+import { GalleryItem } from '@/app/components/work/GalleryItem';
 import { SeoHead } from '@/app/components/seo/SeoHead';
+import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 
 interface WorkDetailProps {
   workId: string | null;
@@ -25,8 +69,30 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const { works, texts } = useWorks();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [isMagnetic, setIsMagnetic] = useState(false);
+  
+  // Floating Image Cursor Logic (Calm & Precise)
+  const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
+  const [hoveredArticleImg, setHoveredArticleImg] = useState<string | null>(null);
+  const cursorImgRef = useRef<HTMLDivElement>(null);
+  
+  // Mouse position
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!cursorImgRef.current || !hoveredArticleImg) return;
+      
+      const { clientX, clientY } = e;
+      const x = clientX + 40; 
+      const y = clientY + 40;
 
-  // Find the work by ID
+      cursorImgRef.current.animate({
+        transform: `translate(${x}px, ${y}px)`
+      }, { duration: 800, fill: 'forwards', easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }); // Slower easing
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    return () => window.removeEventListener('mousemove', handleWindowMouseMove);
+  }, [hoveredArticleImg]);
+  
   const work = works.find(w => w.id === workId);
 
   // ESC key handler
@@ -46,7 +112,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     if (!button) return;
 
     const triggerArea = 200; 
-    const interpolationFactor = 0.15; 
+    const interpolationFactor = 0.1; // Slower magnetic pull
     
     const lerpingData = {
       x: { current: 0, target: 0 },
@@ -80,8 +146,8 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
       
       if (distanceFromMouseToCenter < triggerArea) {
         setIsMagnetic(true);
-        targetHolder.x = (mousePosition.x - centerX) * 0.4;
-        targetHolder.y = (mousePosition.y - centerY) * 0.4;
+        targetHolder.x = (mousePosition.x - centerX) * 0.3;
+        targetHolder.y = (mousePosition.y - centerY) * 0.3;
       } else {
         setIsMagnetic(false);
       }
@@ -114,19 +180,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     };
   }, []);
 
-  // If work not found, show error
-  if (!work) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl mb-4">Work not found</h1>
-          <a href="#/work" className="text-sm underline hover:no-underline">
-            Back to Works
-          </a>
-        </div>
-      </div>
-    );
-  }
+  if (!work) return null;
 
   const handleClose = () => {
     window.location.hash = '#/work';
@@ -140,35 +194,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     }
   };
 
-  const getMedium = () => {
-    switch (lang) {
-      case 'ko': return work.medium_ko;
-      case 'jp': return work.medium_jp;
-      default: return work.medium_en;
-    }
-  };
-
   const getDescription = () => {
     switch (lang) {
       case 'ko': return work.description_ko;
       case 'jp': return work.description_jp;
       default: return work.description_en;
-    }
-  };
-
-  const getCommission = () => {
-    switch (lang) {
-      case 'ko': return work.commission_ko;
-      case 'jp': return work.commission_jp;
-      default: return work.commission_en;
-    }
-  };
-
-  const getCredits = () => {
-    switch (lang) {
-      case 'ko': return work.credits_ko;
-      case 'jp': return work.credits_jp;
-      default: return work.credits_en;
     }
   };
 
@@ -180,284 +210,298 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     }
   };
 
+  const getVimeoId = (url: string) => {
+    const match = url.match(/(?:vimeo.com\/|video\/)(\d+)/);
+    return match ? match[1] : null;
+  };
+
   const title = getTitle();
-  const medium = getMedium();
   const description = getDescription();
-  const commission = getCommission();
-  const credits = getCredits();
   const yearCaption = getYearCaption();
+  
+  const hasYoutube = !!work.youtubeUrl;
+  const hasVimeo = !!work.vimeoUrl;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background selection:bg-black/10 selection:text-black dark:selection:bg-white/20 dark:selection:text-white">
       <SeoHead 
         title={work.title_en}
         description={work.description_en ? work.description_en.slice(0, 160) : undefined}
         image={work.thumbnail}
       />
 
-      {/* Content */}
-      <div className="pt-32 md:pt-40 px-6 md:px-16 pb-32">
-        {/* Premium ESC Button - Left Top Floating */}
-        <div className="mb-16 md:mb-24">
+      {/* Content Container */}
+      <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1800px] mx-auto">
+        
+        {/* ESC Button - Fixed Position or Sticky if preferred, but keeping it in flow for now */}
+        <div className="fixed top-8 left-6 md:top-12 md:left-12 z-40 mix-blend-difference text-white dark:text-white">
           <button
             ref={buttonRef}
             onClick={handleClose}
-            className="group flex items-center gap-2.5 px-4 py-2 bg-transparent text-foreground"
+            className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
           >
-            <ArrowLeft className="w-4 h-4 transition-all duration-300 group-hover:-translate-x-1 opacity-60 group-hover:opacity-100" />
-            <span className="text-xs md:text-sm tracking-[0.2em] uppercase font-light opacity-60 group-hover:opacity-100">
-              ESC
+            <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
+            <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+              Back
             </span>
           </button>
         </div>
 
-        <div className="max-w-[1600px] mx-auto">
-          
-          {/* 1. Header Info Section (Text First) */}
-          <div className="mb-32 md:mb-48">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-16 lg:gap-x-12">
-              
-              {/* Left: Description (Wide) */}
-              <div className="lg:col-span-7">
-                {description && (
-                  <div className="space-y-6">
-                    {description.split('\n\n').map((paragraph, index) => (
-                      <p key={index} className="font-serif text-lg md:text-2xl leading-[1.6] text-foreground font-normal tracking-tight">
-                        {paragraph}
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Right: Meta Info (Compact List) */}
-              <div className="lg:col-span-4 lg:col-start-9">
-                <div className="grid grid-cols-2 gap-y-10 gap-x-8">
-                  {/* Title Block */}
-                  <div className="col-span-2 border-t border-black/10 dark:border-white/10 pt-4">
-                    <span className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">Project</span>
-                    <h1 className="text-base md:text-lg font-bold text-foreground leading-tight">
-                      {title}
-                    </h1>
-                  </div>
-
-                  {/* Year */}
-                  <div className="border-t border-black/10 dark:border-white/10 pt-4 group/year relative">
-                    <span className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">Year</span>
-                    <span className="block text-sm font-bold text-foreground cursor-help">{work.year}</span>
-                    
-                    {/* Minimal Year Caption Tooltip */}
-                    {yearCaption && (
-                      <div className="absolute left-0 -bottom-8 pointer-events-none opacity-0 translate-y-2 group-hover/year:opacity-100 group-hover/year:translate-y-0 transition-all duration-300 ease-out">
-                        <span className="text-xs text-muted-foreground font-medium tracking-tight whitespace-nowrap">
-                          {yearCaption}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Medium / Type */}
-                  {medium && (
-                    <div className="border-t border-black/10 dark:border-white/10 pt-4">
-                      <span className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">Discipline</span>
-                      <span className="block text-sm font-bold text-foreground">{medium}</span>
-                    </div>
-                  )}
-
-                  {/* Commission / Client */}
-                  {commission && (
-                    <div className="border-t border-black/10 dark:border-white/10 pt-4">
-                      <span className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">Client</span>
-                      <span className="block text-sm font-bold text-foreground">{commission}</span>
-                    </div>
-                  )}
-
-                  {/* Credits */}
-                  {credits && (
-                    <div className="col-span-2 border-t border-black/10 dark:border-white/10 pt-4">
-                      <span className="block text-xs uppercase tracking-wider text-muted-foreground mb-1">Credits</span>
-                      <span className="block text-sm font-bold text-foreground">{credits}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
+        {/* 1. Header Spec Sheet (The "Museum Caption" Style) */}
+        {/* Minimal borders, tiny text, wide spacing */}
+        <div className="mb-40 md:mb-64 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-y-8 border-t border-black/5 dark:border-white/10 pt-6">
+            
+            {/* Column 1: Title (Serif, Elegant) */}
+            <div className="md:col-span-4 lg:col-span-3">
+              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
+                Project Title
+              </span>
+              <h1 className="text-2xl md:text-3xl font-serif font-light text-foreground/90 leading-tight">
+                {title}
+              </h1>
             </div>
+
+            {/* Column 2: Year (Mono) */}
+            <div className="md:col-span-2 lg:col-span-2 md:col-start-6 lg:col-start-5">
+              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
+                Year
+              </span>
+              <span className="block text-sm font-mono text-foreground/70">
+                {work.year}
+              </span>
+              {yearCaption && (
+                 <span className="block text-[10px] text-muted-foreground/50 mt-1 font-serif italic">
+                   {yearCaption}
+                 </span>
+              )}
+            </div>
+
+            {/* Column 3: Medium / Category */}
+            <div className="md:col-span-3 lg:col-span-2">
+              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
+                Category
+              </span>
+              <span className="block text-sm font-mono text-foreground/70">
+                {work.category}
+              </span>
+            </div>
+
+             {/* Column 4: Client (If exists) or Empty */}
+             <div className="md:col-span-2 lg:col-span-2">
+              {work.client && (
+                <>
+                  <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
+                    Client
+                  </span>
+                  <span className="block text-sm font-mono text-foreground/70">
+                    {work.client}
+                  </span>
+                </>
+              )}
+            </div>
+
           </div>
 
-          {/* 2. Gallery Images (Rhythmic Grid) */}
-          <div className="space-y-24 md:space-y-32 mb-32">
-            {work.galleryImages.map((image, index) => {
-              // Layout Pattern Logic
-              let layoutClass = "w-full"; 
-              let containerClass = "w-full";
-              
-              const patternIndex = index % 3;
+          {/* Description - Offset & Indented */}
+          {description && (
+            <div className="mt-24 md:mt-32 grid grid-cols-1 md:grid-cols-12">
+               <div className="md:col-span-6 md:col-start-6 lg:col-span-5 lg:col-start-7 space-y-8">
+                 {description.split('\n\n').map((paragraph, index) => (
+                    <BlurReveal 
+                      key={index} 
+                      className={`
+                        font-serif text-foreground/80
+                        ${index === 0 
+                          ? 'text-lg md:text-xl leading-[1.6] opacity-90' 
+                          : 'text-sm md:text-base leading-[1.8] opacity-70'
+                        }
+                      `}
+                      delay={0.2 + (index * 0.1)}
+                    >
+                      {paragraph}
+                    </BlurReveal>
+                 ))}
+               </div>
+            </div>
+          )}
+        </div>
 
-              if (patternIndex === 1) {
-                // Left aligned, 70% width
-                containerClass = "flex justify-start";
-                layoutClass = "w-full md:w-[80%] aspect-[4/3]";
-              } else if (patternIndex === 2) {
-                // Right aligned, 60% width
-                containerClass = "flex justify-end";
-                layoutClass = "w-full md:w-[60%] aspect-[3/4]";
-              } else {
-                // Full width (index 0 or 3)
-                layoutClass = "w-full aspect-[16/9]";
-              }
-
-              return (
-                <div key={index} className={containerClass}>
-                  <div className={`relative overflow-hidden group ${layoutClass}`}>
-                    <PremiumImage
-                      src={image}
-                      alt={`${title} - View ${index + 1}`}
-                      className="w-full h-full object-cover object-center transition-transform duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.02]"
-                      containerClassName="w-full h-full"
-                    />
-                    
-                    {/* Floating Architect's Label (Bottom Right for Gallery) */}
-                    <div className="absolute right-6 bottom-6 pointer-events-none z-20">
-                       <div 
-                         className="
-                           flex items-center gap-3 px-4 py-2 
-                           bg-black/30 backdrop-blur-md border border-white/10 rounded-full 
-                           opacity-0 translate-y-4
-                           group-hover:opacity-100 group-hover:translate-y-0
-                           transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-                         "
-                       >
-                         <span className="text-white/90 font-mono text-xs tracking-widest uppercase">
-                           View {String(index + 1).padStart(2, '0')}
-                         </span>
-                         <span className="w-px h-3 bg-white/20" aria-hidden="true" />
-                         <span className="text-white/60 font-mono text-[10px] tracking-wider uppercase">
-                           {medium}
-                         </span>
-                       </div>
+        {/* 2. Gallery Images (Deep Breath Layout) */}
+        {/* Significantly increased vertical spacing for a "Walking through a gallery" feel */}
+        <div className="space-y-40 md:space-y-64 mb-40 md:mb-64">
+          
+          {/* Video Section */}
+          {(hasYoutube || hasVimeo) && (
+            <div className="w-full max-w-5xl mx-auto mb-40">
+              {hasYoutube && work.youtubeUrl && (
+                <div className="relative w-full aspect-video bg-black/5">
+                  <iframe
+                    src={work.youtubeUrl}
+                    title="Video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
+                  />
+                </div>
+              )}
+              {hasVimeo && work.vimeoUrl && (() => {
+                  const vimeoId = getVimeoId(work.vimeoUrl);
+                  return vimeoId ? (
+                    <div className="relative w-full aspect-video bg-black/5">
+                      <iframe
+                        src={`https://player.vimeo.com/video/${vimeoId}?color=ffffff&title=0&byline=0&portrait=0`}
+                        title="Vimeo"
+                        allow="autoplay; fullscreen; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
+                      />
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* 3. Related Texts Section (Refined) */}
-          {work.relatedArticles && work.relatedArticles.length > 0 && (
-            <div className="mb-32 pt-24 border-t border-black/10 dark:border-white/10">
-              <div className="flex flex-col md:flex-row justify-between items-baseline mb-16">
-                <h2 className="text-sm uppercase tracking-[0.2em] text-muted-foreground font-medium mb-4 md:mb-0">
-                  Related Texts
-                </h2>
-                <div className="hidden md:block w-full h-px bg-black/5 dark:bg-white/5 flex-1 ml-8" />
-                {/* Subtitle removed for cleaner look */}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
-                {/* Left: Lead Article (Featured) */}
-                <div className="md:col-span-5 lg:col-span-4">
-                  <div className="sticky top-40">
-                    {(() => {
-                        const article = work.relatedArticles[0];
-                        const textItem = texts.find(t => t.id === article.id);
-                        const title = textItem ? textItem.title[lang] : article.title;
-                        const author = textItem ? textItem.author[lang] : article.author;
-                        const summary = textItem?.summary ? textItem.summary[lang] : article.summary;
-                        const category = textItem ? textItem.category : 'Article';
-                        
-                        return (
-                           <>
-                            <span className="block text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold mb-2">
-                              {category}
-                            </span>
-                            <h3 className="text-3xl md:text-4xl font-serif font-normal leading-tight mb-4 text-foreground">
-                              {title}
-                            </h3>
-                            <p className="text-sm font-medium text-muted-foreground mb-12">
-                              {lang === 'ko' ? '저자 ' : lang === 'jp' ? '著者 ' : 'by '}{author}
-                            </p>
-                            
-                            <div className="space-y-6">
-                              <span className="text-xs uppercase tracking-widest font-semibold text-foreground/80 border-b border-foreground/20 pb-1 inline-block">
-                                {lang === 'ko' ? '읽기' : lang === 'jp' ? '読む' : 'Read'}
-                              </span>
-                              <p className="text-lg md:text-xl leading-relaxed text-foreground font-serif text-pretty">
-                                {summary}
-                              </p>
-                            </div>
-                           </>
-                        );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Right: Article List (Grid) */}
-                <div className="md:col-span-7 lg:col-span-8">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12">
-                    {work.relatedArticles.map((article) => {
-                       const textItem = texts.find(t => t.id === article.id);
-                       const title = textItem ? textItem.title[lang] : article.title;
-                       const author = textItem ? textItem.author[lang] : article.author;
-                       const category = textItem ? textItem.category : 'Article';
-                       
-                       // Use thumbnail from work data first (as it might be specific to this view), fallback to textData
-                       const image = article.thumbnail || (textItem ? textItem.image : '');
-
-                       return (
-                          <article key={article.id} className="group cursor-pointer">
-                            {/* Thumbnail */}
-                            <div className="aspect-[3/4] overflow-hidden bg-muted mb-4">
-                              {image ? (
-                                <PremiumImage
-                                  src={image}
-                                  alt={title}
-                                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                  containerClassName="w-full h-full"
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                                  <span className="text-muted-foreground/30 font-serif italic">No Image</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Meta */}
-                            <div className="space-y-2">
-                              <span className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
-                                {category}
-                              </span>
-                              <h4 className="text-base font-bold leading-snug group-hover:underline decoration-1 underline-offset-4 decoration-muted-foreground/50 transition-all">
-                                {title}
-                              </h4>
-                              <p className="text-xs text-muted-foreground font-medium">
-                                {lang === 'ko' ? '저자 ' : lang === 'jp' ? '著者 ' : 'by '}{author}
-                              </p>
-                            </div>
-                          </article>
-                       );
-                    })}
-                  </div>
-                </div>
-              </div>
+                  ) : null;
+                })()}
             </div>
           )}
 
-          {/* Year Navigation - Vertical List */}
-          <div className="mt-32 pt-12 border-t border-border">
-            <YearNavigation allWorks={works} currentYear={work.year} />
-          </div>
-        </div>
-      </div>
+          {work.galleryImages.map((image, index) => {
+            // More dramatic layout logic
+            // 0: Full width (Central)
+            // 1: Left aligned, medium
+            // 2: Right aligned, small
+            // 3: Right aligned, medium
+            // 4: Left aligned, small
+            const patternIndex = index % 5;
+            let layoutClass = "w-full";
+            let containerClass = "flex justify-center";
+            
+            if (patternIndex === 0) {
+              layoutClass = "w-full max-w-[90vw]";
+            } else if (patternIndex === 1) {
+              containerClass = "flex justify-start md:pl-[10%]";
+              layoutClass = "w-full md:w-[65%]";
+            } else if (patternIndex === 2) {
+              containerClass = "flex justify-end md:pr-[15%]";
+              layoutClass = "w-full md:w-[40%]";
+            } else if (patternIndex === 3) {
+              containerClass = "flex justify-end";
+              layoutClass = "w-full md:w-[75%]";
+            } else if (patternIndex === 4) {
+              containerClass = "flex justify-start md:pl-[5%]";
+              layoutClass = "w-full md:w-[50%]";
+            }
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-background">
-        <div className="px-6 md:px-16 py-8">
-          <p className="text-sm text-muted-foreground text-center">
-            © {new Date().getFullYear()} Jihyun Jung. All rights reserved.
-          </p>
+            return (
+              <GalleryItem
+                key={index}
+                index={index}
+                image={image}
+                title={title}
+                layoutClass={layoutClass}
+                containerClass={containerClass}
+                // Pass a flag to GalleryItem if needed to make it minimal (no heavy shadows/borders)
+              />
+            );
+          })}
         </div>
-      </footer>
+
+        {/* 3. Related Texts (The Archive) */}
+        {/* Extremely minimal list, barely there */}
+        {work.relatedArticles && work.relatedArticles.length > 0 && (
+          <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              
+              {/* Sticky Label */}
+              <div className="md:col-span-4 lg:col-span-3">
+                <div className="sticky top-40">
+                  <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">
+                    Related Texts
+                  </h2>
+                  {/* Summary Display */}
+                  <div className="hidden md:block min-h-[100px]">
+                    {hoveredArticleId && (
+                      <BlurReveal key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic">
+                         {(() => {
+                            const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
+                            const textItem = texts.find(t => t.id === article?.id);
+                            const summary = textItem?.summary ? textItem.summary[lang] : article?.summary;
+                            return summary ? summary.slice(0, 120) + "..." : "";
+                         })()}
+                      </BlurReveal>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="md:col-span-8 lg:col-span-9 relative">
+                 {/* Floating Preview Image */}
+                 <div 
+                    ref={cursorImgRef}
+                    className={`
+                      fixed top-0 left-0 z-50 pointer-events-none
+                      w-[240px] aspect-[4/3] overflow-hidden bg-background
+                      transition-opacity duration-300 ease-out border border-black/10
+                      ${hoveredArticleImg ? 'opacity-100' : 'opacity-0'}
+                    `}
+                  >
+                     {hoveredArticleImg && (
+                       <img 
+                         src={hoveredArticleImg} 
+                         alt="Preview" 
+                         className="w-full h-full object-cover grayscale contrast-125" 
+                       />
+                     )}
+                  </div>
+
+                  <div className="flex flex-col border-t border-black/10 dark:border-white/10">
+                    {work.relatedArticles.map((article, index) => {
+                       const textItem = texts.find(t => t.id === article.id);
+                       const displayTitle = textItem ? textItem.title[lang] : article.title;
+                       const isHovered = hoveredArticleId === article.id;
+                       
+                       return (
+                          <a
+                            key={article.id}
+                            href={`#/text/${article.id}`}
+                            className="group block relative"
+                            onMouseEnter={() => {
+                              setHoveredArticleId(article.id);
+                              if (textItem?.image) setHoveredArticleImg(textItem.image);
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredArticleId(null);
+                              setHoveredArticleImg(null);
+                            }}
+                          >
+                            <div className={`
+                              flex items-baseline py-8 border-b border-black/10 dark:border-white/10
+                              transition-all duration-300
+                              ${isHovered ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}
+                            `}>
+                              <span className="w-16 text-[10px] font-mono text-muted-foreground/60">
+                                {String(index + 1).padStart(2, '0')}
+                              </span>
+                              <h3 className="text-xl md:text-2xl font-serif font-light tracking-tight text-foreground/90">
+                                {displayTitle}
+                              </h3>
+                            </div>
+                          </a>
+                       );
+                    })}
+                  </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* Footer Navigation */}
+        <div className="mt-40 pt-12 border-t border-black/5 dark:border-white/5">
+          <YearNavigation allWorks={works} currentYear={work.year} />
+        </div>
+
+      </div>
+      
+      <ScrollToTop />
     </div>
   );
 };

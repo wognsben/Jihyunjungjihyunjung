@@ -31,6 +31,36 @@ const extractImagesFromContent = (html: string): string[] => {
   return images;
 };
 
+// Extract YouTube URL from content (iframe or link)
+const extractYouTubeUrl = (html: string): string | undefined => {
+  // Match YouTube iframe embed
+  const iframeRegex = /<iframe[^>]+src="([^"]*youtube\.com\/embed\/[^"]+)"/i;
+  const iframeMatch = html.match(iframeRegex);
+  if (iframeMatch) return iframeMatch[1];
+
+  // Match YouTube direct links
+  const linkRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/i;
+  const linkMatch = html.match(linkRegex);
+  if (linkMatch) return `https://www.youtube.com/embed/${linkMatch[1]}`;
+
+  return undefined;
+};
+
+// Extract Vimeo URL from content (iframe or link)
+const extractVimeoUrl = (html: string): string | undefined => {
+  // Match Vimeo iframe embed
+  const iframeRegex = /<iframe[^>]+src="([^"]*vimeo\.com\/video\/[^"]+)"/i;
+  const iframeMatch = html.match(iframeRegex);
+  if (iframeMatch) return iframeMatch[1];
+
+  // Match Vimeo direct links
+  const linkRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/i;
+  const linkMatch = html.match(linkRegex);
+  if (linkMatch) return `https://player.vimeo.com/video/${linkMatch[1]}`;
+
+  return undefined;
+};
+
 // Transform WP Post to Application Work Interface
 const transformWork = (post: WPPost, lang: string): Work => {
   const rawFeaturedImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
@@ -40,13 +70,41 @@ const transformWork = (post: WPPost, lang: string): Work => {
   // Combine featured image + content images, removing duplicates
   const galleryImages = Array.from(new Set([featuredImage, ...contentImages].filter(Boolean)));
 
-  // Try to find category for "Medium"
+  // Try to find category for "Medium" and "Year"
   let medium = 'Installation';
+  let yearFromCategory: number | undefined;
+  
   const terms = post._embedded?.['wp:term'];
   if (terms) {
     for (const taxonomyTerms of terms) {
       if (taxonomyTerms.length > 0 && taxonomyTerms[0].taxonomy === 'work_category') {
-        medium = taxonomyTerms.map(t => t.name).join(', ');
+        const mediumTerms: string[] = [];
+        const yearTerms: string[] = [];
+
+        taxonomyTerms.forEach(t => {
+          const name = t.name;
+          // Check if it looks like a year (e.g. "2023", "2024")
+          // Also handles ranges like "2023-2024" by taking the first 4 digits
+          if (/^\d{4}/.test(name)) {
+             yearTerms.push(name);
+          } else {
+             mediumTerms.push(name);
+          }
+        });
+
+        // If we found year-like categories, use the first one
+        if (yearTerms.length > 0) {
+          // Parse the first 4 digits as the year number
+          const match = yearTerms[0].match(/^(\d{4})/);
+          if (match) {
+            yearFromCategory = parseInt(match[1], 10);
+          }
+        }
+        
+        // Join the rest as medium
+        if (mediumTerms.length > 0) {
+          medium = mediumTerms.join(', ');
+        }
         break;
       }
     }
@@ -55,6 +113,90 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const title = decode(post.title.rendered);
   const description = post.content.rendered; 
   const descriptionText = description.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim();
+
+  // Extract YouTube URL from ACF, meta, or content
+  let youtubeUrl: string | undefined;
+  if (post.acf?.youtube_url) {
+    youtubeUrl = post.acf.youtube_url;
+  } else if (post.meta?.youtube_url) {
+    youtubeUrl = post.meta.youtube_url;
+  } else {
+    youtubeUrl = extractYouTubeUrl(post.content.rendered);
+  }
+
+  // Extract Vimeo URL from ACF, meta, or content
+  let vimeoUrl: string | undefined;
+  if (post.acf?.vimeo_url) {
+    vimeoUrl = post.acf.vimeo_url;
+  } else if (post.meta?.vimeo_url) {
+    vimeoUrl = post.meta.vimeo_url;
+  } else {
+    vimeoUrl = extractVimeoUrl(post.content.rendered);
+  }
+
+  // Transform ACF related_texts to RelatedArticle[]
+  let relatedArticles: Work['relatedArticles'] = undefined;
+  if (post.acf?.related_texts && Array.isArray(post.acf.related_texts) && post.acf.related_texts.length > 0) {
+    // ACF Relationship field returns array of IDs when "Post ID" return format is selected
+    // OR array of post objects when "Post Object" return format is selected
+    relatedArticles = post.acf.related_texts.map((item: any) => {
+      // Check if it's a number (ID) or object (full post)
+      if (typeof item === 'number') {
+        // It's just an ID - check if we have embedded data
+        const embeddedPosts = post._embedded?.['acf:post'];
+        if (embeddedPosts && Array.isArray(embeddedPosts)) {
+          const textPost = embeddedPosts.find((p: any) => p.id === item);
+          if (textPost) {
+            return {
+              id: String(textPost.id),
+              title: textPost.title?.rendered ? decode(textPost.title.rendered) : 'Untitled',
+              author: 'Ji Hyun Jung',
+              summary: textPost.excerpt?.rendered ? decode(textPost.excerpt.rendered.replace(/<[^>]+>/g, '').trim()) : '',
+              thumbnail: textPost._embedded?.['wp:featuredmedia']?.[0]?.source_url 
+                ? getFullSizeUrl(textPost._embedded['wp:featuredmedia'][0].source_url) 
+                : '',
+              link: textPost.link || '',
+            };
+          }
+        }
+        // If no embedded data found, return minimal info with ID
+        // The frontend can match this with texts data
+        return {
+          id: String(item),
+          title: '', // Will be filled from texts context
+          author: 'Ji Hyun Jung',
+          summary: '',
+          thumbnail: '',
+          link: '',
+        };
+      } else {
+        // It's a full post object
+        const textTitle = item.title?.rendered 
+          ? decode(item.title.rendered) 
+          : (item.post_title || item.title || 'Untitled');
+        
+        const textSummary = item.excerpt?.rendered 
+          ? decode(item.excerpt.rendered.replace(/<[^>]+>/g, '').trim())
+          : (item.post_excerpt || '');
+        
+        const textThumbnail = item._embedded?.['wp:featuredmedia']?.[0]?.source_url
+          ? getFullSizeUrl(item._embedded['wp:featuredmedia'][0].source_url)
+          : '';
+        
+        const textId = item.ID || item.id || '';
+        const textLink = item.guid?.rendered || item.link || item.url || '';
+        
+        return {
+          id: String(textId),
+          title: textTitle,
+          author: 'Ji Hyun Jung',
+          summary: textSummary,
+          thumbnail: textThumbnail,
+          link: textLink,
+        };
+      }
+    }).filter(article => article && article.id); // Remove any invalid entries
+  }
 
   const isSelected = false; 
 
@@ -65,7 +207,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
     title_en: title,
     title_jp: title,
 
-    year: new Date(post.date).getFullYear(),
+    year: yearFromCategory || new Date(post.date).getFullYear(),
     
     medium_ko: medium,
     medium_en: medium,
@@ -82,6 +224,9 @@ const transformWork = (post: WPPost, lang: string): Work => {
     description_jp: descriptionText,
 
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
+    youtubeUrl,
+    vimeoUrl,
+    relatedArticles, // Add related texts from ACF
     selected: isSelected,
     order: 0,
   };
@@ -94,19 +239,44 @@ const transformText = (post: WPPost): TextItem => {
   const summary = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
   const featuredImage = getFullSizeUrl(post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '');
   
+  // Extract full content and clean HTML
+  const contentHtml = post.content.rendered || '';
+  const contentText = decode(contentHtml.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim());
+  
   // Determine category from taxonomy
   let category: Category = 'Article';
   const terms = post._embedded?.['wp:term'];
+  
   if (terms) {
+    // Flatten all terms from all taxonomies to find 'text_category'
+    // terms is an array of arrays (one per taxonomy)
     for (const taxonomyTerms of terms) {
+      // Check if this group of terms belongs to 'text_category'
       if (taxonomyTerms.length > 0 && taxonomyTerms[0].taxonomy === 'text_category') {
-        // Map WP category to TextItem Category ('Article' | 'Note' | 'Review')
-        const catName = taxonomyTerms[0].name;
-        if (['Article', 'Note', 'Review'].includes(catName)) {
-          category = catName as Category;
+        // Iterate through all terms assigned to this post in this taxonomy
+        for (const term of taxonomyTerms) {
+          const name = (term.name || '').toLowerCase();
+          const slug = (term.slug || '').toLowerCase();
+
+          // Check for 'Review' (English or Korean '리뷰')
+          if (name.includes('review') || name.includes('리뷰') || slug.includes('review')) {
+            category = 'Review';
+            break; 
+          }
+          // Check for 'Note' (English or Korean '노트')
+          else if (name.includes('note') || name.includes('노트') || slug.includes('note')) {
+            category = 'Note';
+            break;
+          }
+          // Check for 'Article' (English or Korean '아티클', '에세이')
+          else if (name.includes('article') || name.includes('아티클') || slug.includes('article')) {
+            category = 'Article';
+            break;
+          }
         }
-        break;
       }
+      // If we found a non-default category, we can stop searching
+      if (category !== 'Article') break;
     }
   }
 
@@ -130,15 +300,20 @@ const transformText = (post: WPPost): TextItem => {
       en: summary,
       ko: summary,
       jp: summary
+    },
+    content: {
+      en: contentText,
+      ko: contentText,
+      jp: contentText
     }
   };
 };
 
 export const fetchWorks = async (lang: string = 'ko'): Promise<Work[]> => {
   try {
+    // Always fetch Korean data only (no lang parameter needed after Polylang removal)
     const response = await api.get('/work', {
       params: {
-        lang,
         _embed: 1,
         per_page: 100,
       },
@@ -149,16 +324,16 @@ export const fetchWorks = async (lang: string = 'ko'): Promise<Work[]> => {
       order: index + 1
     }));
   } catch (error) {
-    console.error(`Error fetching works for lang ${lang}:`, error);
+    console.error(`Error fetching works:`, error);
     return [];
   }
 };
 
 export const fetchTexts = async (lang: string = 'ko'): Promise<TextItem[]> => {
   try {
+    // Always fetch Korean data only (no lang parameter needed after Polylang removal)
     const response = await api.get('/text', {
       params: {
-        lang,
         _embed: 1,
         per_page: 100,
       },
@@ -166,7 +341,7 @@ export const fetchTexts = async (lang: string = 'ko'): Promise<TextItem[]> => {
 
     return response.data.map(transformText);
   } catch (error) {
-    console.error(`Error fetching texts for lang ${lang}:`, error);
+    console.error(`Error fetching texts:`, error);
     return [];
   }
 };
