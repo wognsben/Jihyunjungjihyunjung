@@ -234,7 +234,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
       <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1800px] mx-auto">
         
         {/* ESC Button - Fixed Position or Sticky if preferred, but keeping it in flow for now */}
-        <div className="fixed top-8 left-6 md:top-12 md:left-12 z-40 mix-blend-difference text-white dark:text-white">
+        <div className="fixed top-8 left-6 md:top-12 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
           <button
             ref={buttonRef}
             onClick={handleClose}
@@ -242,7 +242,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           >
             <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
             <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-              Back
+              ESC
             </span>
           </button>
         </div>

@@ -41,8 +41,8 @@ export const ScrollToTop = ({ showAfterScroll }: ScrollToTopProps) => {
     const button = buttonRef.current;
     if (!button || !isVisible) return;
 
-    const triggerArea = 120;
-    const interpolationFactor = 0.15;
+    const triggerArea = 150;
+    const interpolationFactor = 0.12;
 
     const lerpingData = {
       x: { current: 0, target: 0 },
@@ -76,8 +76,8 @@ export const ScrollToTop = ({ showAfterScroll }: ScrollToTopProps) => {
 
       if (distanceFromMouseToCenter < triggerArea) {
         setIsMagnetic(true);
-        targetHolder.x = (mousePosition.x - centerX) * 0.35;
-        targetHolder.y = (mousePosition.y - centerY) * 0.35;
+        targetHolder.x = (mousePosition.x - centerX) * 0.28;
+        targetHolder.y = (mousePosition.y - centerY) * 0.28;
       } else {
         setIsMagnetic(false);
       }
@@ -129,26 +129,33 @@ export const ScrollToTop = ({ showAfterScroll }: ScrollToTopProps) => {
       ref={buttonRef}
       onClick={handleClick}
       className={`
-        fixed bottom-8 right-8 z-50
-        w-14 h-14 md:w-16 md:h-16
-        rounded-full
-        bg-foreground text-background
-        shadow-2xl
+        fixed bottom-10 right-10 md:bottom-12 md:right-12 z-50
+        w-12 h-12 md:w-14 md:h-14
+        border border-foreground/10
+        bg-background/80 backdrop-blur-md
+        text-foreground
         flex items-center justify-center
-        transition-all duration-300 ease-out
-        hover:scale-110
-        ${isMagnetic ? 'scale-110' : 'scale-100'}
+        transition-all duration-500 ease-out
+        ${isMagnetic ? 'scale-110 border-foreground/30' : 'scale-100'}
         group
+        hover:bg-foreground hover:text-background
       `}
       aria-label="Scroll to top"
     >
-      <ArrowUp 
-        className="w-5 h-5 md:w-6 md:h-6 transition-transform duration-300 group-hover:-translate-y-0.5" 
-        strokeWidth={2}
-      />
+      {/* Flipped ν Symbol */}
+      <span 
+        className="text-lg font-light transition-transform duration-500 group-hover:-translate-y-0.5"
+        style={{ 
+          transform: 'scaleY(-1)',
+          display: 'inline-block',
+          fontFamily: 'Georgia, serif'
+        }}
+      >
+        ν
+      </span>
       
-      {/* Ripple effect on hover */}
-      <span className="absolute inset-0 rounded-full bg-foreground/20 scale-0 group-hover:scale-150 transition-transform duration-500 ease-out" />
+      {/* Subtle glow on hover */}
+      <span className="absolute inset-0 bg-foreground/5 scale-0 group-hover:scale-100 transition-transform duration-700 ease-out" />
     </button>
   );
 };

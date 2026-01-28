@@ -85,11 +85,6 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     }
   }, [activeIndex, works]);
 
-  // 안전장치: works가 비어있으면 로딩 중 표시
-  if (!works || works.length === 0) {
-    return <div className="fixed inset-0 bg-black flex items-center justify-center text-white/20 text-xs tracking-widest uppercase">Loading Visuals...</div>; 
-  }
-
   // 슬라이드 이동 함수
   const navigateToSlide = (targetIndex: number) => {
 
@@ -181,6 +176,11 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
+
+  // 안전장치: works가 비어있으면 로딩 중 표시
+  if (!works || works.length === 0) {
+    return null; // early return하되 아무것도 렌더링하지 않음
+  }
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none">
