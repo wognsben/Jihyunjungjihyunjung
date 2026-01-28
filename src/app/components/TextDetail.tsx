@@ -47,8 +47,8 @@ export const TextDetail = ({ textId }: TextDetailProps) => {
     const button = buttonRef.current;
     if (!button) return;
 
-    const triggerArea = 200; 
-    const interpolationFactor = 0.15; 
+    const triggerArea = 100; // Reduced from 200px to 100px
+    const interpolationFactor = 0.1; // Slower magnetic pull (changed from 0.15) 
     
     const lerpingData = {
       x: { current: 0, target: 0 },
@@ -157,15 +157,15 @@ export const TextDetail = ({ textId }: TextDetailProps) => {
           </div>
 
           <div className="relative pt-32 md:pt-40 px-6 md:px-16 pb-32 max-w-5xl mx-auto">
-            {/* Premium ESC Button - Stays in flow */}
+            {/* ESC Button - Unified with WorkDetail */}
             <div className="mb-16 md:mb-24 flex justify-start">
               <button
                 ref={buttonRef}
                 onClick={handleClose}
-                className="group flex items-center gap-2.5 px-4 py-2.5 bg-transparent text-foreground border border-foreground/10 rounded-full hover:border-foreground/30 transition-all duration-300"
+                className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
               >
-                <ArrowLeft className="w-4 h-4 transition-all duration-300 group-hover:-translate-x-1" />
-                <span className="text-xs md:text-sm tracking-[0.2em] uppercase font-light">
+                <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
+                <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">
                   ESC
                 </span>
               </button>

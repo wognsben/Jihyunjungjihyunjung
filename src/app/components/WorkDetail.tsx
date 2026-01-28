@@ -111,7 +111,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     const button = buttonRef.current;
     if (!button) return;
 
-    const triggerArea = 200; 
+    const triggerArea = 100; // Reduced from 200px to 100px
     const interpolationFactor = 0.1; // Slower magnetic pull
     
     const lerpingData = {
@@ -234,7 +234,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
       <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1800px] mx-auto">
         
         {/* ESC Button - Fixed Position or Sticky if preferred, but keeping it in flow for now */}
-        <div className="fixed top-8 left-6 md:top-12 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
+        <div className="fixed top-24 md:top-32 left-6 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
           <button
             ref={buttonRef}
             onClick={handleClose}

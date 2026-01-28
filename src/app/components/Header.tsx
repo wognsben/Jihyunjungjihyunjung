@@ -84,24 +84,33 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   // --------------------------------------------------------------------------------
   const renderContextLabel = () => {
     switch (currentView) {
-      case 'index': return '00. INDEX / OVERVIEW';
-      case 'work': return '01. SELECTED WORKS';
+      case 'index': return 'INDEX / OVERVIEW';
+      case 'work': return 'SELECTED WORKS';
       case 'work-detail': 
         if (detailTitle) {
           return (
             <span className="flex items-baseline gap-2">
-              <span>01. WORK /</span>
-              {/* Italiana 폰트 적용: 크기를 약간 키우고(-ml-1 등으로 조정 가능) 우아함을 강조 */}
+              {/* Italiana 폰트 적용: 우아함을 강조 */}
               <span className="font-['Italiana'] text-sm md:text-base tracking-widest opacity-100 relative top-[1px]">
                 {detailTitle.toUpperCase()}
               </span>
             </span>
           );
         }
-        return '01. WORK / DETAIL VIEW';
-      case 'text': return '02. CRITIQUE & ESSAYS';
-      case 'text-detail': return '02. TEXT / READING';
-      case 'about': return '03. STUDIO INFORMATION';
+        return 'DETAIL VIEW';
+      case 'text': return 'CRITIQUE & ESSAYS';
+      case 'text-detail': 
+        if (detailTitle) {
+          return (
+            <span className="flex items-baseline gap-2">
+              <span className="font-['Italiana'] text-sm md:text-base tracking-widest opacity-100 relative top-[1px]">
+                {detailTitle.toUpperCase()}
+              </span>
+            </span>
+          );
+        }
+        return 'READING';
+      case 'about': return 'STUDIO INFORMATION';
       default: return '';
     }
   };

@@ -17,7 +17,7 @@ type View = 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
 
 function AppContent() {
   const { lang } = useLanguage();
-  const { works, isLoading } = useWorks();
+  const { works, isLoading, texts } = useWorks();
   const [currentView, setCurrentView] = useState<View>('index');
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
@@ -56,12 +56,27 @@ function AppContent() {
   // Find the currently viewed work object (for retrieving title)
   const currentWork = selectedWorkId ? works.find(w => w.id === selectedWorkId) : null;
   
-  // Resolve title based on current language
+  // Resolve work title based on current language
   const currentWorkTitle = currentWork ? (
     lang === 'ko' ? currentWork.title_ko :
     lang === 'jp' ? currentWork.title_jp :
     currentWork.title_en
   ) : undefined;
+
+  // Find the currently viewed text object (for retrieving title)
+  const currentText = selectedTextId ? texts.find(t => t.id === selectedTextId) : null;
+  
+  // Resolve text title based on current language
+  const currentTextTitle = currentText ? (
+    lang === 'ko' ? currentText.title.ko :
+    lang === 'jp' ? currentText.title.jp :
+    currentText.title.en
+  ) : undefined;
+  
+  // Determine which detail title to show based on current view
+  const detailTitle = currentView === 'work-detail' ? currentWorkTitle : 
+                      currentView === 'text-detail' ? currentTextTitle : 
+                      undefined;
 
   // Handle hash-based routing
   useEffect(() => {
@@ -155,7 +170,7 @@ function AppContent() {
         currentView={currentView} 
         onNavigate={handleNavigate} 
         isDarkBackground={isDarkBackground}
-        detailTitle={currentWorkTitle}
+        detailTitle={detailTitle}
       />
       
       <AnimatePresence mode="wait">
