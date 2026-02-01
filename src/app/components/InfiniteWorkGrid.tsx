@@ -1,456 +1,303 @@
-import { useEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
-import SplitType from 'split-type';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { Work } from '@/contexts/WorkContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+
+// --- Utility: Line Break Logic ---
+const lineBreak = (text: string, max: number, container: HTMLElement) => {
+  const document = container.ownerDocument;
+  
+  const getTotalWidth = (el: HTMLElement) =>
+    Array.from(el.children).reduce((acc, child) => acc + (child as HTMLElement).getBoundingClientRect().width, 0);
+
+  const createNewLine = () => {
+    const span = document.createElement('span');
+    span.classList.add('grid-text-line');
+    span.style.display = 'block';
+    span.style.willChange = 'transform';
+    return span;
+  };
+
+  const words = text.split(/\s/).map((w, i) => {
+    const span = document.createElement('span');
+    span.classList.add('word');
+    span.style.display = 'inline-block';
+    span.innerHTML = (i > 0 ? ' ' : '') + w;
+    return span;
+  });
+
+  container.innerHTML = '';
+  
+  words.forEach((word, i) => {
+    if (i > 0 && word.innerHTML.startsWith(' ')) {
+      word.style.paddingLeft = '0.2em';
+    }
+  });
+
+  if (getTotalWidth(container) > max) {
+    container.innerHTML = '';
+    let currentLine = createNewLine();
+    container.appendChild(currentLine);
+
+    words.forEach(word => {
+      currentLine.appendChild(word);
+      if (getTotalWidth(currentLine) > max && currentLine.children.length > 1) {
+        currentLine.removeChild(word);
+        currentLine = createNewLine();
+        currentLine.appendChild(word);
+        container.appendChild(currentLine);
+      }
+    });
+  } else {
+    const line = createNewLine();
+    words.forEach(word => line.appendChild(word));
+    container.appendChild(line);
+  }
+};
+
+// --- Physics & Animation Types ---
+class ColumnAnimation {
+  el: HTMLElement;
+  reverse: boolean;
+  scroll: { current: number; target: number; last: number; ease: number };
+  speed: { t: number; c: number };
+  defaultSpeed: number;
+  height: number = 0;
+  items: any[] = [];
+  winH: number = 0;
+  paused: boolean = false;
+  
+  constructor(el: HTMLElement, reverse: boolean) {
+    this.el = el;
+    this.reverse = reverse;
+    this.scroll = { ease: 0.05, current: 0, target: 0, last: 0 };
+    this.speed = { t: 0.4, c: 0.4 }; 
+    this.defaultSpeed = 0.4; 
+    
+    this.resize();
+
+    // Initial offset for Right Column (Reverse)
+    if (this.reverse && this.height > 0) {
+        const startOffset = -this.height / 2;
+        this.scroll.current = startOffset;
+        this.scroll.target = startOffset;
+    }
+  }
+
+  resize() {
+    this.winH = window.innerHeight;
+    const content = this.el.querySelector('.column-content') as HTMLElement;
+    if (!content) return;
+
+    this.items = Array.from(content.children).map((item: any) => {
+        return {
+            el: item as HTMLElement,
+            height: item.clientHeight,
+            top: item.offsetTop,
+            y: 0,
+            extra: 0
+        };
+    });
+    
+    this.height = content.scrollHeight;
+  }
+
+  update(autoScroll: boolean = true) {
+    if (this.paused) {
+        this.speed.t = 0;
+    } else if (autoScroll) {
+        this.speed.t = this.defaultSpeed;
+    }
+    
+    this.speed.c += (this.speed.t - this.speed.c) * 0.03;
+    
+    this.scroll.target += this.speed.c;
+    this.scroll.current += (this.scroll.target - this.scroll.current) * this.scroll.ease;
+
+    this.items.forEach(item => {
+        if (!this.reverse) {
+            // LEFT COLUMN: Moves UP
+            item.y = -this.scroll.current + item.extra;
+            
+            const visualTop = item.y + item.top;
+            if (visualTop + item.height < -100) { 
+                item.extra += this.height;
+            }
+        } else {
+             // RIGHT COLUMN: Moves DOWN
+             item.y = this.scroll.current + item.extra;
+             
+             const visualTop = item.y + item.top;
+             if (visualTop > this.winH + 100) {
+                 item.extra -= this.height;
+             }
+        }
+        
+        item.el.style.transform = `translateY(${item.y}px)`;
+    });
+
+    this.scroll.last = this.scroll.current;
+  }
+}
 
 interface InfiniteWorkGridProps {
   works: Work[];
   onWorkClick?: (workId: number) => void;
 }
 
-interface GridItem {
-  el: HTMLDivElement;
-  container: HTMLDivElement;
-  wrapper: HTMLDivElement;
-  img: HTMLImageElement;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  extraX: number;
-  extraY: number;
-  rect: DOMRect;
-  ease: number;
-  workId: number;
-}
-
 export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) => {
+  const { lang } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef({
-    ease: 0.06,
-    current: { x: 0, y: 0 },
-    target: { x: 0, y: 0 },
-    last: { x: 0, y: 0 },
-    delta: { x: { c: 0, t: 0 }, y: { c: 0, t: 0 } }
-  });
-  const mouseRef = useRef({
-    x: { t: 0.5, c: 0.5 },
-    y: { t: 0.5, c: 0.5 },
-    press: { t: 0, c: 0 }
-  });
-  const dragRef = useRef({
-    isDragging: false,
-    startX: 0,
-    startY: 0,
-    scrollX: 0,
-    scrollY: 0
-  });
-  const tileSizeRef = useRef({ w: 0, h: 0 });
-  const itemsRef = useRef<GridItem[]>([]);
-  const rafRef = useRef<number>();
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const introItemsRef = useRef<HTMLDivElement[]>([]);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  
+  const animationsRef = useRef<ColumnAnimation[]>([]);
+  const requestRef = useRef<number>();
 
-  // Silent Luxury 레이아웃: 더 타이트하고 비대칭적인 그리드
-  // 원본 Figma 사이즈에서 60%로 축소하여 절제미 강화
-  const layoutData = [
-    { x: 71, y: 58, w: 240, h: 162 },    // 60% scaled
-    { x: 211, y: 255, w: 324, h: 216 },
-    { x: 631, y: 158, w: 240, h: 162 },
-    { x: 1191, y: 245, w: 156, h: 117 },
-    { x: 351, y: 687, w: 156, h: 174 },
-    { x: 751, y: 824, w: 123, h: 92 },
-    { x: 911, y: 540, w: 156, h: 210 },
-    { x: 1051, y: 803, w: 240, h: 180 },
-    { x: 71, y: 922, w: 210, h: 156 },
-  ];
+  const [hoveredWork, setHoveredWork] = useState<Work | null>(null);
 
-  const originalSize = { w: 1522, h: 1238 };
+  const repeatedWorks = useMemo(() => {
+      if (works.length === 0) return [];
+      let list = [...works];
+      while (list.length < 30) {
+          list = [...list, ...works];
+      }
+      return list;
+  }, [works]);
+
+  const leftWorks = repeatedWorks.filter((_, i) => i % 2 === 0);
+  const rightWorks = repeatedWorks.filter((_, i) => i % 2 !== 0);
+
+  // Hover Handlers
+  const handleMouseEnter = (work: Work) => {
+      setHoveredWork(work);
+      animationsRef.current.forEach(anim => anim.paused = true);
+  };
+
+  const handleMouseLeave = () => {
+      setHoveredWork(null);
+      animationsRef.current.forEach(anim => anim.paused = false);
+  };
 
   useEffect(() => {
-    if (!containerRef.current || works.length === 0) {
-      console.warn('InfiniteWorkGrid: Container or works not ready', { 
-        hasContainer: !!containerRef.current, 
-        worksLength: works.length 
-      });
-      return;
-    }
-
-    console.log('InfiniteWorkGrid: Initializing with works:', works);
-
-    const container = containerRef.current;
-    let winW = window.innerWidth;
-    let winH = window.innerHeight;
-
-    // IntersectionObserver for caption visibility
-    observerRef.current = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        entry.target.classList.toggle('visible', entry.isIntersecting);
-      });
-    });
-
-    const resize = () => {
-      winW = window.innerWidth;
-      winH = window.innerHeight;
-
-      tileSizeRef.current = {
-        w: winW,
-        h: winW * (originalSize.h / originalSize.w),
-      };
-
-      scrollRef.current.current = { x: 0, y: 0 };
-      scrollRef.current.target = { x: 0, y: 0 };
-      scrollRef.current.last = { x: 0, y: 0 };
-
-      container.innerHTML = '';
-
-      const scaleX = tileSizeRef.current.w / originalSize.w;
-      const scaleY = tileSizeRef.current.h / originalSize.h;
-
-      const baseItems = layoutData.map((d, i) => {
-        const work = works[i % works.length];
-        return {
-          work,
-          x: d.x * scaleX,
-          y: d.y * scaleY,
-          w: d.w * scaleX,
-          h: d.h * scaleY,
-        };
-      });
-
-      itemsRef.current = [];
-      const repsX = [0, tileSizeRef.current.w];
-      const repsY = [0, tileSizeRef.current.h];
-
-      baseItems.forEach(base => {
-        repsX.forEach(offsetX => {
-          repsY.forEach(offsetY => {
-            const el = document.createElement('div');
-            el.classList.add('infinite-grid-item');
-            el.style.width = `${base.w}px`;
-            el.style.position = 'absolute';
-            el.style.cursor = 'pointer';
-
-            const wrapper = document.createElement('div');
-            wrapper.classList.add('infinite-grid-wrapper');
-            el.appendChild(wrapper);
-
-            const itemImage = document.createElement('div');
-            itemImage.classList.add('infinite-grid-image');
-            itemImage.style.width = `${base.w}px`;
-            itemImage.style.height = `${base.h}px`;
-            itemImage.style.overflow = 'hidden';
-            wrapper.appendChild(itemImage);
-
-            // WordPress title 추출 (title_ko, title_en, title_jp 중 하나)
-            const workTitle = base.work.title_ko || base.work.title_en || base.work.title_jp || 'UNTITLED';
-            const workYear = base.work.year || '';
-
-            const img = new Image();
-            // WorkGrid와 동일한 fallback: thumbnail → galleryImages[0]
-            const imgSrc = base.work.thumbnail || (base.work.galleryImages && base.work.galleryImages[0]) || '';
-            
-            if (!imgSrc) {
-              console.warn(`No image URL for work: ${workTitle}`, base.work);
-              // 이미지가 없으면 플레이스홀더 표시
-              itemImage.style.background = '#e5e5e5';
-              itemImage.innerHTML = `
-                <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.7rem; font-family: 'Courier New', monospace;">
-                  NO IMAGE
-                </div>
-              `;
-            } else {
-              console.log(`Loading image for ${workTitle}:`, imgSrc);
-              
-              img.src = imgSrc;
-              img.style.width = '100%';
-              img.style.height = '100%';
-              img.style.objectFit = 'cover';
-              img.style.willChange = 'transform';
-              
-              // Debug: 이미지 로딩 확인
-              img.onload = () => {
-                console.log('Image loaded successfully:', imgSrc);
-              };
-              
-              img.onerror = () => {
-                console.warn('Image failed to load:', imgSrc);
-                // 이미지 로딩 실패시 플레이스홀더
-                itemImage.style.background = '#e5e5e5';
-                itemImage.innerHTML = `
-                  <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 0.7rem; font-family: 'Courier New', monospace;">
-                    LOAD FAILED
-                  </div>
-                `;
-              };
-              
-              itemImage.appendChild(img);
-            }
-
-            // Silent Luxury Caption: 극도로 절제된 디자인
-            const caption = document.createElement('div');
-            caption.classList.add('infinite-grid-caption');
-            caption.style.marginTop = '0.75rem';
-            caption.style.display = 'flex';
-            caption.style.alignItems = 'baseline';
-            caption.style.gap = '0.5rem';
-            
-            // 제목 span
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'font-serif text-xs tracking-wider opacity-90 text-black';
-            titleSpan.textContent = workTitle;
-            
-            // 연도 span
-            const yearSpan = document.createElement('span');
-            yearSpan.className = 'font-mono text-[0.65rem] opacity-50 text-black';
-            yearSpan.textContent = workYear;
-            
-            caption.appendChild(titleSpan);
-            caption.appendChild(yearSpan);
-
-            const split = new SplitType(caption, { types: 'lines' });
-            if (split.lines) {
-              split.lines.forEach((line, i) => {
-                (line as HTMLElement).style.transitionDelay = `${i * 0.15}s`;
-              });
-            }
-
-            wrapper.appendChild(caption);
-            container.appendChild(el);
-            observerRef.current?.observe(caption);
-
-            // Click handler
-            el.addEventListener('click', () => {
-              if (!dragRef.current.isDragging && onWorkClick) {
-                onWorkClick(Number(base.work.id));
-              }
-            });
-
-            itemsRef.current.push({
-              el,
-              container: itemImage,
-              wrapper,
-              img,
-              x: base.x + offsetX,
-              y: base.y + offsetY,
-              w: base.w,
-              h: base.h,
-              extraX: 0,
-              extraY: 0,
-              rect: el.getBoundingClientRect(),
-              ease: Math.random() * 0.5 + 0.5,
-              workId: Number(base.work.id),
-            });
-          });
+    const setupText = (container: HTMLElement | null) => {
+        if (!container) return;
+        const paragraphs = container.querySelectorAll('p.smart-text-source');
+        paragraphs.forEach(p => {
+             lineBreak(p.textContent || '', p.parentElement?.clientWidth || 300, p as HTMLElement);
+             p.classList.remove('opacity-0');
         });
-      });
-
-      tileSizeRef.current.w *= 2;
-      tileSizeRef.current.h *= 2;
-
-      scrollRef.current.current.x = scrollRef.current.target.x = scrollRef.current.last.x = -winW * 0.1;
-      scrollRef.current.current.y = scrollRef.current.target.y = scrollRef.current.last.y = -winH * 0.1;
-
-      // Init intro animation with delay to ensure DOM is ready
-      setTimeout(() => {
-        initIntro();
-        intro();
-      }, 100);
     };
 
-    const initIntro = () => {
-      introItemsRef.current = Array.from(container.querySelectorAll('.infinite-grid-wrapper')).filter((item) => {
-        const rect = item.getBoundingClientRect();
-        return (
-          rect.x > -rect.width &&
-          rect.x < window.innerWidth + rect.width &&
-          rect.y > -rect.height &&
-          rect.y < window.innerHeight + rect.height
-        );
-      }) as HTMLDivElement[];
-
-      introItemsRef.current.forEach((item) => {
-        const rect = item.getBoundingClientRect();
-        const x = -rect.x + window.innerWidth * 0.5 - rect.width * 0.5;
-        const y = -rect.y + window.innerHeight * 0.5 - rect.height * 0.5;
-        gsap.set(item, { x, y });
-      });
-    };
-
-    const intro = () => {
-      // Check if we have items before animating
-      if (introItemsRef.current.length === 0) {
-        console.warn('No intro items found for animation');
-        return;
-      }
-
-      gsap.to(introItemsRef.current.reverse(), {
-        duration: 3.5, // Slower for Silent Luxury
-        ease: 'power2.inOut', // More elegant
-        x: 0,
-        y: 0,
-        stagger: 0.08, // More breathing room
-      });
-    };
-
-    const onMouseDown = (e: MouseEvent) => {
-      e.preventDefault();
-      dragRef.current.isDragging = true;
-      document.documentElement.classList.add('dragging');
-      mouseRef.current.press.t = 1;
-      dragRef.current.startX = e.clientX;
-      dragRef.current.startY = e.clientY;
-      dragRef.current.scrollX = scrollRef.current.target.x;
-      dragRef.current.scrollY = scrollRef.current.target.y;
-    };
-
-    const onMouseUp = () => {
-      dragRef.current.isDragging = false;
-      document.documentElement.classList.remove('dragging');
-      mouseRef.current.press.t = 0;
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      mouseRef.current.x.t = e.clientX / winW;
-      mouseRef.current.y.t = e.clientY / winH;
-
-      if (dragRef.current.isDragging) {
-        const dx = e.clientX - dragRef.current.startX;
-        const dy = e.clientY - dragRef.current.startY;
-        scrollRef.current.target.x = dragRef.current.scrollX + dx;
-        scrollRef.current.target.y = dragRef.current.scrollY + dy;
-      }
-    };
-
-    const render = () => {
-      // Auto-scroll animation: gentle continuous movement
-      scrollRef.current.target.x += 0.2; // Slow horizontal drift
-      scrollRef.current.target.y += 0.1; // Subtle vertical drift
-      
-      scrollRef.current.current.x += (scrollRef.current.target.x - scrollRef.current.current.x) * scrollRef.current.ease;
-      scrollRef.current.current.y += (scrollRef.current.target.y - scrollRef.current.current.y) * scrollRef.current.ease;
-
-      scrollRef.current.delta.x.t = scrollRef.current.current.x - scrollRef.current.last.x;
-      scrollRef.current.delta.y.t = scrollRef.current.current.y - scrollRef.current.last.y;
-      scrollRef.current.delta.x.c += (scrollRef.current.delta.x.t - scrollRef.current.delta.x.c) * 0.04;
-      scrollRef.current.delta.y.c += (scrollRef.current.delta.y.t - scrollRef.current.delta.y.c) * 0.04;
-      mouseRef.current.x.c += (mouseRef.current.x.t - mouseRef.current.x.c) * 0.04;
-      mouseRef.current.y.c += (mouseRef.current.y.t - mouseRef.current.y.c) * 0.04;
-      mouseRef.current.press.c += (mouseRef.current.press.t - mouseRef.current.press.c) * 0.04;
-
-      const dirX = scrollRef.current.current.x > scrollRef.current.last.x ? 'right' : 'left';
-      const dirY = scrollRef.current.current.y > scrollRef.current.last.y ? 'down' : 'up';
-
-      itemsRef.current.forEach(item => {
-        // Reduced parallax for more restraint (5 → 3)
-        const newX = 3 * scrollRef.current.delta.x.c * item.ease + (mouseRef.current.x.c - 0.5) * item.rect.width * 0.4;
-        const newY = 3 * scrollRef.current.delta.y.c * item.ease + (mouseRef.current.y.c - 0.5) * item.rect.height * 0.4;
-        const scrollX = scrollRef.current.current.x;
-        const scrollY = scrollRef.current.current.y;
-        const posX = item.x + scrollX + item.extraX + newX;
-        const posY = item.y + scrollY + item.extraY + newY;
-
-        const beforeX = posX > winW;
-        const afterX = posX + item.rect.width < 0;
-        if (dirX === 'right' && beforeX) item.extraX -= tileSizeRef.current.w;
-        if (dirX === 'left' && afterX) item.extraX += tileSizeRef.current.w;
-
-        const beforeY = posY > winH;
-        const afterY = posY + item.rect.height < 0;
-        if (dirY === 'down' && beforeY) item.extraY -= tileSizeRef.current.h;
-        if (dirY === 'up' && afterY) item.extraY += tileSizeRef.current.h;
-
-        const fx = item.x + scrollX + item.extraX + newX;
-        const fy = item.y + scrollY + item.extraY + newY;
-        item.el.style.transform = `translate(${fx}px, ${fy}px)`;
+    const timer = setTimeout(() => {
+        setupText(leftRef.current);
+        setupText(rightRef.current);
         
-        // Subtle hover effect: slight scale + reduced parallax
-        item.img.style.transform = `scale(${1.05 + 0.05 * mouseRef.current.press.c * item.ease}) translate(${-mouseRef.current.x.c * item.ease * 5}%, ${-mouseRef.current.y.c * item.ease * 5}%)`;
-      });
+        if (leftRef.current && rightRef.current) {
+            animationsRef.current = [
+                new ColumnAnimation(leftRef.current, false), 
+                new ColumnAnimation(rightRef.current, true)
+            ];
+        }
+    }, 200);
 
-      scrollRef.current.last.x = scrollRef.current.current.x;
-      scrollRef.current.last.y = scrollRef.current.current.y;
+    return () => clearTimeout(timer);
+  }, [works, lang, repeatedWorks]);
 
-      rafRef.current = requestAnimationFrame(render);
+  useEffect(() => {
+    const loop = () => {
+        animationsRef.current.forEach(anim => anim.update(true));
+        requestRef.current = requestAnimationFrame(loop);
     };
-
-    resize();
-    window.addEventListener('resize', resize);
-    window.addEventListener('mousemove', onMouseMove);
-    container.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mouseup', onMouseUp);
-
-    rafRef.current = requestAnimationFrame(render);
-
+    loop();
     return () => {
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mouseup', onMouseUp);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (observerRef.current) observerRef.current.disconnect();
+        if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [works, onWorkClick]);
+  }, []);
+
+  if (works.length === 0) return null;
 
   return (
-    <div className="infinite-grid-section relative w-full" style={{ height: '70vh' }}>
-      {/* Cynical Hint: Appears briefly then fades */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10 animate-fade-out" style={{ animationDelay: '2s', animationDuration: '2s', animationFillMode: 'forwards' }}>
-        <span className="text-black/20 text-xs uppercase tracking-[0.3em] font-light">
-          Drag to Explore
-        </span>
-      </div>
+    <div ref={containerRef} className="relative w-full h-[120vh] bg-white text-black overflow-hidden selection:bg-black/10">
+       <style>{`
+         .grid-text-line { display: block; white-space: nowrap; will-change: transform; overflow: hidden; line-height: 1.2; }
+         .word { display: inline-block; }
+         .smart-text-source { transition: opacity 0.5s ease-out; } 
+       `}</style>
 
-      {/* Infinite Grid Container */}
-      <div
-        ref={containerRef}
-        className="infinite-grid-container relative w-full h-full overflow-hidden bg-white"
-        style={{ cursor: 'grab' }}
-      />
+       {/* Center Content: JIHYUNJUNG */}
+       {/* Moved UP by changing justify-center to justify-start and adding padding-top */}
+       <div className="absolute inset-0 z-10 flex flex-col items-center justify-start pt-[35vh] pointer-events-none">
+          {/* Main Title */}
+          <h1 className="text-[3vw] md:text-[2.5vw] font-serif font-light tracking-[0.2em] leading-none text-black z-20 transition-all duration-700">
+            JIHYUN JUNG
+          </h1>
+          
+          {/* Hover Image Layer - Positioned Spatially BELOW the text in Flex Flow */}
+          {/* Static positioning (margin-top) ensures stable layout and correct layering "below" text */}
+          <div className={`mt-10 w-[30vw] h-[40vh] md:w-[20vw] md:h-[35vh] z-10 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredWork ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            {hoveredWork && (
+                <div className="w-full h-full bg-gray-50 overflow-hidden shadow-2xl">
+                     {/* FIX: Use correct property 'thumbnail' or 'galleryImages[0]' instead of 'image_url' */}
+                     <ImageWithFallback 
+                        src={hoveredWork.thumbnail || hoveredWork.galleryImages?.[0] || ''} 
+                        alt={hoveredWork.title_en}
+                        className="object-cover w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-700"
+                    />
+                </div>
+            )}
+          </div>
+       </div>
 
-      {/* Custom Styles */}
-      <style>{`
-        .dragging .infinite-grid-container {
-          cursor: grabbing !important;
-        }
+       {/* Grid Container */}
+       <div className="absolute inset-0 flex justify-between px-4 md:px-16 z-20 pointer-events-none mix-blend-multiply">
+          
+          {/* Left Column - Moving UP */}
+          <div ref={leftRef} className="column h-full w-[30%] md:w-[25%] relative overflow-visible pointer-events-auto">
+             <div className="column-content w-full absolute top-0 left-0 will-change-transform">
+                {leftWorks.map((work, i) => (
+                    <div 
+                        key={`left-${i}`} 
+                        className="mb-40 cursor-pointer group" 
+                        onClick={() => onWorkClick?.(Number(work.id))}
+                        onMouseEnter={() => handleMouseEnter(work)}
+                        onMouseLeave={handleMouseLeave}
+                    >
+                        {/* Title <Year> Format */}
+                        <p className="smart-text-source opacity-0 text-sm md:text-base font-serif text-black transition-colors duration-700 leading-relaxed">
+                           {work.title_en}
+                           <span className="inline-block ml-2 text-[9px] md:text-[10px] font-mono text-black transition-colors duration-700 align-middle">
+                             &lt;{work.year}&gt;
+                           </span>
+                        </p>
+                    </div>
+                ))}
+             </div>
+          </div>
 
-        .infinite-grid-item {
-          will-change: transform;
-        }
-
-        .infinite-grid-wrapper {
-          will-change: transform;
-          transition: opacity 0.3s ease;
-        }
-
-        .infinite-grid-image {
-          background: #f5f5f5;
-        }
-
-        .infinite-grid-caption {
-          opacity: 0;
-          transform: translateY(10px);
-          transition: opacity 0.6s ease, transform 0.6s ease;
-        }
-
-        .infinite-grid-caption.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        @keyframes fade-out {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
-        }
-
-        .animate-fade-out {
-          animation-name: fade-out;
-        }
-      `}</style>
+          {/* Right Column - Moving DOWN */}
+          <div ref={rightRef} className="column h-full w-[30%] md:w-[25%] relative overflow-visible text-right pointer-events-auto">
+             <div className="column-content w-full absolute top-0 right-0 will-change-transform flex flex-col items-end">
+                {rightWorks.map((work, i) => (
+                    <div 
+                        key={`right-${i}`} 
+                        className="mb-40 cursor-pointer group w-full text-right" 
+                        onClick={() => onWorkClick?.(Number(work.id))}
+                        onMouseEnter={() => handleMouseEnter(work)}
+                        onMouseLeave={handleMouseLeave}
+                    >
+                         {/* Title <Year> Format */}
+                         <p className="smart-text-source opacity-0 text-sm md:text-base font-serif text-black transition-colors duration-700 leading-relaxed ml-auto">
+                           {work.title_en}
+                           <span className="inline-block ml-2 text-[9px] md:text-[10px] font-mono text-black transition-colors duration-700 align-middle">
+                             &lt;{work.year}&gt;
+                           </span>
+                        </p>
+                    </div>
+                ))}
+             </div>
+          </div>
+       </div>
     </div>
   );
 };

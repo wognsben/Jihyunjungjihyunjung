@@ -3,96 +3,86 @@ import gsap from 'gsap';
 
 export const CustomCursor = () => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [cursorState, setCursorState] = useState<'default' | 'active' | 'dot'>('default');
+  const [isHovering, setIsHovering] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const cursor = cursorRef.current;
     if (!cursor) return;
 
-    // Initial set
+    // Center the anchor point
     gsap.set(cursor, { xPercent: -50, yPercent: -50 });
 
-    const moveCursor = (e: MouseEvent) => {
-      gsap.to(cursor, {
-        x: e.clientX,
-        y: e.clientY,
-        duration: 0.2,
-        ease: 'power2.out'
-      });
+    const xTo = gsap.quickTo(cursor, "x", { duration: 0.2, ease: "power3.out" });
+    const yTo = gsap.quickTo(cursor, "y", { duration: 0.2, ease: "power3.out" });
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isVisible) setIsVisible(true);
+      xTo(e.clientX);
+      yTo(e.clientY);
+
+      // Check for interactivity directly on move for responsiveness
+      // (Optional: use event delegation for better performance if DOM is huge)
+    };
+    
+    // Use event delegation for hover state to ensure we catch all elements
+    const onMouseOver = (e: MouseEvent) => {
+       const target = e.target as HTMLElement;
+       const isLink = 
+         target.tagName === 'A' || 
+         target.tagName === 'BUTTON' ||
+         target.tagName === 'INPUT' ||
+         target.tagName === 'TEXTAREA' ||
+         target.closest('a') !== null ||
+         target.closest('button') !== null ||
+         window.getComputedStyle(target).cursor === 'pointer';
+         
+       setIsHovering(isLink);
     };
 
-    const onMouseDown = () => gsap.to(cursor, { scale: 0.8 });
-    const onMouseUp = () => gsap.to(cursor, { scale: 1 });
-
-    // Global event delegation for hover states
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      // Check for dot cursor trigger
-      const dotTarget = target.matches('[data-cursor="dot"]') || target.closest('[data-cursor="dot"]');
-      
-      if (dotTarget) {
-        setCursorState('dot');
-        return;
-      }
-
-      // Check if the target or its closest parent is interactive
-      const isInteractive = target.matches('a, button, input, textarea, select, .interactive') || 
-                           target.closest('a, button, input, textarea, select, .interactive');
-      
-      setCursorState(isInteractive ? 'active' : 'default');
-    };
-
-    window.addEventListener('mousemove', moveCursor);
-    window.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('mouseover', handleMouseOver);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseover', onMouseOver);
 
     return () => {
-      window.removeEventListener('mousemove', moveCursor);
-      window.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('mouseover', handleMouseOver);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseover', onMouseOver);
     };
-  }, []);
+  }, [isVisible]);
 
   useEffect(() => {
-    const cursor = cursorRef.current;
-    if (!cursor) return;
-
-    if (cursorState === 'dot') {
-      // Minimalist dot cursor for clean text reading
-      gsap.to(cursor, { 
-        scale: 0.2, 
-        opacity: 1, 
-        mixBlendMode: 'normal',
-        backgroundColor: '#fbae4e', // Use accent color (orange) for visibility
-        boxShadow: '0 0 10px rgba(251, 174, 78, 0.5)' // Soft glow
-      });
-    } else if (cursorState === 'active') {
-      gsap.to(cursor, { 
-        scale: 1.2, 
-        opacity: 1, // Increased opacity for better contrast
-        mixBlendMode: 'exclusion', // Changed from 'difference' to 'exclusion' to match About page style
-        backgroundColor: '#ffffff',
-        boxShadow: 'none'
+    if (!cursorRef.current) return;
+    
+    if (isHovering) {
+      // Scale up and maybe become slightly transparent or ring-like
+      gsap.to(cursorRef.current, { 
+          scale: 3, 
+          opacity: 1,
+          duration: 0.3, 
+          ease: "back.out(1.7)" 
       });
     } else {
-      gsap.to(cursor, { 
-        scale: 1, 
-        opacity: 1, 
-        mixBlendMode: 'exclusion',
-        backgroundColor: '#ffffff',
-        boxShadow: 'none'
+      gsap.to(cursorRef.current, { 
+          scale: 1, 
+          opacity: 1,
+          duration: 0.3, 
+          ease: "power2.out" 
       });
     }
-  }, [cursorState]);
+  }, [isHovering]);
 
   return (
-    <div 
-      ref={cursorRef}
-      className="fixed top-0 left-0 w-3 h-3 bg-white rounded-full pointer-events-none z-[9999]"
-      style={{ transform: 'translate(-50%, -50%)' }}
-    />
+    <>
+        <style>{`
+            @media (hover: hover) and (pointer: fine) {
+                * {
+                    cursor: none !important;
+                }
+            }
+        `}</style>
+        <div 
+            ref={cursorRef}
+            className={`fixed top-0 left-0 w-3 h-3 bg-white rounded-full mix-blend-difference pointer-events-none z-[10000] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'} hidden md:block`}
+        />
+    </>
   );
 };

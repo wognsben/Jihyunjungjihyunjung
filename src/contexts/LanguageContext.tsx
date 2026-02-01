@@ -26,12 +26,12 @@ const detectBrowserLanguage = (): Language => {
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [lang, setLangState] = useState<Language>(() => {
-    // Priority: localStorage > browser detection > default EN
+    // Priority: localStorage > browser detection > default KO (Korean is default)
     const stored = localStorage.getItem('lang') as Language | null;
     if (stored && ['ko', 'en', 'jp'].includes(stored)) {
       return stored;
     }
-    return detectBrowserLanguage();
+    return 'ko'; // Default to Korean since it's the source language
   });
 
   const setLang = (newLang: Language) => {

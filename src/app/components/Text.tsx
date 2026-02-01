@@ -1,9 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { Footer } from '@/app/components/Footer';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
+import { Footer } from '@/app/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
-import { useTranslatedTexts } from '@/hooks/useTranslatedTexts';
 import { motion, AnimatePresence } from 'motion/react';
 import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
@@ -65,8 +64,7 @@ export const Text = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const { lang } = useLanguage();
-  const { texts: originalTexts } = useWorks();
-  const { texts } = useTranslatedTexts(originalTexts);
+  const { texts, translateTextsByIds, currentLang } = useWorks();
   
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
@@ -83,6 +81,14 @@ export const Text = () => {
   const footerRef = useRef<HTMLDivElement>(null);
   const imagePreviewRef = useRef<HTMLDivElement>(null);
 
+  // Translate all texts when language changes
+  useEffect(() => {
+    if (lang !== 'ko' && lang !== currentLang && texts.length > 0) {
+      const textIds = texts.map(t => t.id);
+      translateTextsByIds(textIds, lang);
+    }
+  }, [lang, currentLang, texts.length]);
+
   // Filter Logic
   const filteredData = useMemo(() => {
     return texts.filter((item) => {
@@ -91,11 +97,16 @@ export const Text = () => {
         const query = searchQuery.toLowerCase();
         const title = item.title[lang].toLowerCase();
         const author = item.author[lang].toLowerCase();
+        const content = item.content && item.content[lang] ? item.content[lang].toLowerCase() : '';
+        const summary = item.summary && item.summary[lang] ? item.summary[lang].toLowerCase() : '';
+        
         return (
           title.includes(query) ||
           author.includes(query) ||
           item.year.includes(query) ||
-          item.category.toLowerCase().includes(query)
+          item.category.toLowerCase().includes(query) ||
+          content.includes(query) ||
+          summary.includes(query)
         );
       }
       return true;
@@ -344,36 +355,36 @@ export const Text = () => {
                 className="group/item relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 md:-mx-6 md:px-6 cursor-pointer rounded-lg overflow-hidden"
               >
                 {/* Hover Background (Matches About.tsx style) */}
-                <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
+                <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-80 transition-opacity duration-300 z-0" />
 
                 <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_80px] md:gap-8 md:items-baseline">
                   
                   {/* Title Area + Category */}
                   <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
                     {/* Category Label (Desktop & Mobile) */}
-                    <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-[var(--color-bg)]/70 w-16 shrink-0 transition-colors duration-300">
+                    <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 w-16 shrink-0 transition-colors duration-300">
                        {item.category.toLowerCase()}
                     </span>
                     
-                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-[var(--color-bg)] text-foreground">
+                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-white text-foreground">
                       <FormattedTitle text={item.title[lang]} />
                     </h3>
                   </div>
 
                   {/* Mobile Layout */}
-                  <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)] group-hover/item:text-[var(--color-bg)]/70 transition-colors duration-300"> {/* Indent to align with title */}
+                  <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)] group-hover/item:text-white/70 transition-colors duration-300"> {/* Indent to align with title */}
                      <span className="font-mono text-xs">{item.year}</span>
                   </div>
 
                   {/* Desktop Layout - Year Only (Author removed as it's in title) */}
                   <div className="hidden md:block order-2 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
-                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300">
+                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-white transition-colors duration-300">
                       {item.year}
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-[var(--color-bg)] text-sm z-10">
+                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-white text-sm z-10">
                   →
                 </div>
               </motion.a>

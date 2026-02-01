@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useMemo } from 'react';
+import { useRef, useLayoutEffect, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
@@ -11,10 +11,18 @@ if (typeof window !== 'undefined') {
 
 export const WorkGrid = () => {
   const { lang } = useLanguage();
-  const { works } = useWorks();
+  const { works, translateWorksByIds, currentLang } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
-  
+
+  // Translate all works when language changes
+  useEffect(() => {
+    if (lang !== 'ko' && lang !== currentLang && works.length > 0) {
+      const workIds = works.map(w => w.id);
+      translateWorksByIds(workIds, lang);
+    }
+  }, [lang, currentLang, works.length]);
+
   const sortedWorks = useMemo(() => {
     if (!works || works.length === 0) return [];
 

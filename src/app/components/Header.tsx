@@ -1,4 +1,5 @@
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWorks } from '@/contexts/WorkContext';
 import { SplitTextLink } from '@/app/components/SplitTextLink';
 import { useState, useEffect } from 'react';
 
@@ -91,7 +92,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           return (
             <span className="flex items-baseline gap-2">
               {/* Italiana 폰트 적용: 우아함을 강조 */}
-              <span className="font-['Italiana'] text-sm md:text-base tracking-widest opacity-100 relative top-[1px]">
+              <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[180px] leading-tight break-words block">
                 {detailTitle.toUpperCase()}
               </span>
             </span>
@@ -101,10 +102,22 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       case 'text': return 'CRITIQUE & ESSAYS';
       case 'text-detail': 
         if (detailTitle) {
+          const parts = detailTitle.split('_');
+          const hasAuthor = parts.length > 1;
+          const titlePart = parts[0].trim();
+          const authorPart = hasAuthor ? parts.slice(1).join('_').trim() : '';
+
           return (
             <span className="flex items-baseline gap-2">
-              <span className="font-['Italiana'] text-sm md:text-base tracking-widest opacity-100 relative top-[1px]">
-                {detailTitle.toUpperCase()}
+              <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[180px] leading-tight break-words block">
+                {hasAuthor ? (
+                  <>
+                    {titlePart.toUpperCase()}
+                    <span className="block opacity-70 mt-1">_{authorPart.toUpperCase()}</span>
+                  </>
+                ) : (
+                  detailTitle.toUpperCase()
+                )}
               </span>
             </span>
           );
@@ -136,7 +149,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             <div className="flex items-center justify-between">
               {/* Logo - Left */}
               <SplitTextLink
-                text="jihyunjung"
+                text="Jihyun Jung"
                 onClick={() => onNavigate('index')}
                 isActive={false}
                 className="text-lg md:text-xl font-extralight tracking-tight"
@@ -152,7 +165,9 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 {languages.map((language, index) => (
                   <span key={language.code} className="flex items-center gap-2">
                     <button
-                      onClick={() => setLang(language.code)}
+                      onClick={() => {
+                        setLang(language.code);
+                      }}
                       className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light ${
                         lang === language.code 
                           ? 'text-white' 

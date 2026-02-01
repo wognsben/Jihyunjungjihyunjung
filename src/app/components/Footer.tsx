@@ -9,7 +9,7 @@ export const Footer = () => {
           letterSpacing: '0.05em',
         }}
       >
-        © 2026 Jihyeong Jung. All rights reserved.
+        © 2026 Jihyun Jung. All rights reserved.
       </p>
 
       <style>{`

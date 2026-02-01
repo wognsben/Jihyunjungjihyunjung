@@ -1,138 +1,14 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Footer } from '@/app/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useWorks } from '@/contexts/WorkContext';
 import { ScrambleText } from '@/app/components/ui/ScrambleText';
+import { ContactModal } from '@/app/components/ContactModal';
+import { WorkModal } from '@/app/components/WorkModal';
+import { AboutData, HistoryItem, fetchAboutPage, fetchHistoryItems } from '@/services/wp-api';
+import { TooltipTransition } from '@/app/components/TooltipTransition';
+import { Work } from '@/types/work';
 import gsap from 'gsap';
-
-// ----------------------------------------------------------------------
-// Types & Data
-// ----------------------------------------------------------------------
-
-interface SectionData {
-  title: {
-    en: string;
-    ko: string;
-    jp: string;
-  };
-  items: Array<{
-    year: string;
-    description: {
-      en: string;
-      ko: string;
-      jp: string;
-    };
-    sub?: string;
-  }>;
-}
-
-const cvData: SectionData[] = [
-  {
-    title: { en: 'EDUCATION', ko: '학력', jp: '学歴' },
-    items: [
-      { year: '2014', description: { en: 'M.F.A. in Plastic Arts, Korea National University of Arts', ko: '한국예술종합학교 미술원 조형예술 전문사 졸업', jp: '韓国芸術総合学校 美術院 造形芸術 専門士 卒業' } },
-      { year: '2010', description: { en: 'B.F.A. in Plastic Arts, Korea National University of Arts', ko: '한국예술종합학교 미술원 조형예술 예술사 졸업', jp: '韓国芸術総合学校 美術院 造形芸術 芸術士 卒業' } },
-    ]
-  },
-  {
-    title: { en: 'SOLO EXHIBITIONS', ko: '개인전', jp: '個展' },
-    items: [
-      { year: '2023', description: { en: 'Hangdog, Art Sonje Center, Seoul', ko: '행도그, 아트선재센터, 서울', jp: 'ハングドッグ、アートソンジェセンター、ソウル' } },
-      { year: '2022', description: { en: 'Gouge, Incheon Art Platform, Incheon', ko: '가우지, 인천아트플랫폼, 인천', jp: 'ガウジ、仁川アートプラットフォーム、仁川' } },
-      { year: '2019', description: { en: 'Multipurpose Henry, Atelier Hermès, Seoul', ko: '다목적 헨리, 아뜰리에 에르메스, 서울', jp: '多目的ヘンリー、アトリエ・エルメス、ソウル' } },
-      { year: '2016', description: { en: 'Gomyeomseom, Doosan Gallery, Seoul', ko: '곰염섬, 두산갤러리, 서울', jp: 'ゴムヨムソム、斗山ギャラリー、ソウル' } },
-      { year: '2015', description: { en: 'Cases of Finding a Whale in Mountain, Doosan Gallery, New York', ko: 'Cases of Finding a Whale in Mountain, 두산갤러리, 뉴욕', jp: 'Cases of Finding a Whale in Mountain、斗山ギャラリー、ニューヨーク' } },
-      { year: '2014', description: { en: '1 to 380, Sindoh Art Space, Seoul', ko: '1 to 380, 신도 문화공간, 서울', jp: '1 to 380、シンド文化空間、ソウル' } },
-      { year: '2013', description: { en: 'Bird Eat Bird, Insa Art Space, Seoul', ko: 'Bird Eat Bird, 인사미술공간, 서울', jp: 'Bird Eat Bird、仁寺美術空間、ソウル' } },
-      { year: '2011', description: { en: 'Missed Place, Project Space Sarubia, Seoul', ko: '빗나간 자리, 프로젝트 스페이스 사루비아 다방, 서울', jp: '外れた場所、プロジェクトスペース・サルビア喫茶、ソウル' } },
-      { year: '2010', description: { en: 'Unsaid, Gallery Scape, Seoul', ko: '못다 한 말, 갤러리 스케이프, 서울', jp: '言い残した言葉、ギャラリー・スケープ、ソウル' } },
-    ]
-  },
-  {
-    title: { en: 'GROUP EXHIBITIONS', ko: '단체전', jp: 'グループ展' },
-    items: [
-      { year: '2024', description: { en: 'Artspectrum: Dream Screen, Leeum Museum of Art, Seoul', ko: '아트스펙트럼:드림 스크린, 리움미술관, 서울', jp: 'アートスペクトラム：ドリームスクリーン、リウム美術館、ソウル' } },
-      { year: '2022', description: { en: 'Sculpture Impulse, SeMA, Buk-Seoul Museum of Art, Seoul', ko: '조각충동, 서울시립 북서울미술관, 서울', jp: '彫刻衝動、ソウル市立北ソウル美術館、ソウル' } },
-      { year: '2022', description: { en: 'Gak, Hite Collection, Seoul', ko: '각, 하이트 컬렉션, 서울', jp: 'Gak、ハイトコレクション、ソウル' } },
-      { year: '2021', description: { en: 'Stop Worrying and Love the Bomb, SeMA, Nam-Seoul Museum of Art, Seoul', ko: '걱정을 멈추고 폭탄을 사랑하기, 서울시립 남서울미술관, 서울', jp: '心配を止めて爆弾を愛すること、ソウル市立南ソウル美術館、ソウル' } },
-      { year: '2021', description: { en: 'IEUM, Korea Foundation, Seoul', ko: '이음, 한국국제교류재단, 서울', jp: 'IEUM、韓国国際交流財団、ソウル' } },
-      { year: '2021', description: { en: 'The World of Materials Traversing, Arko Art Center, Seoul', ko: '횡단하는 물질의 세계, 아르코 미술관, 서울', jp: '横断する物質の世界、アルコ美術館、ソウル' } },
-      { year: '2020', description: { en: 'Art Plant Asia 2020: Rabbit Direction Object, Deoksugung, Seoul', ko: '아트 플랜트 아시아 2020: 토끼 방향 오브젝트, 덕수궁, 서울', jp: 'アートプラントアジア2020：ウサギ方向オブジェクト、徳寿宮、ソウル' } },
-      { year: '2020', description: { en: 'Cast and Crack, Jeongdong 1928 Art Center, Seoul', ko: '캐스트 앤 크랙, 정동1928아트센터, 서울', jp: 'キャスト・アンド・クラック、貞洞1928アートセンター、ソウル' } },
-      { year: '2019', description: { en: 'Dislocated Growth Points, Culture Tank, Seoul', ko: '어긋나는 생장점, 문화비축기지, 서울', jp: 'ずれた生長点、文化備蓄基地、ソウル' } },
-      { year: '2019', description: { en: 'Array, Gallery Baton, Seoul', ko: 'Array, 갤러리 바톤, 서울', jp: 'Array���ギャラリーバトン、ソウル' } },
-      { year: '2019', description: { en: 'Abstract of Our Time: Series II, Chapter II, Seoul', ko: '우리시대의 추상: 시리즈 II, 챕터투, 서울', jp: '我々の時代の抽象：シリーズII、チャプターツー、ソウル' } },
-      { year: '2019', description: { en: 'Decade Studio, Doosan Gallery, New York', ko: 'Decade Studio, 두산갤러리, 뉴욕', jp: 'Decade Studio、斗山ギャラリー、ニューヨーク' } },
-      { year: '2018', description: { en: 'Once a Day, Art Sonje Center, Seoul', ko: '하루 한 번, 아트선재센터, 서울', jp: '一日一回、アートソンジェセンター、ソウル' } },
-      { year: '2018', description: { en: 'apmap Amorepacific Outdoor Public Art Project, Osulloc Tea Museum, Jeju', ko: 'apmap 아모레퍼시픽 야외 공공미술 프로젝트, 오설록 티뮤지엄, 제주', jp: 'apmap アモーレパシフィック野外公共美術プロジェクト、オソルロクティーミュージアム、済州' } },
-      { year: '2017', description: { en: 'DawnBreaks, The Showroom, London', ko: 'DawnBreaks, 더 쇼룸, 런던, 영국', jp: 'DawnBreaks、ザ・ショールーム、ロンドン、英国' } },
-      { year: '2017', description: { en: 'Gangjeong Daegu Contemporary Art Festival, The ARC Square, Daegu', ko: '강정 대구현대미술제, 강정보 디아크 광장, 대구', jp: '江亭大邱現代美術祭、江亭堡ディ・アーク広場、大邱' } },
-      { year: '2017', description: { en: 'DawnBreaks: Seoul, Art Sonje Center, Seoul', ko: '도운브레익스:서울, 아트선재센터, 서울', jp: 'ドーンブレイクス：ソウル、アートソンジェセンター、ソウル' } },
-      { year: '2016', description: { en: 'DawnBreaks 2016, The 11th Gwangju Biennale, Gwangju', ko: '도운브레익스2016, 제11회 광주비엔날레, 광주', jp: 'ドーンブレイクス2016、第11回光州ビエンナーレ、光州' } },
-      { year: '2015', description: { en: 'Unknown Packages, Queens Museum, New York', ko: 'Unknown Packages, 퀸즈뮤지엄, 뉴욕', jp: 'Unknown Packages、クイーンズ美術館、ニューヨーク' } },
-      { year: '2014', description: { en: 'Low Technology, Seoul Museum of Art, Seoul', ko: '로우테크놀로지, 서울시립미술관, 서울', jp: 'ローテクノロジー、ソウル市立美術館、ソウル' } },
-      { year: '2014', description: { en: 'Spectrum-Spectrum, Plateau Museum of Art, Seoul', ko: '스펙트럼-스펙트럼, 플라토미술관, 서울', jp: 'スペクトラム-スペクトラム、プラトー美術館、ソウル' } },
-      { year: '2014', description: { en: 'How to Hold Your Breath, Doosan Gallery, Seoul', ko: '숨을 참는 법, 두산갤러리, 서울', jp: '息を止める方法、斗山ギャラリー、ソウル' } },
-      { year: '2014', description: { en: 'B painting, Gallery 175, Seoul', ko: 'B painting, 갤러리 175, 서울', jp: 'B painting、ギャラリー175、ソウル' } },
-      { year: '2014', description: { en: 'Fresher Air on the Floor, Amado Art Space, Seoul', ko: '바닥에는 더 신선한 공기가 있어, 아마도예술공간, 서울', jp: '床にはもっと新鮮な空気がある、アマド芸術空間、ソウル' } },
-      { year: '2013', description: { en: 'The Next Generation, Doosan Gallery, Seoul', ko: 'The Next Generation, 두산갤러리, 서울', jp: 'The Next Generation、斗山ギャラリー、ソウル' } },
-      { year: '2013', description: { en: 'Re-Writing, Doosan Gallery, Seoul & New York', ko: '다시-쓰기, 두산갤러리, 서울, 뉴욕', jp: '書き直し、斗山ギャラリー、ソウル、ニューヨーク' } },
-      { year: '2012', description: { en: 'Unfinished Journey, Cais Gallery, Seoul', ko: 'Unfinished Journey, 카이스갤러리, 서울', jp: 'Unfinished Journey、カイスギャラリー、ソウル' } },
-      { year: '2012', description: { en: 'The Anthology, Platform Place 629, Seoul', ko: '디 앤솔로지, Platform Place 629, 서울', jp: 'アンソロジー、Platform Place 629、ソウル' } },
-      { year: '2012', description: { en: 'Width of Night, Keumsan Gallery, Heyri', ko: '밤의 너비, 금산 갤러리, 헤이리', jp: '夜の幅、金山ギャラリー、ヘイリ' } },
-      { year: '2010', description: { en: 'Person Next to You, Gallery 175, Seoul', ko: '옆 사람, 갤러리 175, 서울', jp: '隣の人、ギャラリー175、ソウル' } },
-      { year: '2010', description: { en: 'Art Amsterdam: It’s Your Present, RAI, Amsterdam', ko: 'Art Amsterdam : It’s Your Present, RAI, 암스테르담', jp: 'Art Amsterdam : It’s Your Present、RAI、アムステルダム' } },
-      { year: '2010', description: { en: 'Seogyo 60: Archive of Imagination, Gallery Sangsang Madang, Seoul', ko: '서교 육십 : 상상의 아카이브, 갤러리 상상마당, 서울', jp: '西橋60：想像のアーカイブ、ギャラリーサンサンマダン、ソウル' } },
-      { year: '2009', description: { en: 'Rites of Passage, Suwon Art Center, Suwon', ko: '통과의례, 수원시 미술 전시관, 수원', jp: '通過儀礼、水原市美術展示館、水原' } },
-      { year: '2008', description: { en: '(Sub) Title, Gallery 175, Seoul', ko: '(Sub) Title, 갤러리 175, 서울', jp: '(Sub) Title、ギャラリー175、ソウル' } }
-    ]
-  },
-  {
-    title: { en: 'AWARDS & RESIDENCIES', ko: '수상 및 레지던스', jp: '受賞およびレジデンス' },
-    items: [
-      { year: '2023', description: { en: 'Kim Se-choong Young Sculpture Award, Korea', ko: '김세중 청년 조각상, 한국', jp: '金世中（キム・セジュン）青年彫刻賞、韓国' } },
-      { year: '2022', description: { en: 'Incheon Art Platform Residency, Incheon, Korea', ko: '인천아트플랫폼 입주작가, 인천, 한국', jp: '仁川アートプラットフォーム入居作家、仁川、韓国' } },
-      { year: '2021', description: { en: 'Nanji Art Studio 15th Residency, Seoul, Korea', ko: '난지미술창작스튜디오 15기 입주작가, 서울, 한국', jp: '蘭芝美術創作スタジオ15期入居作家、ソウル、韓国' } },
-      { year: '2021', description: { en: 'Ministry of Culture Public Art Project <Chair of My Neighbor> Minister Award', ko: '문체부 공공미술 프로젝트 <내 이웃의 의자> 장관상 수상', jp: '文化体育観光部公共美術プロジェクト<私の隣人の椅子>長官賞受賞' } },
-      { year: '2020', description: { en: 'Can Foundation Residency, Seoul, Korea', ko: '캔파운데이션 레지던시, 서울, 한국', jp: 'キャン・ファウンデーション・レジデンシー、ソウル、韓国' } },
-      { year: '2017', description: { en: 'ACC Creation Center Lab Visiting Creator, Gwangju, Korea', ko: '국립아시아문화전당 창제작센터 랩 방문창작자, 광주, 한국', jp: '国立アジア文化殿堂 創作センター ラボ 訪問創作者、光州、韓国' } },
-      { year: '2015', description: { en: 'Seoul Art Space Geumcheon 7th Residency, Seoul, Korea', ko: '서울시 창작공간 금천예술공장 7기 입주작가, 서울, 한국', jp: 'ソウル市創作空間 衿川芸術工場 7期入居作家、ソウル、韓国' } },
-      { year: '2015', description: { en: 'Doosan New York Residency Program, New York, USA', ko: '두산 뉴욕 레지던시 프로그램, 뉴욕, 미국', jp: '斗山ニューヨーク・レジデンシー・プログラム、ニューヨーク、米国' } },
-      { year: '2013', description: { en: '3rd Sindoh Artist Support Program, Sindoh Foundation, Seoul', ko: '제3회 신도리코 작가 지원 프로그램, 재단법인 가헌 신도재단, 서울', jp: '第3回シンドリコ作家支援プログラム、財団法人カホンシンド財団、ソウル' } },
-      { year: '2013', description: { en: 'ARKO Young Art Frontier (AYAF), Arts Council Korea, Seoul', ko: '한국문화예술위원회 AYAF(ARKO Young ART Frontier) 선정, 서울', jp: '韓国文化芸術委員会 AYAF(ARKO Young ART Frontier) 選定、ソウル' } },
-      { year: '2012', description: { en: 'Mercedes-Benz Korea Artist Selection, Seoul', ko: '메르세데츠 벤츠 코리아 아티스트 선정, 서울', jp: 'メルセデス・ベンツ・コリア アーティスト選定、ソウル' } },
-    ]
-  },
-  {
-    title: { en: 'PROJECTS', ko: '프로젝트', jp: 'プロジェクト' },
-    items: [
-      { year: '2022', description: { en: '<SOMA Citizen Participation Public Art Project: Art Bench>, Olympic Park, Seoul', ko: '<SOMA 시민참여 공공미술 프로젝트 : 아트 벤치>, 올림픽공원, 서울', jp: '<SOMA 市民参加公共美術プロジェクト：アートベンチ>、オリンピック公園、ソウル' } },
-      { year: '2021', description: { en: '<Public Art Project: Your Platform, Your Park>, Incheon Art Platform, Incheon', ko: '<공공미술 프로젝트 : 유어 플랙폼 , 유어파크>, 인천아트플랫폼, 인천', jp: '<公共美術プロジェクト：ユア・プラットフォーム、ユア・パーク>、仁川アートプラットフォーム、仁川' } },
-      { year: '2021', description: { en: '<Chair of My Neighbor> Public Art Project, Kkotseom, Yanggu', ko: '<내 이웃의 의자> 공공미술 프로젝트, 양구 꽃섬, 강원도', jp: '<私の隣人の椅子> 公共美術プロジェクト、楊口 花島、江原道' } },
-      { year: '2020', description: { en: '<Room Adventure> VR Workshop, KACES, Online', ko: '<방구석 대모험> VR 워크샵, 한국문화예술교육진흥원, 온라인', jp: '<部屋の隅の大冒険> VRワークショップ、韓国文化芸術教育振興院、オンライン' } },
-      { year: '2019', description: { en: '<Oval Headquarters> Seoul Public Art - Citizen Idea Implementation Project, Yongma Waterfall Park, Seoul', ko: '<타원본부> 서울시 공공미술 -시민아이디어 구현 프로젝트, 용마폭포공원, 서울', jp: '<楕円本部> ソウル市公共美術 - 市民アイデア具現プロジェクト、龍馬滝公園、ソウル' } },
-    ]
-  },
-  {
-    title: { en: 'PUBLICATIONS', ko: '출판', jp: '出版' },
-    items: [
-      { year: '2023', description: { en: 'Gouge, Incheon Art Platform', ko: '가우지, 인천아트플랫폼', jp: 'ガウジ、仁川アートプラットフォーム' } },
-      { year: '2019', description: { en: 'Once a Day, Art Sonje Center', ko: '하루 한 번, 아트선재센터', jp: '一日一回、アートソンジェセンター' } },
-      { year: '2016', description: { en: 'Gomyeomseom, Doosan Gallery, Seoul', ko: '곰염섬, 두산갤러리, 서울', jp: 'ゴムヨムソム、斗山ギャラリー、ソウル' } },
-      { year: '2013', description: { en: 'Thames, Arts Council Korea, Seoul', ko: 'Thames, 한국문화예술위원회, 서울', jp: 'Thames、韓国文化芸術委員会、ソウル' } },
-      { year: '2013', description: { en: 'Bird Eat Bird, Arts Council Korea, Seoul', ko: 'Bird Eat Bird, 한국문화예술위원회, 서울', jp: 'Bird Eat Bird、韓国文化芸術委員会、ソウル' } },
-    ]
-  }
-];
-
-const bioData = {
-  name: { en: "Jihyun Jung", ko: "정 지 현", jp: "チョン・ジヒョン" },
-  info: { en: "b. 1986, Suwon, KR", ko: "1986년 수원 생", jp: "1986年 水原 生" },
-  contact: [
-    { label: 'WEBSITE', value: 'www.jihyunjung.com', link: 'http://www.jihyunjung.com' },
-    { label: 'EMAIL', value: 'astradiog@gmail.com', link: 'mailto:astradiog@gmail.com' },
-    { label: 'INSTAGRAM', value: '@jihyun_ball', link: 'https://instagram.com/jihyun_ball' },
-  ]
-};
 
 // ----------------------------------------------------------------------
 // Helper Components
@@ -159,13 +35,169 @@ const RevealText = ({ children, delay = 0 }: { children: React.ReactNode; delay?
   );
 };
 
+const ContactLink = ({ label, value, link, onContactClick }: { label: string; value: string; link: string; onContactClick?: () => void }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    if (label === 'EMAIL' && onContactClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      onContactClick();
+    }
+  };
+
+  return (
+    <a 
+      href={link} 
+      target={label !== 'EMAIL' ? "_blank" : undefined}
+      rel={label !== 'EMAIL' ? "noopener noreferrer" : undefined}
+      onClick={handleClick}
+      className="text-xs font-light hover:text-foreground/50 transition-colors relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:bg-foreground after:transition-all after:duration-300 hover:after:w-full cursor-pointer"
+    >
+      {value}
+    </a>
+  );
+};
+
 // ----------------------------------------------------------------------
 // About Component
 // ----------------------------------------------------------------------
 
+const transformBioContent = (html: string | undefined, works: Work[], lang: string) => {
+  if (!html) return '';
+  if (typeof window === 'undefined') return html;
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const elements = Array.from(doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li'));
+    let changed = false;
+
+    // Helper to find and link works in text
+    const linkWorksInText = (text: string) => {
+        let processedText = text;
+        
+        // Sort works by title length to match longest first
+        const sortedWorks = [...works].sort((a, b) => {
+            const titleA = (lang === 'ko' ? a.title_ko : a.title_en) || a.title;
+            const titleB = (lang === 'ko' ? b.title_ko : b.title_en) || b.title;
+            return (titleB?.length || 0) - (titleA?.length || 0);
+        });
+
+        for (const work of sortedWorks) {
+            const title = (lang === 'ko' ? work.title_ko : work.title_en) || work.title;
+            if (!title) continue;
+
+            // Escape regex special chars in title
+            // Flexible matching:
+            // 1. Allow variable whitespace (including none) where spaces exist in title
+            // 2. Match HTML entities for < and >
+            let safeTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Basic escape
+            
+            // Allow spaces to match "no space" or "multiple spaces" or "nbsp"
+            safeTitle = safeTitle.replace(/\s+/g, '[\\s\\u00A0]*');
+            
+            // Allow < and > to match &lt; and &gt;
+            safeTitle = safeTitle.replace(/</g, '(?:<|&lt;)').replace(/>/g, '(?:>|&gt;)');
+
+            const regex = new RegExp(`(${safeTitle})`, 'gi'); 
+            
+            if (regex.test(processedText)) {
+                 processedText = processedText.replace(regex, (match) => {
+                     return `<span class="relative inline-flex flex-col items-center align-baseline text-current">
+                       <span class="hover-line peer relative cursor-pointer" data-work-id="${work.id}">${match}</span>
+                       <a href="#/work/${work.id}" class="absolute top-full left-1/2 -translate-x-1/2 mt-1 inline-flex items-center justify-center px-2 py-0.5 text-[8px] font-mono uppercase tracking-widest border border-foreground/20 rounded-full bg-background/90 backdrop-blur-sm shadow-sm !text-foreground hover:bg-foreground hover:!text-background transition-all opacity-0 peer-hover:opacity-100 hover:opacity-100 whitespace-nowrap z-[100]" onclick="event.stopPropagation()">OPEN PROJECT</a>
+                     </span>`;
+                 });
+            }
+        }
+        return processedText;
+    };
+
+    elements.forEach(el => {
+      const rawHtml = el.innerHTML;
+      const parts = rawHtml.split(/<br\s*\/?>/i);
+      
+      const processedRows: { year: string, content: string }[] = [];
+      let hasYearEntry = false;
+
+      parts.forEach(part => {
+        const temp = document.createElement('div');
+        temp.innerHTML = part;
+        const text = (temp.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
+        
+        const match = text.match(/^(\d{4}(?:[-.~]\d{2,4})?)[\s.,\u00A0\t]+(.*)/s) || 
+                      text.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s);
+        
+        if (match) {
+          hasYearEntry = true;
+          const yearStr = match[1];
+          const safeYear = yearStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+          const removeRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}[\\s.,\\u00A0\\t]*`);
+          
+          let contentHtml = part;
+          if (removeRegex.test(contentHtml)) {
+             contentHtml = contentHtml.replace(removeRegex, '');
+          } else {
+             const entityRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}(?:&nbsp;|[\\s.,\\u00A0\\t])*`);
+             contentHtml = contentHtml.replace(entityRegex, '');
+          }
+          
+          // Link Works in Content
+          contentHtml = linkWorksInText(contentHtml);
+
+          processedRows.push({ year: yearStr, content: contentHtml });
+        } else {
+          if (text.length > 0) {
+             const linkedContent = linkWorksInText(part);
+             processedRows.push({ year: '', content: linkedContent });
+          }
+        }
+      });
+
+      if (hasYearEntry && processedRows.length > 0) {
+        const table = document.createElement('table');
+        table.className = 'wp-block-table';
+        const tbody = document.createElement('tbody');
+        
+        processedRows.forEach(row => {
+           const tr = document.createElement('tr');
+           
+           const tdYear = document.createElement('td');
+           tdYear.textContent = row.year;
+           
+           const tdContent = document.createElement('td');
+           tdContent.innerHTML = row.content;
+           
+           tr.appendChild(tdYear);
+           tr.appendChild(tdContent);
+           tbody.appendChild(tr);
+        });
+        
+        table.appendChild(tbody);
+        el.replaceWith(table);
+        changed = true;
+      }
+    });
+
+    return changed ? doc.body.innerHTML : html;
+  } catch (e) {
+    return html;
+  }
+};
+
 export const About = () => {
   const { lang } = useLanguage();
+  const { works } = useWorks();
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   
+  // Tooltip State
+  const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
+  
+  // Data State
+  const [aboutData, setAboutData] = useState<AboutData | null>(null);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -186,38 +218,88 @@ export const About = () => {
     rafId: 0
   });
 
+  // Fetch Data
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const loadData = async () => {
+       try {
+         const [about, history] = await Promise.all([
+           fetchAboutPage(),
+           fetchHistoryItems()
+         ]);
+         setAboutData(about);
+         setHistoryItems(history);
+       } catch (error) {
+         console.error("Failed to load About data", error);
+       } finally {
+         setLoading(false);
+       }
+    };
+    loadData();
+  }, []);
+
+  // Process Content
+  const processedContent = useMemo(() => 
+    transformBioContent(aboutData?.content, works, lang), 
+  [aboutData?.content, works, lang]);
+
+  // Event Handlers for Dynamic Content (React Synthetic Events)
+  const handleContentClick = (e: any) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('.hover-line') as HTMLElement;
+    
+    if (link) {
+      const id = link.getAttribute('data-work-id');
+      if (id) {
+        e.preventDefault();
+        e.stopPropagation();
+        setTooltipWorkId(null);
+        setSelectedWorkId(id);
+      }
+    }
+  };
+
+  const handleContentMouseOver = (e: any) => {
+    const target = e.target as HTMLElement;
+    const link = target.closest('.hover-line') as HTMLElement;
+    if (link) {
+      const id = link.getAttribute('data-work-id');
+      if (id) setTooltipWorkId(id);
+    }
+  };
+
+  const handleContentMouseOut = (e: any) => {
+     const target = e.target as HTMLElement;
+     if (target.closest('.hover-line')) {
+        setTooltipWorkId(null);
+     }
+  };
+
+  // Scroll Logic
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading) return;
 
     const s = state.current;
     
-    // Initialize Dimensions
     const onResize = () => {
       s.winH = window.innerHeight;
       if (contentRef.current) {
-        // Calculate max scroll with extra padding at bottom
         s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH + 100);
       }
     };
     
-    // ResizeObserver to detect content height changes (CRITICAL FIX for "No Reaction" issue)
     const resizeObserver = new ResizeObserver(() => onResize());
     if (contentRef.current) resizeObserver.observe(contentRef.current);
 
     window.addEventListener('resize', onResize);
-    onResize();
+    setTimeout(onResize, 100);
 
-    // Wheel Handler
     const onWheel = (e: WheelEvent) => {
-      // Prevent default to avoid conflict with native scroll (if any)
-      // e.preventDefault(); 
       let delta = e.deltaY;
-      delta *= 0.8; // Slightly increased speed
+      delta *= 0.8; 
       s.target += delta;
       s.target = Math.max(0, Math.min(s.target, s.maxScroll));
     };
 
-    // Touch Handlers
     const onTouchStart = (e: TouchEvent) => {
       s.isTouching = true;
       s.touch.start = e.touches[0].clientY;
@@ -241,29 +323,21 @@ export const About = () => {
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
 
-    // Animation Loop
     const render = () => {
-      // Lerp
       s.current += (s.target - s.current) * s.ease;
       
-      // Stop rendering if delta is negligible
       if (Math.abs(s.target - s.current) < 0.1) {
         s.current = s.target;
       }
       
-      // Move Content
       if (contentRef.current) {
         contentRef.current.style.transform = `translate3d(0, ${-s.current}px, 0)`;
       }
 
-      // Move Scrollbar Thumb
       if (thumbRef.current && s.maxScroll > 0) {
         const progress = s.current / s.maxScroll;
-        // Calculate thumb position: (containerHeight - thumbHeight) * progress
-        // Assume thumb height is dynamic or fixed. Let's make it simple percentage for now.
-        // Actually, let's map it to track height.
-        const trackH = s.winH - 80; // approximate track height (padding included)
-        const thumbY = progress * (trackH - 60); // 60px thumb height
+        const trackH = s.winH - 80;
+        const thumbY = progress * (trackH - 60);
         thumbRef.current.style.transform = `translate3d(0, ${thumbY}px, 0)`;
       }
 
@@ -281,66 +355,80 @@ export const About = () => {
       cancelAnimationFrame(s.rafId);
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [loading]);
+
+  const groupedHistory = historyItems.reduce((acc, item) => {
+    const year = item.year;
+    if (!acc[year]) acc[year] = [];
+    acc[year].push(item);
+    return acc;
+  }, {} as Record<string, HistoryItem[]>);
+
+  const sortedYears = Object.keys(groupedHistory).sort((a, b) => parseInt(b) - parseInt(a));
+
+  const contactLinks = aboutData?.contact ? [
+    { label: 'WEBSITE', value: aboutData.contact.website, link: aboutData.contact.website.startsWith('http') ? aboutData.contact.website : `http://${aboutData.contact.website}` },
+    { label: 'EMAIL', value: aboutData.contact.email, link: `mailto:${aboutData.contact.email}` },
+    { label: 'INSTAGRAM', value: aboutData.contact.instagram, link: aboutData.contact.instagram.startsWith('http') ? aboutData.contact.instagram : `https://instagram.com/${aboutData.contact.instagram.replace('@', '')}` },
+  ].filter(c => c.value) : [];
+
+  if (loading) return <div className="min-h-screen bg-background" />;
 
   return (
     <div 
       ref={containerRef} 
       className="fixed inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-foreground selection:text-background"
+      style={{ fontFamily: 'Pretendard, "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
     >
       <div className="w-full h-full px-6 md:px-12 relative flex">
         
-        {/* ------------------------------------------------------- */}
-        {/* LEFT COLUMN (FIXED)                                     */}
-        {/* ------------------------------------------------------- */}
-        <div className="hidden md:flex flex-col w-[20%] h-full pt-28 md:pt-32 relative z-20 pointer-events-none">
-           {/* Top: Profile */}
-           <div className="flex flex-col gap-6 max-w-full pointer-events-auto">
+        {/* Left Column */}
+        <div className="hidden md:flex flex-col w-[20%] h-full pt-28 md:pt-32 relative z-20">
+           <div className="flex flex-col gap-6 max-w-full">
              <RevealText delay={0.2}>
-                <h1 className="text-lg font-serif font-medium tracking-wide text-foreground">
-                  <ScrambleText text={bioData.name[lang]} duration={1500} />
-                </h1>
+               <div className="flex flex-col gap-1">
+                 <h1 className="text-xl font-medium tracking-tight mb-4">
+                   {aboutData?.title === 'About' ? 'Ji Hyun Jung' : aboutData?.title}
+                 </h1>
+                 {aboutData?.profile_info ? (
+                   <div 
+                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                     dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
+                   />
+                 ) : (
+                   <p className="text-[14px] leading-relaxed text-foreground/80 font-sans">
+                     (1986 – ) 수원 생<br/>
+                     서울 기반으로 활동중
+                   </p>
+                 )}
+               </div>
              </RevealText>
-             
-             <div className="flex flex-col gap-1">
-                 <RevealText delay={0.3}>
-                     <p className="text-xs leading-relaxed text-muted-foreground font-light">
-                     {bioData.info[lang]}
-                     </p>
-                 </RevealText>
-             </div>
            </div>
 
-           {/* Bottom: Contact */}
            <div className="absolute bottom-12 left-0 flex flex-col gap-4 pointer-events-auto">
-              {bioData.contact.map((item, idx) => (
+              {contactLinks.map((item, idx) => (
                 <div key={item.label} className="flex flex-col gap-0.5">
                   <RevealText delay={0.5 + (idx * 0.1)}>
                     <span className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1 block">
                         {item.label}
                     </span>
-                    <a 
-                        href={item.link} 
-                        target={item.label !== 'EMAIL' ? "_blank" : undefined}
-                        rel={item.label !== 'EMAIL' ? "noopener noreferrer" : undefined}
-                        className="text-xs font-light hover:text-foreground/50 transition-colors relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:bg-foreground after:transition-all after:duration-300 hover:after:w-full"
-                    >
-                        {item.value}
-                    </a>
+                    <ContactLink 
+                      label={item.label}
+                      value={item.value}
+                      link={item.link}
+                      onContactClick={item.label === 'EMAIL' ? () => setIsContactModalOpen(true) : undefined} 
+                    />
                   </RevealText>
                 </div>
               ))}
            </div>
         </div>
 
-        {/* ------------------------------------------------------- */}
-        {/* RIGHT COLUMN (VIRTUAL SCROLL)                           */}
-        {/* ------------------------------------------------------- */}
+        {/* Right Column (Content) */}
         <div 
           className="flex-1 h-full relative"
           style={{ perspective: '1000px' }} 
         >
-          {/* Custom Scrollbar (Visual Only) */}
           <div 
             ref={scrollbarRef}
             className="absolute right-[-10px] md:right-0 top-32 bottom-12 w-[1px] bg-border z-50 hidden md:block"
@@ -353,75 +441,90 @@ export const About = () => {
 
           <div 
             ref={contentRef}
+            onClick={handleContentClick}
+            onMouseOver={handleContentMouseOver}
+            onMouseOut={handleContentMouseOut}
             className="absolute top-0 right-0 w-full md:w-[80%] pt-28 md:pt-32 pb-32 flex flex-col gap-20 will-change-transform"
           >
             {/* Mobile Header */}
             <div className="md:hidden flex flex-col gap-6 mb-12">
-               <h1 className="text-2xl font-light uppercase tracking-widest">{bioData.name[lang]}</h1>
-               <p className="text-sm text-muted-foreground leading-relaxed">{bioData.info[lang]}</p>
-            </div>
-
-            {cvData.map((section, sIdx) => (
-              <section key={section.title.en} className="flex flex-col gap-6">
-                {/* Section Title */}
-                <RevealText delay={0.4 + (sIdx * 0.1)}>
-                    <div className="flex items-center gap-4 mb-4">
-                        <h2 className="text-[9px] font-mono text-muted-foreground/70 uppercase tracking-[0.2em]">
-                        <ScrambleText text={section.title[lang]} duration={1000} />
-                        </h2>
-                    </div>
-                </RevealText>
-
-                <div className="flex flex-col gap-0">
-                  {section.items.map((item, iIdx) => (
-                    <div 
-                      key={iIdx} 
-                      className="group/item relative flex flex-col md:flex-row gap-2 md:gap-6 py-2 px-3 -mx-3 rounded-lg transition-colors duration-300"
-                    >
-                      {/* Hover Background with Mix Blend Mode (Demo 1 Style) */}
-                      <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 rounded-lg -z-10" />
-                      
-                      {/* Year */}
-                      <div className="w-full md:w-16 shrink-0 z-10">
-                         <RevealText delay={0.5 + (iIdx * 0.05)}>
-                            <span className="font-mono text-[10px] text-muted-foreground/50 group-hover/item:text-[var(--color-bg)] transition-colors duration-300 block">
-                            <ScrambleText text={item.year} duration={800} />
-                            </span>
-                         </RevealText>
-                      </div>
-                      
-                      {/* Description */}
-                      <div className="flex-1 relative z-10">
-                        {/* Interactive Item Wrapper */}
-                        <div className="will-change-transform origin-left backface-hidden">
-                           <RevealText delay={0.5 + (iIdx * 0.05)}>
-                                <span className="font-serif text-sm font-light leading-relaxed block text-foreground group-hover/item:text-[var(--color-bg)] transition-colors duration-300 cursor-default">
-                                    {item.description[lang]}
-                                </span>
-                           </RevealText>
-                        </div>
-                        
-                        {item.sub && (
-                          <RevealText delay={0.6 + (iIdx * 0.05)}>
-                            <div className="text-[10px] text-muted-foreground/40 italic mt-1 tracking-wide group-hover/item:text-[var(--color-bg)]/70 transition-colors duration-300">
-                                {item.sub}
-                            </div>
-                          </RevealText>
+               {aboutData && (
+                 <>
+                    <RevealText delay={0.2}>
+                      <div className="flex flex-col gap-1">
+                        <h1 className="text-xl font-medium tracking-tight mb-4">
+                           {aboutData.title === 'About' ? 'Ji Hyun Jung' : aboutData.title}
+                        </h1>
+                        {aboutData.profile_info ? (
+                           <div 
+                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                             dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
+                           />
+                        ) : (
+                           <p className="text-[14px] leading-relaxed text-foreground/80 font-sans">
+                             (1986 – ) 수원 생<br/>
+                             서울 기반으로 활동중
+                           </p>
                         )}
                       </div>
+                    </RevealText>
+                    
+                    <div className="flex flex-col gap-4 mt-8 mb-8">
+                       {contactLinks.map((item, idx) => (
+                         <div key={item.label} className="flex flex-col gap-0.5">
+                             <span className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1 block">
+                                 {item.label}
+                             </span>
+                             <ContactLink 
+                               label={item.label}
+                               value={item.value}
+                               link={item.link}
+                               onContactClick={item.label === 'EMAIL' ? () => setIsContactModalOpen(true) : undefined} 
+                             />
+                         </div>
+                       ))}
                     </div>
-                  ))}
-                </div>
-              </section>
-            ))}
+                 </>
+               )}
+            </div>
 
+            {/* Bio Content */}
+            {aboutData && aboutData.content && (
+              <div className="flex flex-col gap-6 max-w-3xl">
+                <RevealText delay={0.3}>
+                   <div 
+                     className="text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-[var(--color-bg-shift)]/80 [&_tr:hover]:!text-white [&_tr:hover_>_*]:!text-white md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-white md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline"
+                     dangerouslySetInnerHTML={{ __html: processedContent || '' }}
+                   />
+                </RevealText>
+              </div>
+            )}
+            
             <div className="pt-24 opacity-30 hover:opacity-100 transition-opacity duration-500">
                <Footer />
             </div>
           </div>
         </div>
-
       </div>
+      
+      <ContactModal 
+        isOpen={isContactModalOpen} 
+        onClose={() => setIsContactModalOpen(false)} 
+      />
+      
+      {/* Moved WorkModal to end and ensure z-index is high */}
+      <WorkModal 
+        workId={selectedWorkId} 
+        onClose={() => setSelectedWorkId(null)} 
+      />
+      
+      {/* Tooltip Transition Effect (Hover only) */}
+      <TooltipTransition 
+        hoveredWorkId={tooltipWorkId} 
+        isOpen={false} 
+        onClose={() => {}} 
+      />
+
     </div>
   );
 };

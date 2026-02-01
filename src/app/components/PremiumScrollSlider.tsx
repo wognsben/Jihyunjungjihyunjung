@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/data/works';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
 
@@ -9,10 +11,17 @@ interface PremiumScrollSliderProps {
 }
 
 export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: PremiumScrollSliderProps) => {
+  const { lang } = useLanguage();
+  const { translateWorksByIds, currentLang } = useWorks();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDark, setIsDark] = useState(true); 
+  const [isAutoPlayActive, setIsAutoPlayActive] = useState(true); // 자동 재생 상태
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Helper functions for language-specific content
+  const getTitle = (work: Work) => lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
   
   // 이미지 밝기 감지 함수 (Canvas API 사용) - 비활성화 가능성 고려
   // GitHub Raw 이미지는 CORS 이슈로 인해 Canvas tainting이 발생할 수 있음
@@ -100,6 +109,27 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     }, 1000);
   };
 
+  // 3초 자동 슬라이더
+  useEffect(() => {
+    if (!isAutoPlayActive || works.length === 0) return;
+
+    if (autoPlayTimeoutRef.current) clearTimeout(autoPlayTimeoutRef.current);
+    
+    autoPlayTimeoutRef.current = setTimeout(() => {
+      const nextIndex = (activeIndex + 1) % works.length;
+      navigateToSlide(nextIndex);
+    }, 3000);
+
+    return () => {
+      if (autoPlayTimeoutRef.current) clearTimeout(autoPlayTimeoutRef.current);
+    };
+  }, [activeIndex, isAutoPlayActive, works.length]);
+
+  // 터치/클릭으로 자동 재생 멈춤
+  const handleUserInteraction = () => {
+    setIsAutoPlayActive(false);
+    if (autoPlayTimeoutRef.current) clearTimeout(autoPlayTimeoutRef.current);
+  };
 
   // 휠 및 터치 이벤트 핸들링
   useEffect(() => {
@@ -107,8 +137,10 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     const scrollDelay = 1200; // 전환 시간(1000ms)보다 약간 길게 설정하여 중복 실행 방지
 
     const handleWheel = (e: WheelEvent) => {
-      // 슬라이더가 전체 화면이므로 기본 스크롤 동작 방지
+      // 슬라더가 전체 화면이므로 기본 스크롤 동작 방지
       e.preventDefault();
+      
+      handleUserInteraction(); // 자동 재생 멈춤
       
       const now = Date.now();
       if (now - lastScrollTime < scrollDelay || isTransitioning) return;
@@ -130,6 +162,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     let touchStartY = 0;
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
+      handleUserInteraction(); // 터치 시작 시 자동 재생 멈춤
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -165,6 +198,8 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isTransitioning) return;
       
+      handleUserInteraction(); // 키보드 조작 시 자동 재생 멈춤
+      
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
         const prevIndex = (activeIndex - 1 + works.length) % works.length;
         navigateToSlide(prevIndex);
@@ -177,9 +212,17 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
+  // Translate works when language changes
+  useEffect(() => {
+    if (lang !== 'ko' && lang !== currentLang) {
+      const workIds = works.map(w => w.id);
+      translateWorksByIds(workIds, lang);
+    }
+  }, [lang, currentLang, works]);
+
   // 안전장치: works가 비어있으면 로딩 중 표시
   if (!works || works.length === 0) {
-    return null; // early return하되 아무것도 렌더링하지 않음
+    return null; // early return하 아무것도 렌더링하지 않음
   }
 
   return (
@@ -199,8 +242,8 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           {/* Use PremiumImage for consistent loading behavior */}
           <PremiumImage
             src={imageSrc}
-            alt={work.title_en}
-            className="w-full h-full object-cover"
+            alt={getTitle(work)}
+            className="w-full h-full object-contain md:object-cover"
             containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}

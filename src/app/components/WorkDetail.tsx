@@ -1,504 +1,427 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X, ArrowRight, Pause, Play, Maximize2, Minimize2 } from 'lucide-react';
 import gsap from 'gsap';
 import SplitType from 'split-type';
+import { motion, AnimatePresence } from 'motion/react';
+import { Resizable } from 're-resizable';
+import Draggable from 'react-draggable';
+import Slider from 'react-slick';
+import "slick-carousel/slick/slick.css"; 
+import "slick-carousel/slick/slick-theme.css";
 
-// Minimal Blur Reveal Component (Refined for Silent Luxury)
+// Minimal Blur Reveal Component
 const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
   const elementRef = useRef<HTMLParagraphElement>(null);
   
   useEffect(() => {
     if (!elementRef.current) return;
-    
     const split = new SplitType(elementRef.current, { types: 'words' });
     const words = split.words;
-    
     if (!words) return;
 
-    gsap.set(words, { 
-      opacity: 0, 
-      filter: 'blur(10px)', 
-      y: 10, 
-      willChange: 'filter, opacity, transform'
-    });
-
+    gsap.set(words, { opacity: 0, filter: 'blur(10px)', y: 10, willChange: 'filter, opacity, transform' });
     const ctx = gsap.context(() => {
       gsap.to(words, {
-        opacity: 1,
-        filter: 'blur(0px)',
-        y: 0,
-        duration: 1.2, // Slower, more elegant
-        stagger: 0.015, 
-        ease: 'power2.out', 
-        delay: delay
+        opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.2,
+        stagger: 0.015, ease: 'power2.out', delay: delay
       });
     }, elementRef);
 
-    return () => {
-      ctx.revert();
-      split.revert();
-    };
+    return () => { ctx.revert(); split.revert(); };
   }, [children, delay]); 
 
   return <p ref={elementRef} className={className}>{children}</p>;
 };
 
-import { GalleryItem } from '@/app/components/work/GalleryItem';
 import { SeoHead } from '@/app/components/seo/SeoHead';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
+import { TextDetail } from '@/app/components/TextDetail';
 
 interface WorkDetailProps {
   workId: string | null;
 }
 
-// Lerp utility
-const lerp = (current: number, target: number, factor: number) => {
-  return current * (1 - factor) + target * factor;
+// Helper: Custom Slider Arrow
+const CustomArrow = ({ className, style, onClick, direction }: any) => (
+  <div
+    className={`${className} z-10 !w-12 !h-12 !flex !items-center !justify-center before:!content-none hover:!bg-black/5 dark:hover:!bg-white/10 rounded-full transition-colors duration-300`}
+    style={{ ...style, display: "flex", right: direction === 'next' ? '-60px' : undefined, left: direction === 'prev' ? '-60px' : undefined }}
+    onClick={onClick}
+  >
+    {direction === 'next' ? <ArrowRight className="w-4 h-4 text-foreground/50" /> : <ArrowLeft className="w-4 h-4 text-foreground/50" />}
+  </div>
+);
+
+// Helper: Video Player Component
+const VideoPlayer = ({ url }: { url: string }) => {
+  const getVimeoId = (link: string) => {
+    const match = link.match(/(?:vimeo.com\/|video\/)(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const isYoutube = url.includes('youtube') || url.includes('youtu.be');
+  const isVimeo = url.includes('vimeo');
+
+  if (isYoutube) {
+    return (
+      <div className="relative w-full aspect-video bg-black/5 rounded-sm overflow-hidden">
+        <iframe
+          src={url.replace('watch?v=', 'embed/')}
+          title="Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
+        />
+      </div>
+    );
+  }
+
+  if (isVimeo) {
+    const vimeoId = getVimeoId(url);
+    if (!vimeoId) return null;
+    return (
+      <div className="relative w-full aspect-video bg-black/5 rounded-sm overflow-hidden">
+        <iframe
+          src={`https://player.vimeo.com/video/${vimeoId}?color=ffffff&title=0&byline=0&portrait=0`}
+          title="Vimeo"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
+        />
+      </div>
+    );
+  }
+
+  return null;
 };
 
-// Calculate distance between two points
-const calculateDistance = (x1: number, y1: number, x2: number, y2: number) => {
-  return Math.hypot(x1 - x2, y1 - y2);
+const cleanText = (text: string) => {
+  if (!text) return "";
+  return text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"');
 };
 
 export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const { lang } = useLanguage();
-  const { works, texts } = useWorks();
+  const { works, texts, translateWorksByIds, currentLang } = useWorks();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [isMagnetic, setIsMagnetic] = useState(false);
+  const nodeRef = useRef(null);
+  const [isMaximized, setIsMaximized] = useState(false);
   
-  // Floating Image Cursor Logic (Calm & Precise)
+  // Floating Text Window State
+  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
   const [hoveredArticleImg, setHoveredArticleImg] = useState<string | null>(null);
   const cursorImgRef = useRef<HTMLDivElement>(null);
-  
-  // Mouse position
+
+  useEffect(() => {
+    if (workId && lang !== 'ko' && lang !== currentLang) {
+      translateWorksByIds([workId], lang);
+    }
+  }, [workId, lang, currentLang]);
+
+  // Cursor Follower Logic for Text List
   useEffect(() => {
     const handleWindowMouseMove = (e: MouseEvent) => {
       if (!cursorImgRef.current || !hoveredArticleImg) return;
-      
       const { clientX, clientY } = e;
-      const x = clientX + 40; 
-      const y = clientY + 40;
-
       cursorImgRef.current.animate({
-        transform: `translate(${x}px, ${y}px)`
-      }, { duration: 800, fill: 'forwards', easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }); // Slower easing
+        transform: `translate(${clientX + 40}px, ${clientY + 40}px)`
+      }, { duration: 800, fill: 'forwards', easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
     };
-
     window.addEventListener('mousemove', handleWindowMouseMove);
     return () => window.removeEventListener('mousemove', handleWindowMouseMove);
   }, [hoveredArticleImg]);
   
   const work = works.find(w => w.id === workId);
 
-  // ESC key handler
+  // ESC Key
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        window.location.hash = '#/work';
+        if (selectedArticleId) setSelectedArticleId(null);
+        else window.location.hash = '#/work';
       }
     };
     window.addEventListener('keydown', handleEscKey);
     return () => window.removeEventListener('keydown', handleEscKey);
-  }, []);
-
-  // Magnetic Button Effect
-  useEffect(() => {
-    const button = buttonRef.current;
-    if (!button) return;
-
-    const triggerArea = 100; // Reduced from 200px to 100px
-    const interpolationFactor = 0.1; // Slower magnetic pull
-    
-    const lerpingData = {
-      x: { current: 0, target: 0 },
-      y: { current: 0, target: 0 }
-    };
-
-    let mousePosition = { x: 0, y: 0 };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mousePosition.x = e.pageX;
-      mousePosition.y = e.pageY;
-    };
-
-    let animationFrameId: number;
-
-    const render = () => {
-      if (!button) return;
-
-      const rect = button.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      
-      const distanceFromMouseToCenter = calculateDistance(
-        mousePosition.x,
-        mousePosition.y,
-        centerX,
-        centerY
-      );
-
-      let targetHolder = { x: 0, y: 0 };
-      
-      if (distanceFromMouseToCenter < triggerArea) {
-        setIsMagnetic(true);
-        targetHolder.x = (mousePosition.x - centerX) * 0.3;
-        targetHolder.y = (mousePosition.y - centerY) * 0.3;
-      } else {
-        setIsMagnetic(false);
-      }
-
-      lerpingData.x.target = targetHolder.x;
-      lerpingData.y.target = targetHolder.y;
-
-      lerpingData.x.current = lerp(
-        lerpingData.x.current,
-        lerpingData.x.target,
-        interpolationFactor
-      );
-      lerpingData.y.current = lerp(
-        lerpingData.y.current,
-        lerpingData.y.target,
-        interpolationFactor
-      );
-
-      button.style.transform = `translate(${lerpingData.x.current}px, ${lerpingData.y.current}px)`;
-      
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    render();
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
+  }, [selectedArticleId]);
 
   if (!work) return null;
 
-  const handleClose = () => {
-    window.location.hash = '#/work';
-  };
-
-  const handleWorkClick = (clickedWorkId: number) => {
-    window.location.hash = `#/work/${clickedWorkId}`;
-  };
-
-  const getTitle = () => {
-    switch (lang) {
-      case 'ko': return work.title_ko;
-      case 'jp': return work.title_jp;
-      default: return work.title_en;
+  const handleClose = () => { 
+    if (window.history.length > 1) {
+       window.history.back();
+    } else {
+       window.location.hash = '#/work'; 
     }
   };
+  const handleWorkClick = (clickedWorkId: number) => { window.location.hash = `#/work/${clickedWorkId}`; };
 
-  const getDescription = () => {
-    switch (lang) {
-      case 'ko': return work.description_ko;
-      case 'jp': return work.description_jp;
-      default: return work.description_en;
-    }
-  };
-
-  const getYearCaption = () => {
-    switch (lang) {
-      case 'ko': return work.yearCaption_ko;
-      case 'jp': return work.yearCaption_jp;
-      default: return work.yearCaption_en;
-    }
-  };
-
-  const getVimeoId = (url: string) => {
-    const match = url.match(/(?:vimeo.com\/|video\/)(\d+)/);
-    return match ? match[1] : null;
-  };
-
-  const title = getTitle();
-  const description = getDescription();
-  const yearCaption = getYearCaption();
+  const title = lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
+  const description = lang === 'ko' ? work.description_ko : (lang === 'jp' ? work.description_jp : work.description_en);
+  const yearCaption = lang === 'ko' ? work.yearCaption_ko : (lang === 'jp' ? work.yearCaption_jp : work.yearCaption_en);
   
-  const hasYoutube = !!work.youtubeUrl;
-  const hasVimeo = !!work.vimeoUrl;
+  const videoUrl = work.youtubeUrl || work.vimeoUrl;
+
+  // Slider Settings
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 800,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    variableWidth: true,
+    centerMode: true,
+    focusOnSelect: true,
+    nextArrow: <CustomArrow direction="next" />,
+    prevArrow: <CustomArrow direction="prev" />,
+    className: "center",
+    dotsClass: "slick-dots !bottom-[-60px]",
+  };
 
   return (
-    <div className="min-h-screen bg-background selection:bg-black/10 selection:text-black dark:selection:bg-white/20 dark:selection:text-white">
-      <SeoHead 
-        title={work.title_en}
-        description={work.description_en ? work.description_en.slice(0, 160) : undefined}
-        image={work.thumbnail}
-      />
+    <>
+      <div className="min-h-screen bg-background selection:bg-black/10 selection:text-black dark:selection:bg-white/20 dark:selection:text-white">
+        <SeoHead title={work.title_en} description={work.description_en?.slice(0, 160)} image={work.thumbnail} />
 
-      {/* Content Container */}
-      <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1800px] mx-auto">
-        
-        {/* ESC Button - Fixed Position or Sticky if preferred, but keeping it in flow for now */}
-        <div className="fixed top-24 md:top-32 left-6 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
-          <button
-            ref={buttonRef}
-            onClick={handleClose}
-            className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-          >
-            <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-            <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-              ESC
-            </span>
-          </button>
-        </div>
+        {/* Custom Styles for Slider */}
+        <style>{`
+          .slick-slide { margin: 0 10px; }
+          .slick-dots li button:before { font-size: 8px; color: currentColor; opacity: 0.2; }
+          .slick-dots li.slick-active button:before { opacity: 0.8; }
+        `}</style>
 
-        {/* 1. Header Spec Sheet (The "Museum Caption" Style) */}
-        {/* Minimal borders, tiny text, wide spacing */}
-        <div className="mb-40 md:mb-64 animate-in fade-in duration-1000 slide-in-from-bottom-4">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-y-8 border-t border-black/5 dark:border-white/10 pt-6">
-            
-            {/* Column 1: Title (Serif, Elegant) */}
-            <div className="md:col-span-4 lg:col-span-3">
-              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
-                Project Title
-              </span>
-              <h1 className="text-2xl md:text-3xl font-serif font-light text-foreground/90 leading-tight">
-                {title}
-              </h1>
-            </div>
-
-            {/* Column 2: Year (Mono) */}
-            <div className="md:col-span-2 lg:col-span-2 md:col-start-6 lg:col-start-5">
-              <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
-                Year
-              </span>
-              <span className="block text-sm font-mono text-foreground/70">
-                {work.year}
-              </span>
-              {yearCaption && (
-                 <span className="block text-[10px] text-muted-foreground/50 mt-1 font-serif italic">
-                   {yearCaption}
-                 </span>
-              )}
-            </div>
-
-             {/* Column 4: Client (If exists) or Empty */}
-             <div className="md:col-span-2 lg:col-span-2">
-              {work.client && (
-                <>
-                  <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">
-                    Client
-                  </span>
-                  <span className="block text-sm font-mono text-foreground/70">
-                    {work.client}
-                  </span>
-                </>
-              )}
-            </div>
-
-          </div>
-
-          {/* Description - Offset & Indented */}
-          {description && (
-            <div className="mt-24 md:mt-32 grid grid-cols-1 md:grid-cols-12">
-               <div className="md:col-span-6 md:col-start-6 lg:col-span-5 lg:col-start-7 space-y-8">
-                 {description.split('\n\n').map((paragraph, index) => (
-                    <BlurReveal 
-                      key={index} 
-                      className={`
-                        font-serif text-foreground/80
-                        ${index === 0 
-                          ? 'text-lg md:text-xl leading-[1.6] opacity-90' 
-                          : 'text-sm md:text-base leading-[1.8] opacity-70'
-                        }
-                      `}
-                      delay={0.2 + (index * 0.1)}
-                    >
-                      {paragraph}
-                    </BlurReveal>
-                 ))}
-               </div>
-            </div>
-          )}
-        </div>
-
-        {/* 2. Gallery Images (Deep Breath Layout) */}
-        {/* Significantly increased vertical spacing for a "Walking through a gallery" feel */}
-        <div className="space-y-40 md:space-y-64 mb-40 md:mb-64">
+        {/* Content Container */}
+        <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1800px] mx-auto">
           
-          {/* Video Section */}
-          {(hasYoutube || hasVimeo) && (
-            <div className="w-full max-w-5xl mx-auto mb-40">
-              {hasYoutube && work.youtubeUrl && (
-                <div className="relative w-full aspect-video bg-black/5">
-                  <iframe
-                    src={work.youtubeUrl}
-                    title="Video"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
-                  />
-                </div>
-              )}
-              {hasVimeo && work.vimeoUrl && (() => {
-                  const vimeoId = getVimeoId(work.vimeoUrl);
-                  return vimeoId ? (
-                    <div className="relative w-full aspect-video bg-black/5">
-                      <iframe
-                        src={`https://player.vimeo.com/video/${vimeoId}?color=ffffff&title=0&byline=0&portrait=0`}
-                        title="Vimeo"
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
-                      />
-                    </div>
-                  ) : null;
-                })()}
-            </div>
-          )}
+          {/* Back Button */}
+          <div className="fixed top-24 md:top-32 left-6 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
+            <button
+              ref={buttonRef}
+              onClick={handleClose}
+              className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+            >
+              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
+              <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">BACK</span>
+            </button>
+          </div>
 
-          {work.galleryImages.map((image, index) => {
-            // More dramatic layout logic
-            // 0: Full width (Central)
-            // 1: Left aligned, medium
-            // 2: Right aligned, small
-            // 3: Right aligned, medium
-            // 4: Left aligned, small
-            const patternIndex = index % 5;
-            let layoutClass = "w-full";
-            let containerClass = "flex justify-center";
-            
-            if (patternIndex === 0) {
-              layoutClass = "w-full max-w-[90vw]";
-            } else if (patternIndex === 1) {
-              containerClass = "flex justify-start md:pl-[10%]";
-              layoutClass = "w-full md:w-[65%]";
-            } else if (patternIndex === 2) {
-              containerClass = "flex justify-end md:pr-[15%]";
-              layoutClass = "w-full md:w-[40%]";
-            } else if (patternIndex === 3) {
-              containerClass = "flex justify-end";
-              layoutClass = "w-full md:w-[75%]";
-            } else if (patternIndex === 4) {
-              containerClass = "flex justify-start md:pl-[5%]";
-              layoutClass = "w-full md:w-[50%]";
-            }
-
-            return (
-              <GalleryItem
-                key={index}
-                index={index}
-                image={image}
-                title={title}
-                layoutClass={layoutClass}
-                containerClass={containerClass}
-                // Pass a flag to GalleryItem if needed to make it minimal (no heavy shadows/borders)
-              />
-            );
-          })}
-        </div>
-
-        {/* 3. Related Texts (The Archive) */}
-        {/* Extremely minimal list, barely there */}
-        {work.relatedArticles && work.relatedArticles.length > 0 && (
-          <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-              
-              {/* Sticky Label */}
+          {/* 1. Header Spec Sheet */}
+          <div className="mb-24 md:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-y-8 border-t border-black/5 dark:border-white/10 pt-6">
               <div className="md:col-span-4 lg:col-span-3">
-                <div className="sticky top-40">
-                  <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">
-                    Related Texts
-                  </h2>
-                  {/* Summary Display */}
-                  <div className="hidden md:block min-h-[100px]">
-                    {hoveredArticleId && (
-                      <BlurReveal key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic">
-                         {(() => {
-                            const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
-                            const textItem = texts.find(t => t.id === article?.id);
-                            const summary = textItem?.summary ? textItem.summary[lang] : article?.summary;
-                            return summary ? summary.slice(0, 120) + "..." : "";
-                         })()}
-                      </BlurReveal>
-                    )}
-                  </div>
-                </div>
+                <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Project Title</span>
+                <h1 className="text-2xl md:text-3xl font-serif font-light text-foreground/90 leading-tight">{cleanText(title)}</h1>
               </div>
-
-              {/* List */}
-              <div className="md:col-span-8 lg:col-span-9 relative">
-                 {/* Floating Preview Image */}
-                 <div 
-                    ref={cursorImgRef}
-                    className={`
-                      fixed top-0 left-0 z-50 pointer-events-none
-                      w-[240px] aspect-[4/3] overflow-hidden bg-background
-                      transition-opacity duration-300 ease-out border border-black/10
-                      ${hoveredArticleImg ? 'opacity-100' : 'opacity-0'}
-                    `}
-                  >
-                     {hoveredArticleImg && (
-                       <img 
-                         src={hoveredArticleImg} 
-                         alt="Preview" 
-                         className="w-full h-full object-cover grayscale contrast-125" 
-                       />
-                     )}
-                  </div>
-
-                  <div className="flex flex-col border-t border-black/10 dark:border-white/10">
-                    {work.relatedArticles.map((article, index) => {
-                       const textItem = texts.find(t => t.id === article.id);
-                       const displayTitle = textItem ? textItem.title[lang] : article.title;
-                       const isHovered = hoveredArticleId === article.id;
-                       
-                       return (
-                          <a
-                            key={article.id}
-                            href={`#/text/${article.id}`}
-                            className="group block relative"
-                            onMouseEnter={() => {
-                              setHoveredArticleId(article.id);
-                              if (textItem?.image) setHoveredArticleImg(textItem.image);
-                            }}
-                            onMouseLeave={() => {
-                              setHoveredArticleId(null);
-                              setHoveredArticleImg(null);
-                            }}
-                          >
-                            <div className={`
-                              flex items-baseline py-8 border-b border-black/10 dark:border-white/10
-                              transition-all duration-300
-                              ${isHovered ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}
-                            `}>
-                              <span className="w-16 text-[10px] font-mono text-muted-foreground/60">
-                                {String(index + 1).padStart(2, '0')}
-                              </span>
-                              <h3 className="text-xl md:text-2xl font-serif font-light tracking-tight text-foreground/90">
-                                {displayTitle}
-                              </h3>
-                            </div>
-                          </a>
-                       );
-                    })}
-                  </div>
+              <div className="md:col-span-2 lg:col-span-2 md:col-start-6 lg:col-start-5">
+                <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Year</span>
+                <span className="block text-sm font-mono text-foreground/70">{work.year}</span>
+                {yearCaption && <span className="block text-[10px] text-muted-foreground/50 mt-1 font-serif italic">{yearCaption}</span>}
               </div>
-
+              <div className="md:col-span-2 lg:col-span-2">
+                {work.client && (
+                  <>
+                    <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Client</span>
+                    <span className="block text-sm font-mono text-foreground/70">{work.client}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-        )}
 
+          {/* 2. Split Layout: Video (Sticky) & Text */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-40">
+            {/* Left: Video (Sticky) */}
+            <div className="md:col-span-5 lg:col-span-5 relative">
+              <div className="md:sticky md:top-32 space-y-4">
+                {videoUrl && (
+                  <div className="w-full">
+                     <VideoPlayer url={videoUrl} />
+                     <div className="mt-3 flex items-center justify-between opacity-50">
+                        <span className="text-[9px] uppercase tracking-widest font-mono">Featured Film</span>
+                        <div className="h-px bg-current flex-grow ml-4"></div>
+                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: Description Text */}
+            <div className="md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7">
+               {description && (
+                 <div className="space-y-8">
+                   {description.split('\n\n').map((paragraph, index) => (
+                      <BlurReveal 
+                        key={index} 
+                        className={`font-serif text-foreground/80 ${index === 0 ? 'text-lg md:text-xl leading-[1.6] opacity-90' : 'text-sm md:text-base leading-[1.8] opacity-70'}`}
+                        delay={0.2 + (index * 0.1)}
+                      >
+                        {cleanText(paragraph)}
+                      </BlurReveal>
+                   ))}
+                 </div>
+               )}
+            </div>
+          </div>
+
+          {/* 3. Image Slider */}
+          <div className="mb-40 md:mb-64">
+            <Slider {...sliderSettings}>
+              {work.galleryImages.map((image, index) => (
+                <div key={index} className="outline-none focus:outline-none">
+                  {/* Aspect Ratio Constraint Container - Ensure width fits content for consistent gap */}
+                  <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing" style={{ width: 'fit-content' }}>
+                    <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
+                    <img 
+                      src={image} 
+                      alt={`Gallery ${index + 1}`} 
+                      className="h-full w-auto object-contain mx-auto block"
+                      draggable={false}
+                    />
+                    <div className="absolute bottom-4 right-4 z-20 text-[10px] font-mono text-white bg-black/50 px-2 py-1 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          </div>
+
+          {/* 4. Related Texts */}
+          {work.relatedArticles && work.relatedArticles.length > 0 && (
+            <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                <div className="md:col-span-4 lg:col-span-3">
+                  <div className="sticky top-40">
+                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">Related Texts</h2>
+                    <div className="hidden md:block min-h-[100px]">
+                      {hoveredArticleId && (
+                        <BlurReveal key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic">
+                           {(() => {
+                               const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
+                               const textItem = texts.find(t => t.id === article?.id);
+                               const summary = textItem?.summary ? textItem.summary[lang] : article?.summary;
+                               return summary ? cleanText(summary).slice(0, 120) + "..." : "";
+                           })()}
+                        </BlurReveal>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="md:col-span-8 lg:col-span-9 relative">
+                   <div 
+                      ref={cursorImgRef}
+                      className={`fixed top-0 left-0 z-50 pointer-events-none w-[240px] aspect-[4/3] overflow-hidden bg-background transition-opacity duration-300 ease-out border border-black/10 ${hoveredArticleImg ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                       {hoveredArticleImg && <img src={hoveredArticleImg} alt="Preview" className="w-full h-full object-cover grayscale contrast-125" />}
+                    </div>
+                    <div className="flex flex-col border-t border-black/10 dark:border-white/10">
+                      {work.relatedArticles.map((article, index) => {
+                         const textItem = texts.find(t => t.id === article.id);
+                         const displayTitle = textItem ? textItem.title[lang] : article.title;
+                         return (
+                            <div
+                               key={article.id}
+                               onClick={() => setSelectedArticleId(article.id)}
+                               className="group block relative cursor-pointer"
+                               onMouseEnter={() => { setHoveredArticleId(article.id); if (textItem?.image) setHoveredArticleImg(textItem.image); }}
+                               onMouseLeave={() => { setHoveredArticleId(null); setHoveredArticleImg(null); }}
+                            >
+                               <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
+                                 <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
+                                 <h3 className="text-xl md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
+                               </div>
+                            </div>
+                         );
+                      })}
+                    </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-40 border-t border-white/5">
+          <InfiniteWorkGrid works={works} onWorkClick={handleWorkClick} />
+        </div>
+        <ScrollToTop />
       </div>
 
-      {/* 🆕 INFINITE WORK GRID - Silent Luxury Exploration Zone */}
-      <div className="mt-40 border-t border-white/5">
-        <InfiniteWorkGrid 
-          works={works} 
-          onWorkClick={handleWorkClick}
-        />
-      </div>
-      
-      <ScrollToTop />
-    </div>
+      {/* Floating Text Window (Portal) */}
+      {selectedArticleId && createPortal(
+        <Draggable 
+          handle=".window-handle" 
+          defaultPosition={{ x: 100, y: 100 }} 
+          bounds="body" 
+          nodeRef={nodeRef}
+          disabled={isMaximized}
+        >
+          <div 
+            ref={nodeRef}
+            className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : 'top-0 left-0 w-fit h-fit'}`}
+            style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : { width: 'fit-content', height: 'fit-content', position: 'fixed' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : 'rounded-sm'}`}
+            >
+              <Resizable
+                defaultSize={{ width: 450, height: 600 }}
+                size={isMaximized ? { width: '100%', height: '100%' } : undefined}
+                minWidth={320} minHeight={400} 
+                maxWidth={isMaximized ? '100%' : 1000}
+                enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
+                className="flex flex-col relative"
+              >
+                <div className="window-handle h-10 flex-shrink-0 bg-muted/20 flex items-center justify-between px-4 cursor-move select-none border-b border-foreground/5 transition-colors hover:bg-muted/30">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 hover:bg-red-500/50 transition-colors cursor-pointer" onClick={() => setSelectedArticleId(null)} />
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 hover:bg-amber-500/50 transition-colors" />
+                        <div 
+                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 hover:bg-green-500/50 transition-colors cursor-pointer" 
+                            onClick={() => setIsMaximized(!isMaximized)} 
+                        />
+                    </div>
+                    <span className="ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40">Archive Reader</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => setIsMaximized(!isMaximized)} 
+                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
+                        title={isMaximized ? "Restore" : "Maximize"}
+                    >
+                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    </button>
+                    <button onClick={() => setSelectedArticleId(null)} className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"><X size={14} /></button>
+                  </div>
+                </div>
+                <div className="w-full h-full overflow-hidden relative bg-background">
+                    <TextDetail textId={selectedArticleId} />
+                </div>
+              </Resizable>
+            </motion.div>
+          </div>
+        </Draggable>,
+        document.body
+      )}
+    </>
   );
 };

@@ -26,6 +26,13 @@ export interface TextItem {
     ko: string;
     jp: string;
   };
+  relatedWorks?: {
+    id: string;
+    title: string;
+    thumbnail: string;
+    year: string;
+    medium: string;
+  }[];
 }
 
 export const textData: TextItem[] = [
