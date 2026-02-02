@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { Flip } from 'gsap/Flip';
 import { useWorks } from '@/contexts/WorkContext';
@@ -111,24 +112,53 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   }, [hoveredWorkId, isOpen, activeWork]);
 
 
-  return (
-    <div ref={containerRef} className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+  const handleWorkClick = () => {
+    if (activeWork) {
+      // Direct navigation as a fallback/primary method for mobile
+      window.location.hash = `#/work/${activeWork.id}`;
+      if (onClick) onClick(); // Execute any parent cleanup logic
+    }
+  };
+
+  if (!isMobile && !isOpen && !hoveredWorkId) return null;
+
+  // Create a portal to render the tooltip at the very end of the document body
+  // This ensures it sits above ALL other stacking contexts (headers, lists, 3D transforms)
+  return createPortal(
+    <div 
+        ref={containerRef} 
+        className="fixed inset-0 z-[99999] pointer-events-none flex flex-col justify-end items-end"
+        style={{ zIndex: 99999 }} // Inline style to force override
+    >
         {/* Tooltip Container */}
         <aside 
             ref={tooltipRef}
-            onClick={isMobile && onClick ? onClick : undefined}
-            className={`tooltip fixed right-[5vw] bottom-[10vh] w-[250px] z-40 opacity-0 flex flex-col ${isMobile ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
+            onClick={isMobile ? handleWorkClick : undefined}
+            className={`
+                fixed right-[5vw] bottom-[10vh] w-[250px] 
+                z-[99999] 
+                flex flex-col 
+                bg-background dark:bg-zinc-900 
+                shadow-[0_20px_50px_rgba(0,0,0,0.3)] 
+                border border-border/10
+                overflow-hidden
+                ${isMobile ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
+            `}
+            style={{ 
+                opacity: 0, // Controlled by GSAP
+                isolation: 'isolate' // Creates a new stacking context
+            }} 
         >
-            {/* Lines contained WITHIN the tooltip component for perfect alignment */}
-            <div className="line-h absolute left-0 top-0 w-full h-[1px] bg-black dark:bg-white z-50" />
-            <div className="line-h absolute left-0 bottom-0 w-full h-[1px] bg-black dark:bg-white z-50" />
-            <div className="line-v absolute left-0 top-0 h-full w-[1px] bg-black dark:bg-white z-50" />
-            <div className="line-v absolute right-0 top-0 h-full w-[1px] bg-black dark:bg-white z-50" />
+            {/* Lines - Decoration */}
+            <div className="line-h absolute left-0 top-0 w-full h-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
+            <div className="line-h absolute left-0 bottom-0 w-full h-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
+            <div className="line-v absolute left-0 top-0 h-full w-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
+            <div className="line-v absolute right-0 top-0 h-full w-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
 
             {/* Inner Content Wrapper */}
-            <div className="tooltip-content w-full h-full relative">
-                {/* Image Wrapper */}
-                <div className="tooltip__img-wrap relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
+            <div className="tooltip-content w-full relative z-10 flex flex-col bg-background dark:bg-zinc-900">
+                {/* Image Wrapper - Solid Background to prevent transparency */}
+                <div className="tooltip__img-wrap relative w-full aspect-[4/3] overflow-hidden bg-muted shrink-0 z-20">
                     {activeWork && images.map((img, i) => (
                         <div 
                             key={i}
@@ -138,25 +168,26 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                     ))}
                 </div>
                 
-                {/* Text */}
+                {/* Text Section - Solid Background, No Gaps */}
                 {activeWork && (
-                    <div className="tooltip__text relative mt-4 text-xs font-mono uppercase tracking-widest text-foreground bg-white/80 dark:bg-black/80 p-2 backdrop-blur-sm">
-                        <span className="font-bold block mb-1">{activeWork.title_en || activeWork.title}</span>
-                        <span className="opacity-70">{isMobile ? 'View Project' : 'Click to view'}</span>
+                    <div className="tooltip__text w-full p-4 flex flex-col items-center justify-center text-center bg-background dark:bg-zinc-900 z-20 relative border-t border-border/5">
+                        <div className="text-sm font-serif text-foreground mb-1 leading-tight">
+                            <span className="font-medium mr-2">{activeWork.title_en || activeWork.title}</span>
+                            <span className="font-mono text-[11px] opacity-50">&lt;{activeWork.year}&gt;</span>
+                        </div>
+                        <div className="mt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-primary/70 border-b border-primary/20 pb-0.5">
+                            {isMobile ? 'View Project' : 'Click to view'}
+                        </div>
                     </div>
                 )}
             </div>
         </aside>
 
-        {/* Fullscreen Gallery (Left here but controlled by isOpen which is now false in usage) */}
+        {/* Fullscreen Gallery Placeholder (If needed later) */}
         {isOpen && activeWork && (
-            <div 
-                ref={galleryRef}
-                className="gallery-fullscreen fixed inset-0 z-50 bg-background flex flex-col items-center justify-center pointer-events-auto"
-            >
-                {/* Content... (Not used in new flow) */}
-            </div>
+            <div ref={galleryRef} className="hidden" />
         )}
-    </div>
+    </div>,
+    document.body
   );
 };

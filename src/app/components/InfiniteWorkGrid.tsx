@@ -2,6 +2,7 @@ import { useEffect, useRef, useMemo, useState } from 'react';
 import { Work } from '@/contexts/WorkContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { TooltipTransition } from '@/app/components/TooltipTransition';
 
 // --- Utility: Line Break Logic ---
 const lineBreak = (text: string, max: number, container: HTMLElement) => {
@@ -158,6 +159,9 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   const [hoveredWork, setHoveredWork] = useState<Work | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Mobile Tooltip State
+  const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -243,7 +247,8 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
        {/* Center Content: JIHYUNJUNG */}
        {/* Moved UP by changing justify-center to justify-start and adding padding-top */}
-       <div className="absolute inset-0 z-10 flex flex-col items-center justify-start pt-[35vh] pointer-events-none">
+       {/* Hidden on mobile (< 768px), visible on desktop/tablet */}
+       <div className="hidden md:flex absolute inset-0 z-10 flex-col items-center justify-start pt-[35vh] pointer-events-none">
           {/* Main Title */}
           <h1 className="text-[3vw] md:text-[2.5vw] font-serif font-light tracking-[0.2em] leading-none text-black z-20 transition-all duration-700">
             JIHYUN JUNG
@@ -276,9 +281,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                       <div 
                           key={`mobile-${i}`} 
                           className="mb-32 cursor-pointer group text-center" 
-                          onClick={() => onWorkClick?.(Number(work.id))}
-                          onMouseEnter={() => handleMouseEnter(work)}
-                          onMouseLeave={handleMouseLeave}
+                          onClick={() => setTooltipWorkId(work.id)}
                       >
                           <p className="smart-text-source opacity-0 text-sm font-serif text-black transition-colors duration-700 leading-relaxed">
                              {work.title_en}
@@ -342,6 +345,22 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
           </div>
           )}
        </div>
+
+       {/* Mobile Tooltip - Moved to the end to ensure it sits on top of everything in DOM order */}
+       {isMobile && (
+         <TooltipTransition 
+           hoveredWorkId={tooltipWorkId} 
+           isOpen={false} 
+           onClose={() => setTooltipWorkId(null)}
+           onClick={() => {
+             if (tooltipWorkId) {
+               onWorkClick?.(Number(tooltipWorkId));
+               setTooltipWorkId(null);
+             }
+           }}
+           isMobile={true}
+         />
+       )}
     </div>
   );
 };

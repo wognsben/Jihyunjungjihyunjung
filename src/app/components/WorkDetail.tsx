@@ -368,26 +368,26 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       className="h-full w-full md:w-auto object-contain mx-auto block"
                       draggable={false}
                     />
-                    <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-6 md:gap-8">
+                    <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
                       <button 
-                        className="swiper-button-prev-custom text-foreground/30 active:text-foreground/60 transition-colors active:scale-95"
+                        className="swiper-button-prev-custom text-foreground/50 active:text-foreground/80 transition-colors active:scale-95"
                         aria-label="Previous"
                         onClick={() => swiperRef.current?.slidePrev()}
                       >
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-4 md:h-4">
-                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.5" strokeLinecap="square"/>
+                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
+                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                         </svg>
                       </button>
-                      <span className="text-[9px] md:text-[11px] font-mono text-foreground/40 tracking-[0.15em]">
+                      <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
                         {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                       </span>
                       <button 
-                        className="swiper-button-next-custom text-foreground/30 active:text-foreground/60 transition-colors active:scale-95"
+                        className="swiper-button-next-custom text-foreground/50 active:text-foreground/80 transition-colors active:scale-95"
                         aria-label="Next"
                         onClick={() => swiperRef.current?.slideNext()}
                       >
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="md:w-4 md:h-4">
-                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.5" strokeLinecap="square"/>
+                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
+                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                         </svg>
                       </button>
                     </div>
