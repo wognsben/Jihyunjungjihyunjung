@@ -13,9 +13,11 @@ const api = axios.create({
 // Interfaces
 export interface AboutData {
   title: string;
+  name?: string; // Add name field from ACF
   content: string; // HTML
   image: string;
   profile_info?: string;
+  profile_info2?: string; // Add profile_info2 field
   contact: {
     email: string;
     instagram: string;
@@ -542,9 +544,12 @@ export const fetchAboutPage = async (): Promise<AboutData | null> => {
     
     return {
       title: decode(page.title.rendered),
+      name: acf.name || '', // Fetch ACF 'name' field
       content: page.content.rendered,
       image: featuredImage,
-      profile_info: acf.profile_info || '',
+      // Check profile_info, fallback to profile_text group if nested
+      profile_info: acf.profile_info || acf.profile_text?.profile_info || '',
+      profile_info2: acf.profile_info2 || '', // Explicitly fetch profile_info2
       contact: {
         email: acf.email || contactGroup.email || '',
         instagram: acf.instagram || contactGroup.instagram || '',

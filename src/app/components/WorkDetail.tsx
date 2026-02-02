@@ -360,39 +360,65 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             >
               {work.galleryImages.map((image, index) => (
                 <SwiperSlide key={index} className="outline-none focus:outline-none">
-                  <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing w-full md:w-fit mx-auto">
-                    <div className="hidden md:block absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
-                    <img 
-                      src={image} 
-                      alt={`Gallery ${index + 1}`} 
-                      className="h-full w-full md:w-auto object-contain mx-auto block"
-                      draggable={false}
-                    />
-                    <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
+                  <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
+                    <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing w-full">
+                      <div className="hidden md:block absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
+                      <img 
+                        src={image} 
+                        alt={`Gallery ${index + 1}`} 
+                        className="h-full w-full md:w-auto object-contain mx-auto block"
+                        draggable={false}
+                      />
+                      
+                      {/* Mobile Controls (Inside) */}
+                      <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
+                        <button 
+                          className="swiper-button-prev-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                          aria-label="Previous"
+                          onClick={() => swiperRef.current?.slidePrev()}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
+                            <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                          </svg>
+                        </button>
+                        <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                          {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                        </span>
+                        <button 
+                          className="swiper-button-next-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                          aria-label="Next"
+                          onClick={() => swiperRef.current?.slideNext()}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
+                            <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Desktop Controls (Outside/Below) */}
+                    <div className="hidden lg:flex items-center gap-10">
                       <button 
-                        className="swiper-button-prev-custom text-foreground/50 active:text-foreground/80 transition-colors active:scale-95"
+                        className="swiper-button-prev-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                         aria-label="Previous"
                         onClick={() => swiperRef.current?.slidePrev()}
                       >
-                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
+                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 w-5 h-5">
                           <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                         </svg>
                       </button>
-                      <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                      <span className="text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
                         {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                       </span>
                       <button 
-                        className="swiper-button-next-custom text-foreground/50 active:text-foreground/80 transition-colors active:scale-95"
+                        className="swiper-button-next-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                         aria-label="Next"
                         onClick={() => swiperRef.current?.slideNext()}
                       >
-                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
+                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="w-5 h-5">
                           <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                         </svg>
                       </button>
-                    </div>
-                    <div className="hidden lg:block absolute bottom-4 right-4 z-20 text-[10px] font-mono text-white bg-black/50 px-2 py-1 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                     </div>
                   </div>
                 </SwiperSlide>

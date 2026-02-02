@@ -58,13 +58,15 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     if (hoveredWorkId && !isOpen && images.length > 0) {
       let idx = 0; 
       const nextSlide = () => {
-        slideshowTimer.current = gsap.delayedCall(0.6, () => {
-          idx = (idx + 1) % images.length;
-          setCurrentImageIndex(idx);
-          nextSlide();
-        });
+        // Change state immediately when called
+        idx = (idx + 1) % images.length;
+        setCurrentImageIndex(idx);
+        // Then schedule the next one
+        slideshowTimer.current = gsap.delayedCall(1.8, nextSlide);
       };
-      const startTimer = gsap.delayedCall(0.8, nextSlide);
+      
+      // Start the cycle
+      const startTimer = gsap.delayedCall(1.8, nextSlide);
       return () => {
         if (slideshowTimer.current) slideshowTimer.current.kill();
         if (startTimer) startTimer.kill();
@@ -97,10 +99,10 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         .fromTo(linesV[0], { scaleY: 0, transformOrigin: 'top' }, { scaleY: 1 }, 0)
         .fromTo(linesV[1], { scaleY: 0, transformOrigin: 'bottom' }, { scaleY: 1 }, 0)
         
-        // Content fade in slightly later
-        .fromTo(tooltipRef.current.querySelector('.tooltip-content'), 
-            { opacity: 0 }, 
-            { opacity: 1, duration: 0.4 }, 0.2);
+        // Staggered Text Entrance (New Micro Detail)
+        .fromTo(tooltipRef.current.querySelectorAll('.stagger-item'), 
+            { y: 10, opacity: 0 }, 
+            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }, 0.2);
 
     } else if (!hoveredWorkId && !isOpen) {
         // LEAVE
@@ -162,21 +164,52 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                     {activeWork && images.map((img, i) => (
                         <div 
                             key={i}
-                            className={`tooltip__img absolute inset-0 bg-cover bg-center transition-opacity duration-500 ${i === currentImageIndex ? 'tooltip__img--current opacity-100' : 'opacity-0'}`}
-                            style={{ backgroundImage: `url(${img})` }}
+                            className={`tooltip__img absolute inset-0 bg-cover bg-center ${i === currentImageIndex ? 'tooltip__img--current opacity-100 scale-110' : 'opacity-0 scale-110'}`}
+                            style={{ 
+                                backgroundImage: `url(${img})`,
+                                // Transition updated: opacity 1.2s for soft cross-fade
+                                // Scale always active to prevent "jump" when fading out
+                                transition: 'opacity 1.2s ease-in-out, transform 10s ease-out' 
+                            }}
                         />
                     ))}
                 </div>
                 
-                {/* Text Section - Solid Background, No Gaps */}
+                {/* Text Section - Premium Gallery Caption Style */}
                 {activeWork && (
-                    <div className="tooltip__text w-full p-4 flex flex-col items-center justify-center text-center bg-background dark:bg-zinc-900 z-20 relative border-t border-border/5">
-                        <div className="text-sm font-serif text-foreground mb-1 leading-tight">
-                            <span className="font-medium mr-2">{activeWork.title_en || activeWork.title}</span>
-                            <span className="font-mono text-[11px] opacity-50">&lt;{activeWork.year}&gt;</span>
+                    <div className="tooltip__text w-full flex flex-col bg-background dark:bg-zinc-900 z-20 relative border-t border-border/10">
+                        {/* Title & Year Row */}
+                        <div className="p-4 flex flex-col gap-1 items-start text-left">
+                            <div className="stagger-item flex items-baseline justify-between w-full gap-2">
+                                <span className="text-sm font-serif font-medium text-foreground leading-tight tracking-tight">
+                                    {activeWork.title_en || activeWork.title}
+                                </span>
+                                <span className="shrink-0 text-[10px] font-mono text-muted-foreground/60 tracking-wider">
+                                    {activeWork.year}
+                                </span>
+                            </div>
+                            <span className="stagger-item text-[10px] text-muted-foreground/40 font-sans tracking-wide uppercase">
+                                {activeWork.category || 'Selected Work'}
+                            </span>
                         </div>
-                        <div className="mt-2 text-[10px] font-mono uppercase tracking-[0.2em] text-primary/70 border-b border-primary/20 pb-0.5">
-                            {isMobile ? 'View Project' : 'Click to view'}
+
+                        {/* Action Button Area - Full Width */}
+                        <div className={`
+                            stagger-item
+                            w-full py-3 px-4 
+                            border-t border-border/5
+                            flex items-center justify-between
+                            bg-muted/10 dark:bg-white/5
+                            transition-colors duration-300
+                            ${isMobile ? 'active:bg-muted/20' : ''}
+                        `}>
+                            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/80">
+                                View Project
+                            </span>
+                            {/* Arrow Icon */}
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-foreground/60 transform rotate-[-45deg]">
+                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
                         </div>
                     </div>
                 )}

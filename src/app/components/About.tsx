@@ -460,19 +460,21 @@ export const About = () => {
            <div className="flex flex-col gap-6 max-w-full">
              <RevealText delay={0.2}>
                <div className="flex flex-col gap-1">
+                 {/* Priority: ACF Name > Page Title */}
                  <h1 className="text-xl font-medium tracking-tight mb-4">
-                   {aboutData?.title === 'About' ? 'Ji Hyun Jung' : aboutData?.title}
+                   {aboutData?.name || aboutData?.title || 'About'}
                  </h1>
-                 {aboutData?.profile_info ? (
+                 {aboutData?.profile_info && (
                    <div 
-                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4"
                      dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
                    />
-                 ) : (
-                   <p className="text-[14px] leading-relaxed text-foreground/80 font-sans">
-                     (1986 – ) 수원 생<br/>
-                     서울 기반으로 활동중
-                   </p>
+                 )}
+                 {aboutData?.profile_info2 && (
+                   <div 
+                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                     dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
+                   />
                  )}
                </div>
              </RevealText>
@@ -526,18 +528,19 @@ export const About = () => {
                     <RevealText delay={0.2}>
                       <div className="flex flex-col gap-1">
                         <h1 className="text-xl font-medium tracking-tight mb-4">
-                           {aboutData.title === 'About' ? 'Ji Hyun Jung' : aboutData.title}
+                           {aboutData.name || aboutData.title || 'About'}
                         </h1>
-                        {aboutData.profile_info ? (
+                        {aboutData.profile_info && (
                            <div 
-                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4"
                              dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
                            />
-                        ) : (
-                           <p className="text-[14px] leading-relaxed text-foreground/80 font-sans">
-                             (1986 – ) 수원 생<br/>
-                             서울 기반으로 활동중
-                           </p>
+                        )}
+                        {aboutData.profile_info2 && (
+                           <div 
+                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                             dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
+                           />
                         )}
                       </div>
                     </RevealText>
