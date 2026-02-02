@@ -25,6 +25,15 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
   const draggableRef = useRef<HTMLDivElement>(null); 
   const [mounted, setMounted] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Handle client-side mounting for portal
   useEffect(() => {
@@ -81,8 +90,10 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
         <Draggable 
           handle=".window-handle" 
           defaultPosition={{ 
-            x: typeof window !== 'undefined' ? Math.max(20, window.innerWidth / 2 - 250) : 20, 
-            y: 100 
+            x: typeof window !== 'undefined' ? (
+              isMobile ? 20 : Math.max(20, window.innerWidth / 2 - 250)
+            ) : 20, 
+            y: isMobile ? 20 : 100
           }} 
           nodeRef={draggableRef}
           disabled={isMaximized}
@@ -90,8 +101,8 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
           {/* Draggable Wrapper (Position Logic) */}
           <div 
              ref={draggableRef} 
-             className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : 'top-0 left-0 w-fit h-fit'}`}
-             style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : { position: 'fixed' }}
+             className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
+             style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { position: 'fixed' }}
           >
             {/* Animation Wrapper */}
             <motion.div
@@ -99,20 +110,22 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : 'rounded-lg'}`}
+                className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : isMobile ? 'w-full h-full rounded-lg' : 'rounded-lg'}`}
             >
                 <Resizable
-                  defaultSize={{ width: 500, height: 600 }}
+                  defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 500, height: 600 }}
                   size={isMaximized ? { width: '100%', height: '100%' } : undefined}
-                  minWidth={350}
-                  minHeight={400}
+                  minWidth={isMobile ? 300 : 350}
+                  minHeight={isMobile ? 300 : 400}
                   maxWidth={isMaximized ? '100%' : 1000}
                   enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
                   className="flex flex-col h-full relative"
                 >
                     {/* macOS/Apple Style Header (Handle) */}
                     <div className="window-handle h-10 bg-muted/20 flex items-center justify-between px-4 cursor-move select-none border-b border-foreground/5 transition-colors hover:bg-muted/30 flex-shrink-0">
+                    {/* Left Side - macOS dots */}
                     <div className="flex items-center gap-2">
+                        {/* macOS Dots */}
                         <div className="flex gap-1.5 group">
                         <div 
                             className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center" 
@@ -126,8 +139,11 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                             onClick={() => setIsMaximized(!isMaximized)}
                         />
                         </div>
+                        
                         <span className="ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40">New Message</span>
                     </div>
+                    
+                    {/* Right Side - Controls */}
                     <div className="flex items-center gap-2">
                         <button 
                             onClick={() => setIsMaximized(!isMaximized)} 

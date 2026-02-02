@@ -8,9 +8,11 @@ import SplitType from 'split-type';
 import { motion, AnimatePresence } from 'motion/react';
 import { Resizable } from 're-resizable';
 import Draggable from 'react-draggable';
-import Slider from 'react-slick';
-import "slick-carousel/slick/slick.css"; 
-import "slick-carousel/slick/slick-theme.css";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 // Minimal Blur Reveal Component
 const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
@@ -110,8 +112,13 @@ const cleanText = (text: string) => {
     .replace(/&#39;/g, "'")
     .replace(/&rsquo;/g, "'")
     .replace(/&lsquo;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8217;/g, "'")
     .replace(/&ldquo;/g, '"')
-    .replace(/&rdquo;/g, '"');
+    .replace(/&rdquo;/g, '"')
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#038;/g, '&');
 };
 
 export const WorkDetail = ({ workId }: WorkDetailProps) => {
@@ -120,12 +127,22 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const nodeRef = useRef(null);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const swiperRef = useRef<any>(null);
   
   // Floating Text Window State
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
   const [hoveredArticleImg, setHoveredArticleImg] = useState<string | null>(null);
   const cursorImgRef = useRef<HTMLDivElement>(null);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (workId && lang !== 'ko' && lang !== currentLang) {
@@ -177,32 +194,77 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   
   const videoUrl = work.youtubeUrl || work.vimeoUrl;
 
-  // Slider Settings
-  const sliderSettings = {
-    dots: true,
-    infinite: true,
-    speed: 800,
-    slidesToShow: 1,
-    slidesToScroll: 1,
-    variableWidth: true,
-    centerMode: true,
-    focusOnSelect: true,
-    nextArrow: <CustomArrow direction="next" />,
-    prevArrow: <CustomArrow direction="prev" />,
-    className: "center",
-    dotsClass: "slick-dots !bottom-[-60px]",
-  };
-
   return (
     <>
       <div className="min-h-screen bg-background selection:bg-black/10 selection:text-black dark:selection:bg-white/20 dark:selection:text-white">
         <SeoHead title={work.title_en} description={work.description_en?.slice(0, 160)} image={work.thumbnail} />
 
-        {/* Custom Styles for Slider */}
+        {/* Custom Styles for Swiper */}
         <style>{`
-          .slick-slide { margin: 0 10px; }
-          .slick-dots li button:before { font-size: 8px; color: currentColor; opacity: 0.2; }
-          .slick-dots li.slick-active button:before { opacity: 0.8; }
+          .work-gallery-swiper {
+            padding: 0 60px;
+          }
+          
+          @media (max-width: 1023px) {
+            .work-gallery-swiper {
+              padding: 0 20px;
+            }
+            
+            /* Hide default Swiper arrows on mobile & tablet */
+            .work-gallery-swiper .swiper-button-prev,
+            .work-gallery-swiper .swiper-button-next {
+              display: none !important;
+            }
+          }
+          
+          @media (min-width: 1024px) {
+            .work-gallery-swiper .swiper-button-prev,
+            .work-gallery-swiper .swiper-button-next {
+              color: currentColor;
+              opacity: 0.3;
+              transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+              width: 44px;
+              height: 44px;
+              background: transparent;
+              border-radius: 0;
+            }
+            
+            .work-gallery-swiper .swiper-button-prev:hover,
+            .work-gallery-swiper .swiper-button-next:hover {
+              opacity: 0.8;
+              transform: scale(1.05);
+            }
+            
+            .work-gallery-swiper .swiper-button-prev::after,
+            .work-gallery-swiper .swiper-button-next::after {
+              font-size: 16px;
+              font-weight: 300;
+            }
+          }
+          
+          .work-gallery-swiper .swiper-pagination-bullet {
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            opacity: 0.15;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 50%;
+          }
+          
+          .work-gallery-swiper .swiper-pagination-bullet-active {
+            opacity: 0.6;
+            transform: scale(1.2);
+          }
+          
+          .work-gallery-swiper .swiper-pagination {
+            bottom: -50px !important;
+          }
+          
+          @media (max-width: 1023px) {
+            .work-gallery-swiper .swiper-pagination {
+              bottom: -35px !important;
+            }
+          }
         `}</style>
 
         {/* Content Container */}
@@ -280,25 +342,62 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
           {/* 3. Image Slider */}
           <div className="mb-40 md:mb-64">
-            <Slider {...sliderSettings}>
+            <Swiper
+              className="work-gallery-swiper"
+              modules={[Navigation, Pagination]}
+              spaceBetween={50}
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              touchAngle={45}
+              touchRatio={1}
+              touchStartPreventDefault={false}
+              simulateTouch={true}
+              threshold={10}
+              resistance={true}
+              resistanceRatio={0.85}
+              onSwiper={(swiper) => { swiperRef.current = swiper; }}
+            >
               {work.galleryImages.map((image, index) => (
-                <div key={index} className="outline-none focus:outline-none">
-                  {/* Aspect Ratio Constraint Container - Ensure width fits content for consistent gap */}
-                  <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing" style={{ width: 'fit-content' }}>
-                    <div className="absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
+                <SwiperSlide key={index} className="outline-none focus:outline-none">
+                  <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing w-full md:w-fit mx-auto">
+                    <div className="hidden md:block absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
                     <img 
                       src={image} 
                       alt={`Gallery ${index + 1}`} 
-                      className="h-full w-auto object-contain mx-auto block"
+                      className="h-full w-full md:w-auto object-contain mx-auto block"
                       draggable={false}
                     />
-                    <div className="absolute bottom-4 right-4 z-20 text-[10px] font-mono text-white bg-black/50 px-2 py-1 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-6 md:gap-8">
+                      <button 
+                        className="swiper-button-prev-custom text-foreground/30 active:text-foreground/60 transition-colors active:scale-95"
+                        aria-label="Previous"
+                        onClick={() => swiperRef.current?.slidePrev()}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-4 md:h-4">
+                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.5" strokeLinecap="square"/>
+                        </svg>
+                      </button>
+                      <span className="text-[9px] md:text-[11px] font-mono text-foreground/40 tracking-[0.15em]">
+                        {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                      </span>
+                      <button 
+                        className="swiper-button-next-custom text-foreground/30 active:text-foreground/60 transition-colors active:scale-95"
+                        aria-label="Next"
+                        onClick={() => swiperRef.current?.slideNext()}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="md:w-4 md:h-4">
+                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.5" strokeLinecap="square"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="hidden lg:block absolute bottom-4 right-4 z-20 text-[10px] font-mono text-white bg-black/50 px-2 py-1 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                     </div>
                   </div>
-                </div>
+                </SwiperSlide>
               ))}
-            </Slider>
+            </Swiper>
           </div>
 
           {/* 4. Related Texts */}
@@ -343,7 +442,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                             >
                                <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
                                  <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
-                                 <h3 className="text-xl md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
+                                 <h3 className="text-[13px] md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
                                </div>
                             </div>
                          );
@@ -365,33 +464,39 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
       {selectedArticleId && createPortal(
         <Draggable 
           handle=".window-handle" 
-          defaultPosition={{ x: 100, y: 100 }} 
+          defaultPosition={{ 
+            x: isMobile ? 20 : 100, 
+            y: isMobile ? 20 : 100 
+          }} 
           bounds="body" 
           nodeRef={nodeRef}
           disabled={isMaximized}
         >
           <div 
             ref={nodeRef}
-            className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : 'top-0 left-0 w-fit h-fit'}`}
-            style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : { width: 'fit-content', height: 'fit-content', position: 'fixed' }}
+            className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
+            style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { width: 'fit-content', height: 'fit-content', position: 'fixed' }}
           >
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : 'rounded-sm'}`}
+              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : isMobile ? 'w-full h-full rounded-lg' : 'rounded-sm'}`}
             >
               <Resizable
-                defaultSize={{ width: 450, height: 600 }}
+                defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 450, height: 600 }}
                 size={isMaximized ? { width: '100%', height: '100%' } : undefined}
-                minWidth={320} minHeight={400} 
+                minWidth={isMobile ? 300 : 320} 
+                minHeight={isMobile ? 300 : 400} 
                 maxWidth={isMaximized ? '100%' : 1000}
                 enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
                 className="flex flex-col relative"
               >
                 <div className="window-handle h-10 flex-shrink-0 bg-muted/20 flex items-center justify-between px-4 cursor-move select-none border-b border-foreground/5 transition-colors hover:bg-muted/30">
+                  {/* Left Side - macOS dots */}
                   <div className="flex items-center gap-2">
+                    {/* macOS Dots */}
                     <div className="flex gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 hover:bg-red-500/50 transition-colors cursor-pointer" onClick={() => setSelectedArticleId(null)} />
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 hover:bg-amber-500/50 transition-colors" />
@@ -400,8 +505,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                             onClick={() => setIsMaximized(!isMaximized)} 
                         />
                     </div>
+                    
                     <span className="ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40">Archive Reader</span>
                   </div>
+                  
+                  {/* Right Side - Controls */}
                   <div className="flex items-center gap-2">
                     <button 
                         onClick={() => setIsMaximized(!isMaximized)} 

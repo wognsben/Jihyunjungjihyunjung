@@ -5,6 +5,7 @@ import { fetchTextById } from '@/services/wp-api';
 import { TextItem } from '@/data/texts';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Footer } from '@/app/components/Footer';
 
 interface TextDetailProps {
   textId: string | null;
@@ -160,7 +161,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-2xl md:text-3xl font-serif font-light text-foreground/90 leading-tight"
+              className="md:text-3xl font-serif font-light text-foreground/90 leading-tight text-[20px]"
             >
               {cleanText(title)}
             </motion.h1>
@@ -245,6 +246,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           </div>
         </article>
       </div>
+      <Footer />
     </div>
   );
 };

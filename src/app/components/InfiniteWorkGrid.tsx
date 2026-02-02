@@ -150,11 +150,20 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   const containerRef = useRef<HTMLDivElement>(null);
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
+  const mobileRef = useRef<HTMLDivElement>(null);
   
   const animationsRef = useRef<ColumnAnimation[]>([]);
   const requestRef = useRef<number>();
 
   const [hoveredWork, setHoveredWork] = useState<Work | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const repeatedWorks = useMemo(() => {
       if (works.length === 0) return [];
@@ -190,19 +199,26 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
     };
 
     const timer = setTimeout(() => {
-        setupText(leftRef.current);
-        setupText(rightRef.current);
-        
-        if (leftRef.current && rightRef.current) {
-            animationsRef.current = [
-                new ColumnAnimation(leftRef.current, false), 
-                new ColumnAnimation(rightRef.current, true)
-            ];
+        if (isMobile) {
+             setupText(mobileRef.current);
+             if (mobileRef.current) {
+                 animationsRef.current = [new ColumnAnimation(mobileRef.current, false)];
+             }
+        } else {
+             setupText(leftRef.current);
+             setupText(rightRef.current);
+             
+             if (leftRef.current && rightRef.current) {
+                 animationsRef.current = [
+                     new ColumnAnimation(leftRef.current, false), 
+                     new ColumnAnimation(rightRef.current, true)
+                 ];
+             }
         }
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [works, lang, repeatedWorks]);
+  }, [works, lang, repeatedWorks, isMobile]);
 
   useEffect(() => {
     const loop = () => {
@@ -250,10 +266,35 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
        </div>
 
        {/* Grid Container */}
-       <div className="absolute inset-0 flex justify-between px-4 md:px-16 z-20 pointer-events-none mix-blend-multiply">
+       <div className="absolute inset-0 flex justify-center md:justify-between px-4 md:px-16 z-20 pointer-events-none mix-blend-multiply">
           
-          {/* Left Column - Moving UP */}
-          <div ref={leftRef} className="column h-full w-[30%] md:w-[25%] relative overflow-visible pointer-events-auto">
+          {/* Mobile Single Column */}
+          {isMobile && (
+            <div ref={mobileRef} className="column h-full w-full relative overflow-visible pointer-events-auto">
+               <div className="column-content w-full absolute top-0 left-0 will-change-transform flex flex-col items-center">
+                  {repeatedWorks.map((work, i) => (
+                      <div 
+                          key={`mobile-${i}`} 
+                          className="mb-32 cursor-pointer group text-center" 
+                          onClick={() => onWorkClick?.(Number(work.id))}
+                          onMouseEnter={() => handleMouseEnter(work)}
+                          onMouseLeave={handleMouseLeave}
+                      >
+                          <p className="smart-text-source opacity-0 text-sm font-serif text-black transition-colors duration-700 leading-relaxed">
+                             {work.title_en}
+                             <span className="block text-[10px] font-mono text-black transition-colors duration-700 mt-1 opacity-60">
+                               &lt;{work.year}&gt;
+                             </span>
+                          </p>
+                      </div>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {/* Desktop Left Column */}
+          {!isMobile && (
+          <div ref={leftRef} className="column h-full w-[25%] relative overflow-visible pointer-events-auto">
              <div className="column-content w-full absolute top-0 left-0 will-change-transform">
                 {leftWorks.map((work, i) => (
                     <div 
@@ -264,9 +305,9 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                         onMouseLeave={handleMouseLeave}
                     >
                         {/* Title <Year> Format */}
-                        <p className="smart-text-source opacity-0 text-sm md:text-base font-serif text-black transition-colors duration-700 leading-relaxed">
+                        <p className="smart-text-source opacity-0 text-base font-serif text-black transition-colors duration-700 leading-relaxed">
                            {work.title_en}
-                           <span className="inline-block ml-2 text-[9px] md:text-[10px] font-mono text-black transition-colors duration-700 align-middle">
+                           <span className="inline-block ml-2 text-[10px] font-mono text-black transition-colors duration-700 align-middle">
                              &lt;{work.year}&gt;
                            </span>
                         </p>
@@ -274,9 +315,11 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 ))}
              </div>
           </div>
+          )}
 
-          {/* Right Column - Moving DOWN */}
-          <div ref={rightRef} className="column h-full w-[30%] md:w-[25%] relative overflow-visible text-right pointer-events-auto">
+          {/* Desktop Right Column */}
+          {!isMobile && (
+          <div ref={rightRef} className="column h-full w-[25%] relative overflow-visible text-right pointer-events-auto">
              <div className="column-content w-full absolute top-0 right-0 will-change-transform flex flex-col items-end">
                 {rightWorks.map((work, i) => (
                     <div 
@@ -287,9 +330,9 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                         onMouseLeave={handleMouseLeave}
                     >
                          {/* Title <Year> Format */}
-                         <p className="smart-text-source opacity-0 text-sm md:text-base font-serif text-black transition-colors duration-700 leading-relaxed ml-auto">
+                         <p className="smart-text-source opacity-0 text-base font-serif text-black transition-colors duration-700 leading-relaxed ml-auto">
                            {work.title_en}
-                           <span className="inline-block ml-2 text-[9px] md:text-[10px] font-mono text-black transition-colors duration-700 align-middle">
+                           <span className="inline-block ml-2 text-[10px] font-mono text-black transition-colors duration-700 align-middle">
                              &lt;{work.year}&gt;
                            </span>
                         </p>
@@ -297,6 +340,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 ))}
              </div>
           </div>
+          )}
        </div>
     </div>
   );

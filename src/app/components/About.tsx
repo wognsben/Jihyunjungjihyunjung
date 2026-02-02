@@ -104,7 +104,7 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
                  processedText = processedText.replace(regex, (match) => {
                      return `<span class="relative inline-flex flex-col items-center align-baseline text-current">
                        <span class="hover-line peer relative cursor-pointer" data-work-id="${work.id}">${match}</span>
-                       <a href="#/work/${work.id}" class="absolute top-full left-1/2 -translate-x-1/2 mt-1 inline-flex items-center justify-center px-2 py-0.5 text-[8px] font-mono uppercase tracking-widest border border-foreground/20 rounded-full bg-background/90 backdrop-blur-sm shadow-sm !text-foreground hover:bg-foreground hover:!text-background transition-all opacity-0 peer-hover:opacity-100 hover:opacity-100 whitespace-nowrap z-[100]" onclick="event.stopPropagation()">OPEN PROJECT</a>
+                       <a href="#/work/${work.id}" class="hidden lg:inline-flex absolute top-full left-1/2 -translate-x-1/2 mt-1 items-center justify-center px-2 py-0.5 text-[8px] font-mono uppercase tracking-widest border border-foreground/20 rounded-full bg-background/90 backdrop-blur-sm shadow-sm !text-foreground hover:bg-foreground hover:!text-background transition-all opacity-0 peer-hover:opacity-100 hover:opacity-100 whitespace-nowrap z-[100]" onclick="event.stopPropagation()">OPEN PROJECT</a>
                      </span>`;
                  });
             }
@@ -193,6 +193,9 @@ export const About = () => {
   // Tooltip State
   const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
   
+  // Mobile Detection (1024px 미만)
+  const [isMobile, setIsMobile] = useState(false);
+  
   // Data State
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
@@ -237,6 +240,17 @@ export const About = () => {
     loadData();
   }, []);
 
+  // Mobile Detection (1024px 미만)
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Process Content
   const processedContent = useMemo(() => 
     transformBioContent(aboutData?.content, works, lang), 
@@ -252,13 +266,26 @@ export const About = () => {
       if (id) {
         e.preventDefault();
         e.stopPropagation();
-        setTooltipWorkId(null);
-        setSelectedWorkId(id);
+        
+        // 모바일: 툴팁 토글, 데스크탑: WorkModal 열기
+        if (isMobile) {
+          if (tooltipWorkId === id) {
+            setTooltipWorkId(null); // 같은 작품 재클릭 시 툴팁 닫기
+          } else {
+            setTooltipWorkId(id); // 툴팁 열기
+          }
+        } else {
+          setTooltipWorkId(null);
+          setSelectedWorkId(id);
+        }
       }
     }
   };
 
   const handleContentMouseOver = (e: any) => {
+    // 데스크탑에서만 호버 작동
+    if (isMobile) return;
+    
     const target = e.target as HTMLElement;
     const link = target.closest('.hover-line') as HTMLElement;
     if (link) {
@@ -268,15 +295,60 @@ export const About = () => {
   };
 
   const handleContentMouseOut = (e: any) => {
+    // 데스크탑에서만 호버 작동
+    if (isMobile) return;
+    
      const target = e.target as HTMLElement;
      if (target.closest('.hover-line')) {
         setTooltipWorkId(null);
      }
   };
+  
+  // 모바일: 툴팁 외부 클릭 감지
+  useEffect(() => {
+    if (!isMobile || !tooltipWorkId) return;
+    
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // 툴팁 자체나 작품명을 클릭한 경우 무시
+      if (target.closest('.tooltip') || target.closest('.hover-line')) {
+        return;
+      }
+      setTooltipWorkId(null);
+    };
+    
+    // 짧은 딜레이 후 리스너 등록 (툴팁 열기 클릭과 충돌 방지)
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, [isMobile, tooltipWorkId]);
+  
+  // 모바일: 스크롤 시 툴팁 닫기
+  useEffect(() => {
+    if (!isMobile || !tooltipWorkId) return;
+    
+    const handleScroll = () => {
+      setTooltipWorkId(null);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isMobile, tooltipWorkId]);
 
   // Scroll Logic
   useEffect(() => {
     if (typeof window === 'undefined' || loading) return;
+    
+    // 모바일에서는 커스텀 스크롤 로직 완전 비활성화
+    if (window.innerWidth < 768) return;
 
     const s = state.current;
     
@@ -308,6 +380,7 @@ export const About = () => {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!s.isTouching) return;
+      
       const y = e.touches[0].clientY;
       const distance = (s.touch.start - y) * 2; 
       s.target = s.touch.prev + distance;
@@ -377,7 +450,7 @@ export const About = () => {
   return (
     <div 
       ref={containerRef} 
-      className="fixed inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-foreground selection:text-background"
+      className="fixed inset-0 md:fixed md:inset-0 w-full h-full bg-background text-foreground md:overflow-hidden font-sans selection:bg-foreground selection:text-background overflow-y-auto"
       style={{ fontFamily: 'Pretendard, "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
     >
       <div className="w-full h-full px-6 md:px-12 relative flex">
@@ -444,7 +517,7 @@ export const About = () => {
             onClick={handleContentClick}
             onMouseOver={handleContentMouseOver}
             onMouseOut={handleContentMouseOut}
-            className="absolute top-0 right-0 w-full md:w-[80%] pt-28 md:pt-32 pb-32 flex flex-col gap-20 will-change-transform"
+            className="relative md:absolute top-0 right-0 w-full md:w-[80%] pt-28 md:pt-32 pb-32 flex flex-col gap-20 md:will-change-transform"
           >
             {/* Mobile Header */}
             <div className="md:hidden flex flex-col gap-6 mb-12">
@@ -518,11 +591,18 @@ export const About = () => {
         onClose={() => setSelectedWorkId(null)} 
       />
       
-      {/* Tooltip Transition Effect (Hover only) */}
+      {/* Tooltip Transition Effect */}
       <TooltipTransition 
         hoveredWorkId={tooltipWorkId} 
         isOpen={false} 
-        onClose={() => {}} 
+        onClose={() => {}}
+        onClick={() => {
+          if (tooltipWorkId) {
+            setTooltipWorkId(null);
+            setSelectedWorkId(tooltipWorkId);
+          }
+        }}
+        isMobile={isMobile}
       />
 
     </div>

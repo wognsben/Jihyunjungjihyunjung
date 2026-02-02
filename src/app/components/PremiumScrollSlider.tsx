@@ -137,7 +137,12 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     const scrollDelay = 1200; // 전환 시간(1000ms)보다 약간 길게 설정하여 중복 실행 방지
 
     const handleWheel = (e: WheelEvent) => {
-      // 슬라더가 전체 화면이므로 기본 스크롤 동작 방지
+      // 모바일에서는 기본 스크롤 허용 (768px 미만)
+      if (window.innerWidth < 768) {
+        return; // preventDefault 하지 않음
+      }
+      
+      // 데스크탑: 슬라이더가 전체 화면이므로 기본 스크롤 동작 방지
       e.preventDefault();
       
       handleUserInteraction(); // 자동 재생 멈춤

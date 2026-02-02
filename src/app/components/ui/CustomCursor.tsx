@@ -73,7 +73,7 @@ export const CustomCursor = () => {
   return (
     <>
         <style>{`
-            @media (hover: hover) and (pointer: fine) {
+            @media (hover: hover) and (pointer: fine) and (min-width: 768px) {
                 * {
                     cursor: none !important;
                 }

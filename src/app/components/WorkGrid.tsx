@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useMemo, useEffect } from 'react';
+import { useRef, useLayoutEffect, useMemo, useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
@@ -14,6 +14,14 @@ export const WorkGrid = () => {
   const { works, translateWorksByIds, currentLang } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Translate all works when language changes
   useEffect(() => {
@@ -53,16 +61,21 @@ export const WorkGrid = () => {
   }, [works]);
 
   const columns = useMemo(() => {
-    const cols: Work[][] = [[], [], [], []];
+    const numCols = isMobile ? 1 : 4;
+    const cols: Work[][] = Array.from({ length: numCols }, () => []);
+    
     sortedWorks.forEach((work, index) => {
-      const colIndex = index % 4;
+      const colIndex = index % numCols;
       cols[colIndex].push(work);
     });
     return cols;
-  }, [sortedWorks]);
+  }, [sortedWorks, isMobile]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
+
+    // Clear any stale refs if column count changed
+    columnRefs.current = columnRefs.current.slice(0, columns.length);
 
     const ctx = gsap.context(() => {
       const cols = columnRefs.current.filter(Boolean);
@@ -105,7 +118,7 @@ export const WorkGrid = () => {
     }, containerRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [columns.length]);
 
   const getTitle = (work: Work) => lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
   const getMedium = (work: Work) => lang === 'ko' ? work.medium_ko : (lang === 'jp' ? work.medium_jp : work.medium_en);

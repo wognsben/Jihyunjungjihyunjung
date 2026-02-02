@@ -11,13 +11,17 @@ interface TooltipTransitionProps {
   isOpen: boolean;
   onClose: () => void;
   triggerRect?: DOMRect | null;
+  onClick?: () => void; // Mobile: 툴팁 클릭 시 프로젝트 열기
+  isMobile?: boolean; // Mobile 여부
 }
 
 export const TooltipTransition: React.FC<TooltipTransitionProps> = ({ 
   hoveredWorkId, 
   isOpen, 
   onClose,
-  triggerRect
+  triggerRect,
+  onClick,
+  isMobile = false
 }) => {
   const { works } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -112,7 +116,8 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         {/* Tooltip Container */}
         <aside 
             ref={tooltipRef}
-            className="tooltip fixed right-[5vw] bottom-[10vh] w-[250px] z-40 opacity-0 pointer-events-none flex flex-col"
+            onClick={isMobile && onClick ? onClick : undefined}
+            className={`tooltip fixed right-[5vw] bottom-[10vh] w-[250px] z-40 opacity-0 flex flex-col ${isMobile ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}`}
         >
             {/* Lines contained WITHIN the tooltip component for perfect alignment */}
             <div className="line-h absolute left-0 top-0 w-full h-[1px] bg-black dark:bg-white z-50" />
@@ -137,7 +142,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                 {activeWork && (
                     <div className="tooltip__text relative mt-4 text-xs font-mono uppercase tracking-widest text-foreground bg-white/80 dark:bg-black/80 p-2 backdrop-blur-sm">
                         <span className="font-bold block mb-1">{activeWork.title_en || activeWork.title}</span>
-                        <span className="opacity-70">Click to view</span>
+                        <span className="opacity-70">{isMobile ? 'View Project' : 'Click to view'}</span>
                     </div>
                 )}
             </div>

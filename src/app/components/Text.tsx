@@ -361,8 +361,18 @@ export const Text = () => {
                   
                   {/* Title Area + Category */}
                   <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
-                    {/* Category Label (Desktop & Mobile) */}
-                    <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 w-16 shrink-0 transition-colors duration-300">
+                    {/* Mobile: Category & Year in same row */}
+                    <div className="flex md:hidden items-center justify-between w-full mb-2">
+                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 transition-colors duration-300">
+                         {item.category.toLowerCase()}
+                      </span>
+                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 transition-colors duration-300">
+                         {item.year}
+                      </span>
+                    </div>
+                    
+                    {/* Desktop: Category Label */}
+                    <span className="hidden md:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 w-16 shrink-0 transition-colors duration-300">
                        {item.category.toLowerCase()}
                     </span>
                     
@@ -371,12 +381,7 @@ export const Text = () => {
                     </h3>
                   </div>
 
-                  {/* Mobile Layout */}
-                  <div className="flex md:hidden items-center gap-3 mt-4 text-xs font-light text-muted-foreground order-2 pl-[calc(4rem+2px)] group-hover/item:text-white/70 transition-colors duration-300"> {/* Indent to align with title */}
-                     <span className="font-mono text-xs">{item.year}</span>
-                  </div>
-
-                  {/* Desktop Layout - Year Only (Author removed as it's in title) */}
+                  {/* Desktop Layout - Year Only */}
                   <div className="hidden md:block order-2 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
                     <span className="text-xs font-mono text-muted-foreground group-hover/item:text-white transition-colors duration-300">
                       {item.year}
