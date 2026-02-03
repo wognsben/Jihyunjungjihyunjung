@@ -14,6 +14,8 @@ interface TooltipTransitionProps {
   triggerRect?: DOMRect | null;
   onClick?: () => void; // Mobile: 툴팁 클릭 시 프로젝트 열기
   isMobile?: boolean; // Mobile 여부
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const TooltipTransition: React.FC<TooltipTransitionProps> = ({ 
@@ -22,7 +24,9 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   onClose,
   triggerRect,
   onClick,
-  isMobile = false
+  isMobile = false,
+  onMouseEnter,
+  onMouseLeave
 }) => {
   const { works } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -135,7 +139,9 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         {/* Tooltip Container */}
         <aside 
             ref={tooltipRef}
-            onClick={isMobile ? handleWorkClick : undefined}
+            onClick={handleWorkClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
             className={`
                 fixed right-[5vw] bottom-[10vh] w-[250px] 
                 z-[99999] 
@@ -144,7 +150,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                 shadow-[0_20px_50px_rgba(0,0,0,0.3)] 
                 border border-border/10
                 overflow-hidden
-                ${isMobile ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
+                pointer-events-auto cursor-pointer
             `}
             style={{ 
                 opacity: 0, // Controlled by GSAP
@@ -204,7 +210,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                             ${isMobile ? 'active:bg-muted/20' : ''}
                         `}>
                             <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/80">
-                                View Project
+                                Click to project
                             </span>
                             {/* Arrow Icon */}
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-foreground/60 transform rotate-[-45deg]">

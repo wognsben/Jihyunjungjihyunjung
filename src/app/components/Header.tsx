@@ -66,7 +66,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   // [Architect's Solution] Smart Contrast System
   // Mix-blend-mode: difference를 사용하여 배경색에 관계없이 항상 최적의 대비를 확보합니다.
   // 흰 배경 -> 텍스트가 검정으로 반전
-  // ��� 배경 -> 텍스트가 흰색으로 반전
+  // 검정 배경 -> 텍스트가 흰색으로 반전
   // --------------------------------------------------------------------------------
   
   // 항상 밝은 색상(White)을 기본으로 설정합니다.
@@ -133,7 +133,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       {/* 1. Main Navigation (Disappears on Scroll Down) */}
       <header 
         className={`
-          fixed top-0 left-0 right-0 z-50 mix-blend-difference
+          fixed top-0 left-0 right-0 z-[9999999] mix-blend-difference pointer-events-none
           transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isVisible ? 'translate-y-0' : '-translate-y-full'}
         `}
@@ -142,7 +142,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           borderBottom: 'none',
         }}
       >
-        <div className="px-6 md:px-12 py-4 md:py-6 text-white">
+        <div className="px-6 md:px-12 py-4 md:py-6 text-white pointer-events-auto relative z-[9999999]">
           {/* Logo + Navigation */}
           <div className="flex flex-col gap-3 md:gap-4">
             {/* Top Row: Logo + Language */}
@@ -152,7 +152,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 text="Jihyun Jung"
                 onClick={() => onNavigate('index')}
                 isActive={false}
-                className="text-lg md:text-xl font-extralight tracking-tight"
+                className="text-lg md:text-xl font-extralight tracking-tight cursor-pointer"
                 activeColor={baseColor}
                 inactiveColor={baseColor}
                 hoverColor={hoverColor}
@@ -166,13 +166,15 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                   <span key={language.code} className="flex items-center gap-2">
                     <button
                       onClick={() => {
+                        console.log(`[UI Interaction] Language button clicked: ${language.code}`);
                         setLang(language.code);
                       }}
-                      className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light ${
+                      className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
                         lang === language.code 
                           ? 'text-white' 
                           : 'text-white/50 hover:text-white'
                       }`}
+                      style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       {language.label}
                     </button>
@@ -190,7 +192,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 text="WORK"
                 onClick={() => handleNavClick('work')}
                 isActive={currentView === 'work'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -201,7 +203,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 text="TEXT"
                 onClick={() => handleNavClick('text')}
                 isActive={currentView === 'text'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -212,7 +214,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 text="ABOUT"
                 onClick={() => handleNavClick('about')}
                 isActive={currentView === 'about'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light"
+                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -231,13 +233,6 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       </header>
 
       {/* 2. Context Indicator (Appears when Main Nav is gone) */}
-      {/* 
-          Main Header가 사라질 때(Scroll Down), 그 빈 자리를 채우는 미니멀한 상태 표시줄입니다.
-          mix-blend-difference를 유지하여 어떤 이미지 위에서도 가독성을 확보합니다.
-          약간의 딜레이(delay-100)를 주어 헤더가 사라진 후 등장하는 '교차' 느낌을 줍니다.
-          
-          [TEXT DETAIL] 모바일/태블릿에서는 읽기에 집중하도록 숨김 (1024px 미만)
-      */}
       <div 
         className={`
           fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 mix-blend-difference pointer-events-none
@@ -247,14 +242,8 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
         `}
       >
         <div className="flex items-center gap-3">
-          {/* 
-            Premium Indicator: The Pixel
-            완벽한 정사각형(Square)으로 "시니컬함"과 "정확성"을 표현합니다.
-            애니메이션을 제거하여(Static) 변하지 않는 본질을 암시합니다.
-          */}
           <div className="w-[3px] h-[3px] bg-white rounded-none" />
           
-          {/* Context Text */}
           <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase opacity-80">
             {renderContextLabel()}
           </span>

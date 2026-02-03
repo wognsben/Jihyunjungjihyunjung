@@ -64,7 +64,7 @@ export const Text = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const { lang } = useLanguage();
-  const { texts, translateTextsByIds, currentLang } = useWorks();
+  const { texts } = useWorks();
   
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
@@ -80,14 +80,6 @@ export const Text = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const imagePreviewRef = useRef<HTMLDivElement>(null);
-
-  // Translate all texts when language changes
-  useEffect(() => {
-    if (lang !== 'ko' && lang !== currentLang && texts.length > 0) {
-      const textIds = texts.map(t => t.id);
-      translateTextsByIds(textIds, lang);
-    }
-  }, [lang, currentLang, texts.length]);
 
   // Filter Logic
   const filteredData = useMemo(() => {
@@ -354,8 +346,8 @@ export const Text = () => {
                 onMouseLeave={() => setHoveredImage(null)}
                 className="group/item relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 md:-mx-6 md:px-6 cursor-pointer rounded-lg overflow-hidden"
               >
-                {/* Hover Background (Matches About.tsx style) */}
-                <div className="absolute inset-0 bg-[var(--color-bg-shift)] opacity-0 group-hover/item:opacity-80 transition-opacity duration-300 z-0" />
+                {/* Hover Background (White instead of Dark) */}
+                <div className="absolute inset-0 bg-white opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
 
                 <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_80px] md:gap-8 md:items-baseline">
                   
@@ -363,33 +355,33 @@ export const Text = () => {
                   <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
                     {/* Mobile: Category & Year in same row */}
                     <div className="flex md:hidden items-center justify-between w-full mb-2">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 transition-colors duration-300">
+                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {item.category.toLowerCase()}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 transition-colors duration-300">
+                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {item.year}
                       </span>
                     </div>
                     
                     {/* Desktop: Category Label */}
-                    <span className="hidden md:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-white/70 w-16 shrink-0 transition-colors duration-300">
+                    <span className="hidden md:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
                        {item.category.toLowerCase()}
                     </span>
                     
-                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-white text-foreground">
+                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-black text-foreground">
                       <FormattedTitle text={item.title[lang]} />
                     </h3>
                   </div>
 
                   {/* Desktop Layout - Year Only */}
                   <div className="hidden md:block order-2 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
-                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-white transition-colors duration-300">
+                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-black transition-colors duration-300">
                       {item.year}
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-white text-sm z-10">
+                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-black text-sm z-10">
                   →
                 </div>
               </motion.a>

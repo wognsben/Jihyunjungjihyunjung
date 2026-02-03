@@ -3,6 +3,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { WorkProvider } from '@/contexts/WorkContext';
 import { AppContent } from '@/app/AppContent';
+import { GoogleTranslateBridge } from '@/app/components/common/GoogleTranslateBridge';
 
 // Top-level App component that provides contexts
 const App = () => {
@@ -10,6 +11,7 @@ const App = () => {
     <HelmetProvider>
       <LanguageProvider>
         <WorkProvider>
+          <GoogleTranslateBridge />
           <AppContent />
         </WorkProvider>
       </LanguageProvider>

@@ -52,6 +52,7 @@ export const CustomCursor = () => {
     if (!cursorRef.current) return;
     
     const corners = cursorRef.current.querySelectorAll('.corner');
+    if (!corners || corners.length < 4) return; // Safety check
 
     if (isHovering) {
       // HOVER STATE: Expand to frame the content
@@ -91,11 +92,13 @@ export const CustomCursor = () => {
   return (
     <>
         <style>{`
+            /* 
             @media (hover: hover) and (pointer: fine) {
                 body, a, button, input, textarea, [role="button"], .cursor-pointer {
                     cursor: none !important;
                 }
             }
+            */
         `}</style>
         
         {/* Main Cursor Container */}

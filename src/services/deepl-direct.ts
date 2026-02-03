@@ -1,35 +1,34 @@
 /**
- * MyMemory Translation API Integration (Frontend)
- * - Free translation API with no API key required
- * - CORS enabled (works directly from browser)
- * - 1000 requests/day free limit
- * - Uses localStorage for persistent caching
- * - Rate limiting: 500ms between requests (increased for free API)
+ * DeepL Translation API Integration (via WordPress Proxy)
+ * - Calls custom WP endpoint which acts as a proxy to DeepL Free API
+ * - Securely handles API keys on the server side
+ * - Uses localStorage for persistent caching (browser-side)
+ * - Rate limiting handled by frontend to be polite
  * 
- * API: https://mymemory.translated.net/doc/spec.php
+ * WP Endpoint: https://wognsben97.mycafe24.com/wp-json/custom/v1/translate
  */
 
 import axios from 'axios';
 
-// MyMemory API endpoint
-const TRANSLATION_API_URL = 'https://api.mymemory.translated.net/get';
+// Custom WP Proxy endpoint
+const TRANSLATION_API_URL = 'https://wognsben97.mycafe24.com/wp-json/custom/v1/translate';
 
 // Cache configuration
-const CACHE_VERSION = 'v1_mymemory';
+const CACHE_VERSION = 'v2_wp_proxy'; // Version bump
 const CACHE_PREFIX = `translation_${CACHE_VERSION}_`;
 const STATS_KEY = 'translation_stats';
 
 // Rate limiting
-const REQUEST_DELAY_MS = 500; // 500ms between requests (increased for free API)
+const REQUEST_DELAY_MS = 200; // Faster than MyMemory, but still polite
 let lastRequestTime = 0;
 
 type Language = 'ko' | 'en' | 'jp';
 
-// Language codes for MyMemory API
+// Language codes for DeepL API
 const LANG_MAP: Record<Language, string> = {
-  ko: 'ko',
-  en: 'en',
-  jp: 'ja',
+  ko: 'KO',
+  en: 'EN-US', // DeepL uses EN-US or EN-GB
+  jp: 'JA',
 };
 
 interface TranslationStats {
@@ -46,9 +45,8 @@ interface CacheEntry {
 }
 
 // Log service initialization
-console.log('✅ [Translation] MyMemory API service loaded (Frontend mode)');
+console.log('✅ [Translation] WordPress Proxy Service loaded');
 console.log('🌐 [Translation] API URL:', TRANSLATION_API_URL);
-console.log('📊 [Translation] Free tier: 1000 requests/day');
 
 /**
  * Generate cache key
@@ -115,7 +113,7 @@ export const getDeepLStats = (): TranslationStats => {
     totalApiCalls: 0,
     lastUpdate: '',
     dailyRequests: 0,
-    dailyLimit: 1000, // MyMemory Free: 1000 requests/day
+    dailyLimit: 500000, // DeepL Free limit (characters, roughly) - just for tracking
   };
 };
 
@@ -146,11 +144,6 @@ const updateStats = (charCount: number, fromCache: boolean): void => {
     stats.lastUpdate = now.toISOString();
     
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-    
-    // Warn if approaching limit
-    if (stats.dailyRequests > stats.dailyLimit * 0.8) {
-      console.warn(`[Translation] ⚠️ Approaching daily limit: ${stats.dailyRequests}/${stats.dailyLimit} requests`);
-    }
   } catch (error) {
     console.warn('[Translation] Stats update error:', error);
   }
@@ -175,15 +168,9 @@ export const clearDeepLCache = (): void => {
 };
 
 /**
- * Call MyMemory Translation API
+ * Call WordPress Proxy API
  */
 const callTranslationAPI = async (text: string, targetLang: Language): Promise<string> => {
-  // Check daily limit
-  const stats = getDeepLStats();
-  if (stats.dailyRequests >= stats.dailyLimit) {
-    throw new Error(`Translation daily limit reached: ${stats.dailyRequests}/${stats.dailyLimit} requests`);
-  }
-  
   // Rate limiting: wait if needed
   const now = Date.now();
   const timeSinceLastRequest = now - lastRequestTime;
@@ -193,26 +180,28 @@ const callTranslationAPI = async (text: string, targetLang: Language): Promise<s
   lastRequestTime = Date.now();
   
   try {
-    const response = await axios.get(TRANSLATION_API_URL, {
-      params: {
-        q: text,
-        langpair: `${LANG_MAP.ko}|${LANG_MAP[targetLang]}`,
+    // Call our custom WP endpoint
+    const response = await axios.post(TRANSLATION_API_URL, {
+      text: text,
+      target_lang: LANG_MAP[targetLang],
+    }, {
+      timeout: 20000, // 20s timeout
+      headers: {
+        'Content-Type': 'application/json',
       },
-      timeout: 15000, // 15s timeout
     });
     
-    if (response.data?.responseData?.translatedText) {
-      return response.data.responseData.translatedText;
+    // DeepL response structure: { translations: [{ text: "...", ... }] }
+    if (response.data && response.data.translations && response.data.translations[0]) {
+      return response.data.translations[0].text;
     }
     
     throw new Error('Invalid response from translation API');
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      console.error('[Translation] API Error:', error.response?.data || error.message);
       if (error.response?.status === 429) {
-        throw new Error('Translation rate limit exceeded. Please try again later');
-      }
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('Translation request timeout. Please try again');
+        throw new Error('Rate limit exceeded. Please try again later');
       }
     }
     throw error;
@@ -222,7 +211,7 @@ const callTranslationAPI = async (text: string, targetLang: Language): Promise<s
 /**
  * Translate text from Korean to target language
  * - Uses cache first (localStorage)
- * - Falls back to MyMemory API if not cached
+ * - Falls back to WP Proxy API if not cached
  * - Auto-caches new translations
  */
 export const translateDeepL = async (text: string, targetLang: Language): Promise<string> => {
@@ -240,7 +229,7 @@ export const translateDeepL = async (text: string, targetLang: Language): Promis
     // Check cache first
     const cached = getCache(text, targetLang);
     if (cached) {
-      console.log(`[Translation] 💾 Cache hit: ${text.substring(0, 30)}...`);
+      // console.log(`[Translation] 💾 Cache hit: ${text.substring(0, 30)}...`);
       updateStats(text.length, true);
       return cached;
     }
@@ -272,7 +261,7 @@ export const translateDeepL = async (text: string, targetLang: Language): Promis
 export const translateDeepLBatch = async (
   texts: string[],
   targetLang: Language,
-  delayMs: number = 500 // Delay between API calls (increased for free API)
+  delayMs: number = 200 // Delay between API calls
 ): Promise<string[]> => {
   const results: string[] = [];
   

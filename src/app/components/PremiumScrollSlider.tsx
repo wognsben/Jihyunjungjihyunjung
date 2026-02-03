@@ -12,7 +12,6 @@ interface PremiumScrollSliderProps {
 
 export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: PremiumScrollSliderProps) => {
   const { lang } = useLanguage();
-  const { translateWorksByIds, currentLang } = useWorks();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDark, setIsDark] = useState(true); 
@@ -217,17 +216,9 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-  // Translate works when language changes
-  useEffect(() => {
-    if (lang !== 'ko' && lang !== currentLang) {
-      const workIds = works.map(w => w.id);
-      translateWorksByIds(workIds, lang);
-    }
-  }, [lang, currentLang, works]);
-
-  // 안전장치: works가 비어있으면 로딩 중 표시
+  // 안전장치: works가 비어있으면 빈 화면 반환 (AppContent의 로딩 스피너가 없을 경우 대비)
   if (!works || works.length === 0) {
-    return null; // early return하 아무것도 렌더링하지 않음
+    return <div className="fixed inset-0 bg-background" />;
   }
 
   return (

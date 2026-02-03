@@ -17,40 +17,12 @@ type View = 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
 export const AppContent = () => {
   const { lang } = useLanguage();
   const { works, isLoading, texts } = useWorks();
+  
+  // 1. All hooks must be declared unconditionally at the top
   const [currentView, setCurrentView] = useState<View>('index');
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
-  
-  // Select top 5 works for the slider based on YEAR (Latest first)
-  const selectedWorks = [...works]
-    .sort((a, b) => (b.year || 0) - (a.year || 0))
-    .slice(0, 5);
-
-  // Find the currently viewed work object (for retrieving title)
-  const currentWork = selectedWorkId ? works.find(w => w.id === selectedWorkId) : null;
-  
-  // Resolve work title based on current language
-  const currentWorkTitle = currentWork ? (
-    lang === 'ko' ? currentWork.title_ko :
-    lang === 'jp' ? currentWork.title_jp :
-    currentWork.title_en
-  ) : undefined;
-
-  // Find the currently viewed text object (for retrieving title)
-  const currentText = selectedTextId ? texts.find(t => t.id === selectedTextId) : null;
-  
-  // Resolve text title based on current language
-  const currentTextTitle = currentText ? (
-    lang === 'ko' ? currentText.title.ko :
-    lang === 'jp' ? currentText.title.jp :
-    currentText.title.en
-  ) : undefined;
-  
-  // Determine which detail title to show based on current view
-  const detailTitle = currentView === 'work-detail' ? currentWorkTitle : 
-                      currentView === 'text-detail' ? currentTextTitle : 
-                      undefined;
 
   // Handle hash-based routing
   useEffect(() => {
@@ -116,6 +88,46 @@ export const AppContent = () => {
     }, 10);
     return () => clearTimeout(timeoutId);
   }, [currentView, selectedWorkId]);
+
+  // 2. Loading check comes AFTER all hooks
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+        <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // 3. Logic dependent on data
+  // Select top 5 works for the slider based on YEAR (Latest first)
+  const selectedWorks = [...works]
+    .sort((a, b) => (b.year || 0) - (a.year || 0))
+    .slice(0, 5);
+
+  // Find the currently viewed work object (for retrieving title)
+  const currentWork = selectedWorkId ? works.find(w => w.id === selectedWorkId) : null;
+  
+  // Resolve work title based on current language
+  const currentWorkTitle = currentWork ? (
+    lang === 'ko' ? currentWork.title_ko :
+    lang === 'jp' ? currentWork.title_jp :
+    currentWork.title_en
+  ) : undefined;
+
+  // Find the currently viewed text object (for retrieving title)
+  const currentText = selectedTextId ? texts.find(t => t.id === selectedTextId) : null;
+  
+  // Resolve text title based on current language
+  const currentTextTitle = currentText ? (
+    lang === 'ko' ? currentText.title.ko :
+    lang === 'jp' ? currentText.title.jp :
+    currentText.title.en
+  ) : undefined;
+  
+  // Determine which detail title to show based on current view
+  const detailTitle = currentView === 'work-detail' ? currentWorkTitle : 
+                      currentView === 'text-detail' ? currentTextTitle : 
+                      undefined;
 
   const handleNavigate = (view: View) => {
     setCurrentView(view);

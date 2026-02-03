@@ -11,7 +11,7 @@ if (typeof window !== 'undefined') {
 
 export const WorkGrid = () => {
   const { lang } = useLanguage();
-  const { works, translateWorksByIds, currentLang } = useWorks();
+  const { works } = useWorks();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -22,14 +22,6 @@ export const WorkGrid = () => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Translate all works when language changes
-  useEffect(() => {
-    if (lang !== 'ko' && lang !== currentLang && works.length > 0) {
-      const workIds = works.map(w => w.id);
-      translateWorksByIds(workIds, lang);
-    }
-  }, [lang, currentLang, works.length]);
 
   const sortedWorks = useMemo(() => {
     if (!works || works.length === 0) return [];

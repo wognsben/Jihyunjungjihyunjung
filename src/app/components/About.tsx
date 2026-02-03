@@ -104,7 +104,6 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
                  processedText = processedText.replace(regex, (match) => {
                      return `<span class="relative inline-flex flex-col items-center align-baseline text-current">
                        <span class="hover-line peer relative cursor-pointer" data-work-id="${work.id}">${match}</span>
-                       <a href="#/work/${work.id}" class="hidden lg:inline-flex absolute top-full left-1/2 -translate-x-1/2 mt-1 items-center justify-center px-2 py-0.5 text-[8px] font-mono uppercase tracking-widest border border-foreground/20 rounded-full bg-background/90 backdrop-blur-sm shadow-sm !text-foreground hover:bg-foreground hover:!text-background transition-all opacity-0 peer-hover:opacity-100 hover:opacity-100 whitespace-nowrap z-[100]" onclick="event.stopPropagation()">OPEN PROJECT</a>
                      </span>`;
                  });
             }
@@ -206,6 +205,7 @@ export const About = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
+  const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Scroll State
   const state = useRef({
@@ -286,6 +286,11 @@ export const About = () => {
     // 데스크탑에서만 호버 작동
     if (isMobile) return;
     
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    
     const target = e.target as HTMLElement;
     const link = target.closest('.hover-line') as HTMLElement;
     if (link) {
@@ -300,8 +305,23 @@ export const About = () => {
     
      const target = e.target as HTMLElement;
      if (target.closest('.hover-line')) {
-        setTooltipWorkId(null);
+        tooltipTimeoutRef.current = setTimeout(() => {
+          setTooltipWorkId(null);
+        }, 300);
      }
+  };
+
+  const handleTooltipMouseEnter = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+  };
+
+  const handleTooltipMouseLeave = () => {
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setTooltipWorkId(null);
+    }, 300);
   };
   
   // 모바일: 툴팁 외부 클릭 감지
@@ -569,7 +589,7 @@ export const About = () => {
               <div className="flex flex-col gap-6 max-w-3xl">
                 <RevealText delay={0.3}>
                    <div 
-                     className="text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-[var(--color-bg-shift)]/80 [&_tr:hover]:!text-white [&_tr:hover_>_*]:!text-white md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-white md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline"
+                     className="text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-white [&_tr:hover]:!text-foreground [&_tr:hover_>_*]:!text-foreground md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-foreground md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline"
                      dangerouslySetInnerHTML={{ __html: processedContent || '' }}
                    />
                 </RevealText>
@@ -606,6 +626,8 @@ export const About = () => {
           }
         }}
         isMobile={isMobile}
+        onMouseEnter={handleTooltipMouseEnter}
+        onMouseLeave={handleTooltipMouseLeave}
       />
 
     </div>

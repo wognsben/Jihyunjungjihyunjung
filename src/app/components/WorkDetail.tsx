@@ -347,7 +347,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               modules={[Navigation, Pagination]}
               spaceBetween={50}
               slidesPerView={1}
-              navigation
+              navigation={false} // Disable default arrows, we use custom controls below
               pagination={{ clickable: true }}
               touchAngle={45}
               touchRatio={1}

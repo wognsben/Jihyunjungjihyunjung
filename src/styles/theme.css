@@ -251,4 +251,60 @@
       overflow-y: auto;
     }
   }
+
+  /* Hide Google Translate Toolbar & Layout Shift Fix */
+  .goog-te-banner-frame.skiptranslate, 
+  .goog-te-gadget-icon,
+  .goog-te-spinner-pos,
+  .goog-te-spinner-animation,
+  .goog-te-menu-value span {
+    display: none !important;
+    visibility: hidden !important;
+  } 
+  
+  body {
+    top: 0px !important; 
+    position: static !important;
+  }
+
+  /* Hide Tooltips, Highlights, and Popups */
+  .goog-tooltip, 
+  .goog-tooltip:hover,
+  #goog-gt-tt, 
+  .goog-te-balloon-frame {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  .goog-text-highlight {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide Google Translate Icons (The blue G icon and spinners) */
+  img[src*="translate.googleapis.com"], 
+  img[src*="google.com/images/cleardot.gif"] {
+    display: none !important;
+  }
+
+  /* Hide specific Google Translate generated classes (Obfuscated names) */
+  .VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+  .VIpgJd-ZVi9od-aZ2wEe-OiiCO,
+  .VIpgJd-ZVi9od-ORHb-OEVmcd {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Prevent body from shifting down */
+  .skiptranslate > iframe {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* Remove hover effects on translated text */
+  font {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
 }
