@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
-import { ArrowLeft, X, ArrowRight, Pause, Play, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, X, Maximize2, Minimize2 } from 'lucide-react';
 import gsap from 'gsap';
 import SplitType from 'split-type';
 import { motion, AnimatePresence } from 'motion/react';
@@ -46,17 +46,6 @@ import { TextDetail } from '@/app/components/TextDetail';
 interface WorkDetailProps {
   workId: string | null;
 }
-
-// Helper: Custom Slider Arrow
-const CustomArrow = ({ className, style, onClick, direction }: any) => (
-  <div
-    className={`${className} z-10 !w-12 !h-12 !flex !items-center !justify-center before:!content-none hover:!bg-black/5 dark:hover:!bg-white/10 rounded-full transition-colors duration-300`}
-    style={{ ...style, display: "flex", right: direction === 'next' ? '-60px' : undefined, left: direction === 'prev' ? '-60px' : undefined }}
-    onClick={onClick}
-  >
-    {direction === 'next' ? <ArrowRight className="w-4 h-4 text-foreground/50" /> : <ArrowLeft className="w-4 h-4 text-foreground/50" />}
-  </div>
-);
 
 // Helper: Video Player Component
 const VideoPlayer = ({ url }: { url: string }) => {
@@ -197,7 +186,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   return (
     <>
       <div className="min-h-screen bg-background selection:bg-black/10 selection:text-black dark:selection:bg-white/20 dark:selection:text-white">
-        <SeoHead title={work.title_en} description={work.description_en?.slice(0, 160)} image={work.thumbnail} />
+        <SeoHead 
+          title={work.title_en} 
+          description={work.description_en ? work.description_en.slice(0, 160) : undefined} 
+          image={work.thumbnail} 
+        />
 
         {/* Custom Styles for Swiper */}
         <style>{`
@@ -305,22 +298,10 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             </div>
           </div>
 
-          {/* 2. Split Layout: Video (Sticky) & Text */}
+          {/* 2. Description Text (Video moved to bottom) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-40">
-            {/* Left: Video (Sticky) */}
-            <div className="md:col-span-5 lg:col-span-5 relative">
-              <div className="md:sticky md:top-32 space-y-4">
-                {videoUrl && (
-                  <div className="w-full">
-                     <VideoPlayer url={videoUrl} />
-                     <div className="mt-3 flex items-center justify-between opacity-50">
-                        <span className="text-[9px] uppercase tracking-widest font-mono">Featured Film</span>
-                        <div className="h-px bg-current flex-grow ml-4"></div>
-                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Left: Empty for whitespace or future content */}
+            <div className="hidden md:block md:col-span-5 lg:col-span-5"></div>
 
             {/* Right: Description Text */}
             <div className="md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7">
@@ -425,6 +406,21 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               ))}
             </Swiper>
           </div>
+
+          {/* 4. Video Section (Moved from top) */}
+          {videoUrl && (
+            <div className="mb-40 md:mb-64">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
+                 <div className="md:col-span-8 md:col-start-3">
+                    <VideoPlayer url={videoUrl} />
+                    <div className="mt-4 flex items-center justify-between opacity-50">
+                       <span className="text-[9px] uppercase tracking-widest font-mono">Featured Film</span>
+                       <div className="h-px bg-current flex-grow ml-4"></div>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          )}
 
           {/* 4. Related Texts */}
           {work.relatedArticles && work.relatedArticles.length > 0 && (
