@@ -261,6 +261,19 @@ export const About = () => {
     transformBioContent(aboutData?.content, works, lang), 
   [aboutData?.content, works, lang]);
 
+  // Helper to safely replace name in profile text for translation
+  const processProfileText = (text: string | undefined) => {
+    if (!text) return '';
+    
+    // en 모드에서만 한글 이름 "정지현"을 "Jihyun Jung"으로 강제 치환 및 번역 방지
+    // ko는 원본 유지, jp는 자동 번역에 맡김
+    if (lang === 'en') {
+      return text.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
+    }
+    
+    return text;
+  };
+
   // Event Handlers for Dynamic Content (React Synthetic Events)
   const handleContentClick = (e: any) => {
     const target = e.target as HTMLElement;
@@ -486,21 +499,24 @@ export const About = () => {
              <RevealText delay={0.2}>
                <div className="flex flex-col gap-1">
                  {/* Priority: ACF Name > Page Title */}
-                 <h1 className="text-xl font-medium tracking-tight mb-4">
-                   {aboutData?.name || aboutData?.title || 'About'}
+                 <h1 
+                   className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
+                   translate={lang === 'en' ? 'no' : undefined}
+                 >
+                   {lang === 'en' ? 'Jihyun Jung' : (aboutData?.name || aboutData?.title || 'About')}
                  </h1>
                  {aboutData?.profile_info && (
                    <div 
                      className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
+                     dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
                    />
                  )}
                  {aboutData?.profile_info2 && (
                    <div 
                      className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
+                     dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
                    />
                  )}
                </div>
@@ -554,21 +570,24 @@ export const About = () => {
                  <>
                     <RevealText delay={0.2}>
                       <div className="flex flex-col gap-1">
-                        <h1 className="text-xl font-medium tracking-tight mb-4">
-                           {aboutData.name || aboutData.title || 'About'}
+                        <h1 
+                          className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
+                          translate={lang === 'en' ? 'no' : undefined}
+                        >
+                           {lang === 'en' ? 'Jihyun Jung' : (aboutData?.name || aboutData?.title || 'About')}
                         </h1>
                         {aboutData.profile_info && (
                            <div 
                              className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
                              translate={lang === 'ko' ? 'no' : undefined}
-                             dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
+                             dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
                            />
                         )}
                         {aboutData.profile_info2 && (
                            <div 
                              className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
                              translate={lang === 'ko' ? 'no' : undefined}
-                             dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
+                             dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
                            />
                         )}
                       </div>

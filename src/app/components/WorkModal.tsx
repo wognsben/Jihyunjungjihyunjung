@@ -86,7 +86,8 @@ export const WorkModal = ({ workId, onClose }: WorkModalProps) => {
       >
         <div 
            ref={draggableRef} 
-           className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : 'w-fit h-fit'}`}
+           className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : 'w-fit h-fit'}${lang === 'ko' ? ' notranslate' : ''}`}
+           translate={lang === 'ko' ? 'no' : undefined}
            style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : { position: 'fixed' }}
         >
           <motion.div

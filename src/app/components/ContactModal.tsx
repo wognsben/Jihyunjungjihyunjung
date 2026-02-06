@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
+import { useLanguage } from '@/contexts/LanguageContext';
 import axios from 'axios';
 import { X, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,6 +21,7 @@ interface ContactFormData {
 }
 
 export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
+  const { lang } = useLanguage();
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormData>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const draggableRef = useRef<HTMLDivElement>(null); 
@@ -113,7 +115,8 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
           {/* Draggable Wrapper (Position Logic) */}
           <div 
              ref={draggableRef} 
-             className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
+             className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}${lang === 'ko' ? ' notranslate' : ''}`}
+             translate={lang === 'ko' ? 'no' : undefined}
              style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { position: 'fixed' }}
           >
             {/* Animation Wrapper */}
