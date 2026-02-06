@@ -49,6 +49,18 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
+  // Toggle body class for global styling hooks (Mobile Header Hiding)
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('contact-modal-open');
+    } else {
+      document.body.classList.remove('contact-modal-open');
+    }
+    return () => {
+      document.body.classList.remove('contact-modal-open');
+    };
+  }, [isOpen]);
+
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
     

@@ -50,7 +50,7 @@ const ContactLink = ({ label, value, link, onContactClick }: { label: string; va
       target={label !== 'EMAIL' ? "_blank" : undefined}
       rel={label !== 'EMAIL' ? "noopener noreferrer" : undefined}
       onClick={handleClick}
-      className="text-xs font-light hover:text-foreground/50 transition-colors relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-[1px] after:bg-foreground after:transition-all after:duration-300 hover:after:w-full cursor-pointer"
+      className="text-xs font-light hover:text-foreground/50 transition-colors relative inline-block md:after:content-[''] md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-0 md:after:h-[1px] md:after:bg-foreground md:after:transition-all md:after:duration-300 md:hover:after:w-full cursor-pointer"
     >
       {value}
     </a>
@@ -118,7 +118,10 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
       const processedRows: { year: string, content: string }[] = [];
       let hasYearEntry = false;
 
-      parts.forEach(part => {
+      parts.forEach(originalPart => {
+        // Fix encoding issues (specifically en-dash)
+        const part = originalPart.replace(/&#8211;/g, '–');
+
         const temp = document.createElement('div');
         temp.innerHTML = part;
         const text = (temp.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
@@ -473,7 +476,7 @@ export const About = () => {
       className="fixed inset-0 md:fixed md:inset-0 w-full h-full bg-background text-foreground md:overflow-hidden font-sans selection:bg-foreground selection:text-background overflow-y-auto"
       style={{ fontFamily: 'Pretendard, "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
     >
-      <div className="w-full h-full px-6 md:px-12 relative flex">
+      <div className="w-full min-h-full md:h-full px-6 md:px-12 relative flex">
         
         {/* Left Column */}
         <div className="hidden md:flex flex-col w-[20%] h-full pt-28 md:pt-32 relative z-20">
@@ -521,7 +524,7 @@ export const About = () => {
 
         {/* Right Column (Content) */}
         <div 
-          className="flex-1 h-full relative"
+          className="flex-1 min-h-full md:h-full relative"
           style={{ perspective: '1000px' }} 
         >
           <div 
@@ -596,7 +599,7 @@ export const About = () => {
               </div>
             )}
             
-            <div className="pt-24 opacity-30 hover:opacity-100 transition-opacity duration-500">
+            <div className="pt-24 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
                <Footer />
             </div>
           </div>

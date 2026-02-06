@@ -164,23 +164,44 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     };
 
     let touchStartY = 0;
+    let touchStartX = 0;
+
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
+      touchStartX = e.touches[0].clientX;
       handleUserInteraction(); // 터치 시작 시 자동 재생 멈춤
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       const touchEndY = e.changedTouches[0].clientY;
+      const touchEndX = e.changedTouches[0].clientX;
       const now = Date.now();
+
       if (now - lastScrollTime < scrollDelay || isTransitioning) return;
       
-      const diff = touchStartY - touchEndY;
-      if (Math.abs(diff) > 50) { // 터치 스와이프 민감도
-        lastScrollTime = now;
-        if (diff > 0) { // 아래쪽으로 스와이프 (다음 슬라이드)
-            navigateToSlide((activeIndex + 1) % works.length);
-        } else { // 위쪽으로 스와이프 (이전 슬라이드)
-            navigateToSlide((activeIndex - 1 + works.length) % works.length);
+      const diffY = touchStartY - touchEndY;
+      const diffX = touchStartX - touchEndX;
+
+      // 수평/수직 중 더 큰 움직임을 기준으로 판단 (대각선 스크롤 방지)
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // 수평 스와이프 (좌우 드래그)
+        if (Math.abs(diffX) > 50) { // 터치 스와이프 민감도
+          lastScrollTime = now;
+          if (diffX > 0) { // 왼쪽으로 스와이프 (다음 슬라이드)
+             navigateToSlide((activeIndex + 1) % works.length);
+          } else { // 오른쪽으로 스와이프 (이전 슬라이드)
+             navigateToSlide((activeIndex - 1 + works.length) % works.length);
+          }
+        }
+      } else {
+        // 수직 스와이프 (기존 로직 유지)
+        if (Math.abs(diffY) > 50) {
+          lastScrollTime = now;
+          if (diffY > 0) { // 아래쪽으로 스와이프 (다음 슬라이드)
+              navigateToSlide((activeIndex + 1) % works.length);
+          } else { // 위쪽으로 스와이프 (이전 슬라이드)
+              navigateToSlide((activeIndex - 1 + works.length) % works.length);
+          }
         }
       }
     };
@@ -216,13 +237,23 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
+    // 모바일/태블릿에서 메인 이미지 클릭 시 다음 슬라이드로 이동
+  const handleImageClick = () => {
+    // 768px 미만(모바일/태블릿)에서만 동작
+    if (window.innerWidth < 768) {
+      handleUserInteraction();
+      const nextIndex = (activeIndex + 1) % works.length;
+      navigateToSlide(nextIndex);
+    }
+  };
+
   // 안전장치: works가 비어있으면 빈 화면 반환 (AppContent의 로딩 스피너가 없을 경우 대비)
   if (!works || works.length === 0) {
     return <div className="fixed inset-0 bg-background" />;
   }
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden select-none">
+    <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
       {/* Background Images */}
       {works.map((work, index) => {
         // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
@@ -230,6 +261,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         return (
         <div
           key={work.id}
+          onClick={handleImageClick}
           className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
             index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}

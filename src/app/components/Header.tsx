@@ -229,6 +229,12 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
           }
+          /* Mobile/Tablet: Hide header when contact modal is open */
+          @media (max-width: 1024px) {
+            body.contact-modal-open header {
+              display: none !important;
+            }
+          }
         `}</style>
       </header>
 
