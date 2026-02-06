@@ -144,12 +144,14 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
           }
           
           // Link Works in Content
-          contentHtml = linkWorksInText(contentHtml);
+          if (lang !== 'ko') {
+            contentHtml = linkWorksInText(contentHtml);
+          }
 
           processedRows.push({ year: yearStr, content: contentHtml });
         } else {
           if (text.length > 0) {
-             const linkedContent = linkWorksInText(part);
+             const linkedContent = lang !== 'ko' ? linkWorksInText(part) : part;
              processedRows.push({ year: '', content: linkedContent });
           }
         }
@@ -489,13 +491,15 @@ export const About = () => {
                  </h1>
                  {aboutData?.profile_info && (
                    <div 
-                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4"
+                     className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
+                     translate={lang === 'ko' ? 'no' : undefined}
                      dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
                    />
                  )}
                  {aboutData?.profile_info2 && (
                    <div 
-                     className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                     className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
+                     translate={lang === 'ko' ? 'no' : undefined}
                      dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
                    />
                  )}
@@ -555,13 +559,15 @@ export const About = () => {
                         </h1>
                         {aboutData.profile_info && (
                            <div 
-                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4"
+                             className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
+                             translate={lang === 'ko' ? 'no' : undefined}
                              dangerouslySetInnerHTML={{ __html: aboutData.profile_info }}
                            />
                         )}
                         {aboutData.profile_info2 && (
                            <div 
-                             className="text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line"
+                             className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
+                             translate={lang === 'ko' ? 'no' : undefined}
                              dangerouslySetInnerHTML={{ __html: aboutData.profile_info2 }}
                            />
                         )}
@@ -592,7 +598,8 @@ export const About = () => {
               <div className="flex flex-col gap-6 max-w-3xl">
                 <RevealText delay={0.3}>
                    <div 
-                     className="text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-white [&_tr:hover]:!text-foreground [&_tr:hover_>_*]:!text-foreground md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-foreground md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline"
+                     className={`text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-white [&_tr:hover]:!text-foreground [&_tr:hover_>_*]:!text-foreground md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-foreground md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
+                     translate={lang === 'ko' ? 'no' : undefined}
                      dangerouslySetInnerHTML={{ __html: processedContent || '' }}
                    />
                 </RevealText>
