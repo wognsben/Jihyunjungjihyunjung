@@ -91,7 +91,6 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
 
   const handleWorkClick = () => {
     if (activeWork) {
-      window.location.hash = `#/work/${activeWork.id}`;
       if (onClick) onClick();
     }
   };

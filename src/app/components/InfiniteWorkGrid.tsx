@@ -27,6 +27,18 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detect desktop (1024px+)
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
 
   // Update scroll state
   const updateScrollState = () => {
@@ -137,8 +149,8 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       {/* Header: Title + Count + Progress */}
       <div className="px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
-          <h2 className="text-[14px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono">
-            Other Works
+          <h2 className="text-[14px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono">
+            other works
           </h2>
           <span className="text-[10px] font-mono text-muted-foreground/40">
             {works.length} {works.length === 1 ? 'work' : 'works'}
@@ -296,23 +308,25 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
         ))}
       </div>
 
-      {/* Tooltip - Simplified props */}
-      <TooltipTransition 
-        hoveredWorkId={hoveredWorkId || lastHoveredWorkId}
-        isOpen={false} 
-        onClose={() => {
-          setHoveredWorkId(null);
-          setLastHoveredWorkId(null); // Also clear last hovered
-        }}
-        onClick={() => {
-          const workIdToUse = hoveredWorkId || lastHoveredWorkId;
-          if (workIdToUse) {
-            onWorkClick?.(Number(workIdToUse));
+      {/* Tooltip - Desktop Only (1024px+) */}
+      {isDesktop && (
+        <TooltipTransition 
+          hoveredWorkId={hoveredWorkId || lastHoveredWorkId}
+          isOpen={false} 
+          onClose={() => {
             setHoveredWorkId(null);
-          }
-        }}
-        isMobile={false}
-      />
+            setLastHoveredWorkId(null);
+          }}
+          onClick={() => {
+            const workIdToUse = hoveredWorkId || lastHoveredWorkId;
+            if (workIdToUse) {
+              onWorkClick?.(Number(workIdToUse));
+              setHoveredWorkId(null);
+            }
+          }}
+          isMobile={false}
+        />
+      )}
 
       {/* Hide scrollbar CSS */}
       <style>{`

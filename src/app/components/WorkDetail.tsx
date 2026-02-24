@@ -1,13 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useWorks } from '@/contexts/WorkContext';
-import { ArrowLeft, X, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 import gsap from 'gsap';
 import SplitType from 'split-type';
 import { motion, AnimatePresence } from 'motion/react';
 import { Resizable } from 're-resizable';
 import Draggable from 'react-draggable';
+import { createPortal } from 'react-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useWorks } from '@/contexts/WorkContext';
+import { SeoHead } from '@/app/components/seo/SeoHead';
+import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
+import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
+import { TextDetail } from '@/app/components/TextDetail';
 
 // Minimal Blur Reveal Component
 const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
@@ -40,11 +44,6 @@ const BlurReveal = ({ children, className, delay = 0 }: { children: string, clas
 
   return <p ref={elementRef} className={className}>{children}</p>;
 };
-
-import { SeoHead } from '@/app/components/seo/SeoHead';
-import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
-import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
-import { TextDetail } from '@/app/components/TextDetail';
 
 interface WorkDetailProps {
   workId: string | null;
@@ -197,9 +196,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   if (!work) return null;
 
   const handleClose = () => { 
-    window.location.hash = '#/work'; 
+    window.history.back(); 
   };
-  const handleWorkClick = (clickedWorkId: number) => { window.location.hash = `#/work/${clickedWorkId}`; };
+  const handleWorkClick = (clickedWorkId: number) => { 
+    window.location.hash = `#/work/${clickedWorkId}`; 
+  };
 
   const title = lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
   const description = lang === 'ko' ? work.description_ko : (lang === 'jp' ? work.description_jp : work.description_en);
@@ -253,7 +254,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                 <div className="flex items-baseline justify-center gap-2 mb-2 md:mb-3">
                   <span className="tracking-[0.2em] text-muted-foreground/60 font-mono text-[12px]">Title</span>
                   <span className="text-[9px] text-muted-foreground/30">/</span>
-                  <span className="text-[9px] tracking-[0.2em] text-muted-foreground/60 font-mono">Year</span>
+                  <span className="text-[12px] tracking-[0.2em] text-muted-foreground/60 font-mono">Year</span>
                 </div>
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-serif font-light text-foreground/90 leading-tight">
                   {cleanText(title)}{work.year && `, ${work.year}`}
@@ -465,7 +466,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                 <div className="md:col-span-4 lg:col-span-3">
                   <div className="sticky top-40">
-                    <h2 className="text-[14px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
+                    <h2 className="text-[14px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
                     <div className="hidden md:block min-h-[100px]">
                       {hoveredArticleId && (
                         <div key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500">
