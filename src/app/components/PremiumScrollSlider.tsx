@@ -108,7 +108,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     }, 1000);
   };
 
-  // 3초 자동 슬라이더
+  // 3��� 자동 슬라이더
   useEffect(() => {
     if (!isAutoPlayActive || works.length === 0) return;
 
@@ -237,14 +237,11 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-    // 모바일/태블릿에서 메인 이미지 클릭 시 다음 슬라이드로 이동
+  // 모바일/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
   const handleImageClick = () => {
-    // 768px 미만(모바일/태블릿)에서만 동작
-    if (window.innerWidth < 768) {
-      handleUserInteraction();
-      const nextIndex = (activeIndex + 1) % works.length;
-      navigateToSlide(nextIndex);
-    }
+    handleUserInteraction();
+    const nextIndex = (activeIndex + 1) % works.length;
+    navigateToSlide(nextIndex);
   };
 
   // 안전장치: works가 비어있으면 빈 화면 반환 (AppContent의 로딩 스피너가 없을 경우 대비)
@@ -271,7 +268,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           <PremiumImage
             src={imageSrc}
             alt={getTitle(work)}
-            className="w-full h-full object-contain md:object-cover"
+            className="w-full h-full object-cover"
             containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}
@@ -284,15 +281,6 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
       {/* Navigation UI - Bottom Left (Smart Contrast) */}
       <nav className="fixed left-8 bottom-8 z-30">
         <div className="flex flex-col gap-3">
-          {/* Label */}
-          <span 
-            className={`font-mono text-[10px] uppercase tracking-wider transition-colors duration-700 ${
-              isDark ? 'text-white/40' : 'text-black/40'
-            }`}
-          >
-            Variations
-          </span>
-          
           {/* Number Grid */}
           <div className="flex flex-wrap gap-x-3 gap-y-2 max-w-[200px]">
             {works.map((work, index) => (
@@ -300,7 +288,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
                 key={work.id}
                 onClick={() => navigateToSlide(index)}
                 disabled={isTransitioning}
-                className={`font-mono text-xs transition-all duration-300 ${
+                className={`cursor-pointer font-mono text-xs transition-all duration-300 ${
                   index === activeIndex
                     ? (isDark ? 'text-white font-bold' : 'text-black font-bold')
                     : (isDark ? 'text-white/30 hover:text-white/60' : 'text-black/30 hover:text-black/60')

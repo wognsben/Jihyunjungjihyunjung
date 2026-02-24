@@ -15,6 +15,35 @@ export const WorkGrid = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [currentFilter, setCurrentFilter] = useState('all');
+
+  useEffect(() => {
+    const updateFilterFromUrl = () => {
+      const hash = window.location.hash;
+      const queryPart = hash.split('?')[1];
+      if (queryPart) {
+        const params = new URLSearchParams(queryPart);
+        const filter = params.get('filter');
+        if (filter) {
+          setCurrentFilter(filter);
+        } else {
+          setCurrentFilter('all');
+        }
+      } else {
+        setCurrentFilter('all');
+      }
+    };
+
+    updateFilterFromUrl();
+    window.addEventListener('hashchange', updateFilterFromUrl);
+    return () => window.removeEventListener('hashchange', updateFilterFromUrl);
+  }, []);
+
+  const handleFilterChange = (filter: string) => {
+    setCurrentFilter(filter);
+    const hashBase = window.location.hash.split('?')[0];
+    window.location.hash = `${hashBase}?filter=${filter}`;
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -52,16 +81,49 @@ export const WorkGrid = () => {
     return [...uniqueWorks, ...duplicateWorks];
   }, [works]);
 
+  const filteredWorks = useMemo(() => {
+    if (!sortedWorks.length) return [];
+    
+    const source = [...sortedWorks];
+    
+    switch (currentFilter.toLowerCase()) {
+      case 'sel':
+        return source.slice(0, 5); // Mock selection
+        
+      case 'proj':
+        return source.filter(work => {
+           const medium = (work.medium_en || '').toLowerCase();
+           return medium.includes('project');
+        });
+        
+      case 'exhib':
+        return source.filter(work => {
+           const medium = (work.medium_en || '').toLowerCase();
+           return medium.includes('exhibition');
+        });
+        
+      case 'works':
+        return source.filter(work => {
+           const medium = (work.medium_en || '').toLowerCase();
+           return !medium.includes('project') && !medium.includes('exhibition');
+        });
+        
+      case 'all':
+      default:
+        return source;
+    }
+  }, [sortedWorks, currentFilter]);
+
   const columns = useMemo(() => {
     const numCols = isMobile ? 1 : 4;
     const cols: Work[][] = Array.from({ length: numCols }, () => []);
     
-    sortedWorks.forEach((work, index) => {
+    filteredWorks.forEach((work, index) => {
       const colIndex = index % numCols;
       cols[colIndex].push(work);
     });
     return cols;
-  }, [sortedWorks, isMobile]);
+  }, [filteredWorks, isMobile]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -117,6 +179,30 @@ export const WorkGrid = () => {
   
   return (
     <div ref={containerRef} className="w-full min-h-screen bg-background text-foreground pt-32 pb-20 px-4 md:px-6">
+      {/* Category Filters */}
+      <div className="flex flex-wrap items-center gap-6 mb-12 md:mb-16">
+        {[
+          { id: 'sel', label: 'Selected' },
+          { id: 'all', label: 'All' },
+          { id: 'works', label: 'Works' },
+          { id: 'proj', label: 'Projects' },
+          { id: 'exhib', label: 'Exhibitions' },
+        ].map((item) => (
+          <button
+            key={item.id}
+            onClick={() => handleFilterChange(item.id)}
+            className={`
+              text-xs md:text-sm tracking-widest uppercase transition-colors duration-300
+              ${currentFilter.toLowerCase() === item.id 
+                ? 'text-black dark:text-white font-bold' 
+                : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'}
+            `}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col md:flex-row gap-1 w-full items-start justify-center">
         {columns.map((colWorks, colIndex) => (
           <div 

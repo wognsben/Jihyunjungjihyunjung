@@ -1,145 +1,9 @@
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Work } from '@/contexts/WorkContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { TooltipTransition } from '@/app/components/TooltipTransition';
-
-// --- Utility: Line Break Logic ---
-const lineBreak = (text: string, max: number, container: HTMLElement) => {
-  const document = container.ownerDocument;
-  
-  const getTotalWidth = (el: HTMLElement) =>
-    Array.from(el.children).reduce((acc, child) => acc + (child as HTMLElement).getBoundingClientRect().width, 0);
-
-  const createNewLine = () => {
-    const span = document.createElement('span');
-    span.classList.add('grid-text-line');
-    span.style.display = 'block';
-    span.style.willChange = 'transform';
-    return span;
-  };
-
-  const words = text.split(/\s/).map((w, i) => {
-    const span = document.createElement('span');
-    span.classList.add('word');
-    span.style.display = 'inline-block';
-    span.innerHTML = (i > 0 ? ' ' : '') + w;
-    return span;
-  });
-
-  container.innerHTML = '';
-  
-  words.forEach((word, i) => {
-    if (i > 0 && word.innerHTML.startsWith(' ')) {
-      word.style.paddingLeft = '0.2em';
-    }
-  });
-
-  if (getTotalWidth(container) > max) {
-    container.innerHTML = '';
-    let currentLine = createNewLine();
-    container.appendChild(currentLine);
-
-    words.forEach(word => {
-      currentLine.appendChild(word);
-      if (getTotalWidth(currentLine) > max && currentLine.children.length > 1) {
-        currentLine.removeChild(word);
-        currentLine = createNewLine();
-        currentLine.appendChild(word);
-        container.appendChild(currentLine);
-      }
-    });
-  } else {
-    const line = createNewLine();
-    words.forEach(word => line.appendChild(word));
-    container.appendChild(line);
-  }
-};
-
-// --- Physics & Animation Types ---
-class ColumnAnimation {
-  el: HTMLElement;
-  reverse: boolean;
-  scroll: { current: number; target: number; last: number; ease: number };
-  speed: { t: number; c: number };
-  defaultSpeed: number;
-  height: number = 0;
-  items: any[] = [];
-  winH: number = 0;
-  paused: boolean = false;
-  
-  constructor(el: HTMLElement, reverse: boolean) {
-    this.el = el;
-    this.reverse = reverse;
-    this.scroll = { ease: 0.05, current: 0, target: 0, last: 0 };
-    this.speed = { t: 0.4, c: 0.4 }; 
-    this.defaultSpeed = 0.4; 
-    
-    this.resize();
-
-    // Initial offset for Right Column (Reverse)
-    if (this.reverse && this.height > 0) {
-        const startOffset = -this.height / 2;
-        this.scroll.current = startOffset;
-        this.scroll.target = startOffset;
-    }
-  }
-
-  resize() {
-    this.winH = window.innerHeight;
-    const content = this.el.querySelector('.column-content') as HTMLElement;
-    if (!content) return;
-
-    this.items = Array.from(content.children).map((item: any) => {
-        return {
-            el: item as HTMLElement,
-            height: item.clientHeight,
-            top: item.offsetTop,
-            y: 0,
-            extra: 0
-        };
-    });
-    
-    this.height = content.scrollHeight;
-  }
-
-  update(autoScroll: boolean = true) {
-    if (this.paused) {
-        this.speed.t = 0;
-    } else if (autoScroll) {
-        this.speed.t = this.defaultSpeed;
-    }
-    
-    this.speed.c += (this.speed.t - this.speed.c) * 0.03;
-    
-    this.scroll.target += this.speed.c;
-    this.scroll.current += (this.scroll.target - this.scroll.current) * this.scroll.ease;
-
-    this.items.forEach(item => {
-        if (!this.reverse) {
-            // LEFT COLUMN: Moves UP
-            item.y = -this.scroll.current + item.extra;
-            
-            const visualTop = item.y + item.top;
-            if (visualTop + item.height < -100) { 
-                item.extra += this.height;
-            }
-        } else {
-             // RIGHT COLUMN: Moves DOWN
-             item.y = this.scroll.current + item.extra;
-             
-             const visualTop = item.y + item.top;
-             if (visualTop > this.winH + 100) {
-                 item.extra -= this.height;
-             }
-        }
-        
-        item.el.style.transform = `translateY(${item.y}px)`;
-    });
-
-    this.scroll.last = this.scroll.current;
-  }
-}
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface InfiniteWorkGridProps {
   works: Work[];
@@ -148,219 +12,314 @@ interface InfiniteWorkGridProps {
 
 export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) => {
   const { lang } = useLanguage();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const leftRef = useRef<HTMLDivElement>(null);
-  const rightRef = useRef<HTMLDivElement>(null);
-  const mobileRef = useRef<HTMLDivElement>(null);
   
-  const animationsRef = useRef<ColumnAnimation[]>([]);
-  const requestRef = useRef<number>();
+  // Refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const continuousScrollRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // State
+  const [hoveredWorkId, setHoveredWorkId] = useState<string | null>(null);
+  const [lastHoveredWorkId, setLastHoveredWorkId] = useState<string | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const [hoveredWork, setHoveredWork] = useState<Work | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
+  // Update scroll state
+  const updateScrollState = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    
+    // Progress (0 to 1)
+    const maxScroll = scrollWidth - clientWidth;
+    const progress = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+    setScrollProgress(progress);
+    
+    // Can scroll left/right
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < maxScroll - 10);
 
-  // Mobile Tooltip State
-  const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
+    // Calculate active index for minimap (based on visible center)
+    const itemWidth = 350 + 48; // thumbnail width + gap
+    const centerScroll = scrollLeft + clientWidth / 2;
+    const index = Math.floor(centerScroll / itemWidth);
+    setActiveIndex(Math.min(index, works.length - 1));
+  };
 
+  // Scroll listener
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  const repeatedWorks = useMemo(() => {
-      if (works.length === 0) return [];
-      let list = [...works];
-      while (list.length < 30) {
-          list = [...list, ...works];
-      }
-      return list;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('scroll', updateScrollState);
+    updateScrollState(); // Initial state
+    
+    return () => container.removeEventListener('scroll', updateScrollState);
   }, [works]);
 
-  const leftWorks = repeatedWorks.filter((_, i) => i % 2 === 0);
-  const rightWorks = repeatedWorks.filter((_, i) => i % 2 !== 0);
-
-  // Hover Handlers
-  const handleMouseEnter = (work: Work) => {
-      setHoveredWork(work);
-      animationsRef.current.forEach(anim => anim.paused = true);
-  };
-
-  const handleMouseLeave = () => {
-      setHoveredWork(null);
-      animationsRef.current.forEach(anim => anim.paused = false);
-  };
-
+  // Mouse Wheel Horizontal Scroll
   useEffect(() => {
-    const setupText = (container: HTMLElement | null) => {
-        if (!container) return;
-        const paragraphs = container.querySelectorAll('p.smart-text-source');
-        paragraphs.forEach(p => {
-             lineBreak(p.textContent || '', p.parentElement?.clientWidth || 300, p as HTMLElement);
-             p.classList.remove('opacity-0');
-        });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        container.scrollLeft += e.deltaY;
+      }
     };
 
-    const timer = setTimeout(() => {
-        if (isMobile) {
-             setupText(mobileRef.current);
-             if (mobileRef.current) {
-                 animationsRef.current = [new ColumnAnimation(mobileRef.current, false)];
-             }
-        } else {
-             setupText(leftRef.current);
-             setupText(rightRef.current);
-             
-             if (leftRef.current && rightRef.current) {
-                 animationsRef.current = [
-                     new ColumnAnimation(leftRef.current, false), 
-                     new ColumnAnimation(rightRef.current, true)
-                 ];
-             }
-        }
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [works, lang, repeatedWorks, isMobile]);
-
-  useEffect(() => {
-    const loop = () => {
-        animationsRef.current.forEach(anim => anim.update(true));
-        requestRef.current = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => {
-        if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    };
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
   }, []);
+
+  // Continuous scroll on hold
+  const startContinuousScroll = (direction: 'left' | 'right') => {
+    stopContinuousScroll();
+    
+    const scroll = () => {
+      if (!scrollContainerRef.current) return;
+      const speed = 10;
+      scrollContainerRef.current.scrollLeft += direction === 'left' ? -speed : speed;
+    };
+    
+    continuousScrollRef.current = setInterval(scroll, 16);
+  };
+
+  const stopContinuousScroll = () => {
+    if (continuousScrollRef.current) {
+      clearInterval(continuousScrollRef.current);
+      continuousScrollRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => stopContinuousScroll();
+  }, []);
+
+  // Jump to specific work
+  const scrollToWork = (index: number) => {
+    if (!scrollContainerRef.current) return;
+    const itemWidth = 350 + 48;
+    scrollContainerRef.current.scrollTo({
+      left: index * itemWidth,
+      behavior: 'smooth'
+    });
+  };
+
+  // Drag to scroll
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setScrollLeft(scrollContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDragging(false);
+  };
 
   if (works.length === 0) return null;
 
   return (
-    <div ref={containerRef} className="relative w-full h-[120vh] bg-white text-black overflow-hidden selection:bg-black/10">
-       <style>{`
-         .grid-text-line { display: block; white-space: nowrap; will-change: transform; overflow: hidden; line-height: 1.2; }
-         .word { display: inline-block; }
-         .smart-text-source { transition: opacity 0.5s ease-out; } 
-       `}</style>
+    <div className="relative w-full bg-background py-24 md:py-32">
+      {/* Header: Title + Count + Progress */}
+      <div className="px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
+        <div className="flex items-baseline gap-4">
+          <h2 className="text-[14px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono">
+            Other Works
+          </h2>
+          <span className="text-[10px] font-mono text-muted-foreground/40">
+            {works.length} {works.length === 1 ? 'work' : 'works'}
+          </span>
+        </div>
+        
+        {/* Progress Indicator */}
+        <div className="hidden md:flex items-center gap-3">
+          <div className="w-24 h-[1px] bg-muted-foreground/20 relative overflow-hidden">
+            <div 
+              className="absolute left-0 top-0 h-full bg-foreground/60 transition-all duration-300 ease-out"
+              style={{ width: `${scrollProgress * 100}%` }}
+            />
+          </div>
+          <span className="text-[9px] font-mono text-muted-foreground/40 tabular-nums">
+            {Math.round(scrollProgress * 100)}%
+          </span>
+        </div>
+      </div>
 
-       {/* Center Content: JIHYUNJUNG */}
-       {/* Moved UP by changing justify-center to justify-start and adding padding-top */}
-       {/* Hidden on mobile (< 768px), visible on desktop/tablet */}
-       <div className="hidden md:flex absolute inset-0 z-10 flex-col items-center justify-start pt-[35vh] pointer-events-none">
-          {/* Main Title */}
-          <h1 className="text-[3vw] md:text-[2.5vw] font-serif font-light tracking-[0.2em] leading-none text-black z-20 transition-all duration-700">
-            JIHYUN JUNG
-          </h1>
-          
-          {/* Hover Image Layer - Positioned Spatially BELOW the text in Flex Flow */}
-          {/* Static positioning (margin-top) ensures stable layout and correct layering "below" text */}
-          <div className={`mt-10 w-[30vw] h-[40vh] md:w-[20vw] md:h-[35vh] z-10 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredWork ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            {hoveredWork && (
-                <div className="w-full h-full bg-gray-50 overflow-hidden shadow-2xl">
-                     {/* FIX: Use correct property 'thumbnail' or 'galleryImages[0]' instead of 'image_url' */}
-                     <ImageWithFallback 
-                        src={hoveredWork.thumbnail || hoveredWork.galleryImages?.[0] || ''} 
-                        alt={hoveredWork.title_en}
-                        className="object-cover w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-700"
-                    />
+      {/* Scroll Container Wrapper with Fade Gradients */}
+      <div className="relative">
+        {/* Left Fade Gradient */}
+        <div 
+          className={`hidden md:block absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background/60 via-background/30 to-transparent z-10 pointer-events-none transition-opacity duration-500 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+        />
+        
+        {/* Right Fade Gradient */}
+        <div 
+          className={`hidden md:block absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background/60 via-background/30 to-transparent z-10 pointer-events-none transition-opacity duration-500 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+        />
+
+        {/* Left Navigation Button */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            startContinuousScroll('left');
+          }}
+          onMouseUp={stopContinuousScroll}
+          onMouseLeave={stopContinuousScroll}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            startContinuousScroll('left');
+          }}
+          onTouchEnd={stopContinuousScroll}
+          disabled={!canScrollLeft}
+          className={`hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-5 h-5 text-foreground/70" />
+        </button>
+
+        {/* Right Navigation Button */}
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault();
+            startContinuousScroll('right');
+          }}
+          onMouseUp={stopContinuousScroll}
+          onMouseLeave={stopContinuousScroll}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            startContinuousScroll('right');
+          }}
+          onTouchEnd={stopContinuousScroll}
+          disabled={!canScrollRight}
+          className={`hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-5 h-5 text-foreground/70" />
+        </button>
+
+        {/* Horizontal Scroll Container */}
+        <div 
+          ref={scrollContainerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className={`overflow-x-auto overflow-y-hidden scrollbar-hide px-6 md:px-12 snap-x snap-mandatory ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <div className="flex gap-8 md:gap-12 pb-4">
+            {works.map((work) => (
+              <div
+                key={work.id}
+                onClick={() => onWorkClick?.(Number(work.id))}
+                onMouseEnter={() => {
+                  setHoveredWorkId(work.id);
+                  setLastHoveredWorkId(work.id); // Remember last hovered
+                }}
+                onMouseLeave={() => setHoveredWorkId(null)}
+                className="group flex-shrink-0 cursor-pointer snap-start"
+              >
+                {/* Thumbnail */}
+                <div className="w-[280px] md:w-[350px] aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative">
+                  <ImageWithFallback
+                    src={work.thumbnail || work.galleryImages?.[0] || ''}
+                    alt={work.title_en}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
+                  />
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
                 </div>
-            )}
-          </div>
-       </div>
 
-       {/* Grid Container */}
-       <div className="absolute inset-0 flex justify-center md:justify-between px-4 md:px-16 z-20 pointer-events-none mix-blend-multiply">
-          
-          {/* Mobile Single Column */}
-          {isMobile && (
-            <div ref={mobileRef} className="column h-full w-full relative overflow-visible pointer-events-auto">
-               <div className="column-content w-full absolute top-0 left-0 will-change-transform flex flex-col items-center">
-                  {repeatedWorks.map((work, i) => (
-                      <div 
-                          key={`mobile-${i}`} 
-                          className="mb-32 cursor-pointer group text-center" 
-                          onClick={() => setTooltipWorkId(work.id)}
-                      >
-                          <p className="smart-text-source opacity-0 text-sm font-serif text-black transition-colors duration-700 leading-relaxed">
-                             {work.title_en}
-                             <span className="block text-[10px] font-mono text-black transition-colors duration-700 mt-1 opacity-60">
-                               &lt;{work.year}&gt;
-                             </span>
-                          </p>
-                      </div>
-                  ))}
-               </div>
+                {/* Caption */}
+                <div className="w-[280px] md:w-[350px]">
+                  <h3 className="text-sm md:text-base font-serif font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300">
+                    {work.title_en}
+                  </h3>
+                  <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.1em]">
+                    &lt;{work.year}&gt;
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Minimap Navigation */}
+      <div className="hidden md:flex justify-center items-center gap-2 mt-12 px-6">
+        {works.map((work, index) => (
+          <button
+            key={work.id}
+            onClick={() => scrollToWork(index)}
+            onMouseEnter={() => setHoveredWorkId(work.id)}
+            onMouseLeave={() => setHoveredWorkId(null)}
+            className={`group relative transition-all duration-300 ${
+              index === activeIndex 
+                ? 'w-8 h-1.5' 
+                : 'w-1.5 h-1.5'
+            }`}
+            aria-label={`Go to ${work.title_en}`}
+          >
+            {/* Dot */}
+            <div className={`w-full h-full rounded-full transition-all duration-300 ${
+              index === activeIndex 
+                ? 'bg-foreground/80' 
+                : 'bg-muted-foreground/20 group-hover:bg-muted-foreground/50'
+            }`} />
+            
+            {/* Tooltip on hover */}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+              <div className="bg-foreground/90 text-background px-2 py-1 rounded text-[9px] font-mono">
+                {work.title_en.slice(0, 20)}{work.title_en.length > 20 ? '...' : ''}
+              </div>
+              {/* Arrow */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-foreground/90" />
             </div>
-          )}
+          </button>
+        ))}
+      </div>
 
-          {/* Desktop Left Column */}
-          {!isMobile && (
-          <div ref={leftRef} className="column h-full w-[25%] relative overflow-visible pointer-events-auto">
-             <div className="column-content w-full absolute top-0 left-0 will-change-transform">
-                {leftWorks.map((work, i) => (
-                    <div 
-                        key={`left-${i}`} 
-                        className="mb-40 cursor-pointer group" 
-                        onClick={() => onWorkClick?.(Number(work.id))}
-                        onMouseEnter={() => handleMouseEnter(work)}
-                        onMouseLeave={handleMouseLeave}
-                    >
-                        {/* Title <Year> Format */}
-                        <p className="smart-text-source opacity-0 text-base font-serif text-black transition-colors duration-700 leading-relaxed">
-                           {work.title_en}
-                           <span className="inline-block ml-2 text-[10px] font-mono text-black transition-colors duration-700 align-middle">
-                             &lt;{work.year}&gt;
-                           </span>
-                        </p>
-                    </div>
-                ))}
-             </div>
-          </div>
-          )}
+      {/* Tooltip - Simplified props */}
+      <TooltipTransition 
+        hoveredWorkId={hoveredWorkId || lastHoveredWorkId}
+        isOpen={false} 
+        onClose={() => {
+          setHoveredWorkId(null);
+          setLastHoveredWorkId(null); // Also clear last hovered
+        }}
+        onClick={() => {
+          const workIdToUse = hoveredWorkId || lastHoveredWorkId;
+          if (workIdToUse) {
+            onWorkClick?.(Number(workIdToUse));
+            setHoveredWorkId(null);
+          }
+        }}
+        isMobile={false}
+      />
 
-          {/* Desktop Right Column */}
-          {!isMobile && (
-          <div ref={rightRef} className="column h-full w-[25%] relative overflow-visible text-right pointer-events-auto">
-             <div className="column-content w-full absolute top-0 right-0 will-change-transform flex flex-col items-end">
-                {rightWorks.map((work, i) => (
-                    <div 
-                        key={`right-${i}`} 
-                        className="mb-40 cursor-pointer group w-full text-right" 
-                        onClick={() => onWorkClick?.(Number(work.id))}
-                        onMouseEnter={() => handleMouseEnter(work)}
-                        onMouseLeave={handleMouseLeave}
-                    >
-                         {/* Title <Year> Format */}
-                         <p className="smart-text-source opacity-0 text-base font-serif text-black transition-colors duration-700 leading-relaxed ml-auto">
-                           {work.title_en}
-                           <span className="inline-block ml-2 text-[10px] font-mono text-black transition-colors duration-700 align-middle">
-                             &lt;{work.year}&gt;
-                           </span>
-                        </p>
-                    </div>
-                ))}
-             </div>
-          </div>
-          )}
-       </div>
-
-       {/* Mobile Tooltip - Moved to the end to ensure it sits on top of everything in DOM order */}
-       {isMobile && (
-         <TooltipTransition 
-           hoveredWorkId={tooltipWorkId} 
-           isOpen={false} 
-           onClose={() => setTooltipWorkId(null)}
-           onClick={() => {
-             if (tooltipWorkId) {
-               onWorkClick?.(Number(tooltipWorkId));
-               setTooltipWorkId(null);
-             }
-           }}
-           isMobile={true}
-         />
-       )}
+      {/* Hide scrollbar CSS */}
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

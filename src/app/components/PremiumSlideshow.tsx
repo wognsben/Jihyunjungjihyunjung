@@ -13,18 +13,10 @@ if (typeof window !== 'undefined') {
 
 interface PremiumSlideshowProps {
   works: Work[];
+  onBrightnessChange?: (isDark: boolean) => void;
 }
 
-// Colorful deco colors for vibrant background transitions
-const DECO_COLORS = [
-  '#d4503e', // Red
-  '#1c1a1a', // Dark
-  '#4e4141', // Brown-grey
-  '#060b17', // Navy
-  '#34365c', // Purple-grey
-];
-
-export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
+export const PremiumSlideshow = ({ works, onBrightnessChange }: PremiumSlideshowProps) => {
   const { lang } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -32,7 +24,6 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   
   const slidesRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -55,18 +46,6 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
       default: return work.oneLineInfo_en;
     }
   };
-
-  // Custom cursor tracking (PC only)
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorPos({ x: e.clientX, y: e.clientY });
-    };
-
-    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      window.addEventListener('mousemove', handleMouseMove);
-      return () => window.removeEventListener('mousemove', handleMouseMove);
-    }
-  }, []);
 
   // Auto progress (visual only, doesn't auto-advance)
   useEffect(() => {
@@ -351,19 +330,8 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
       style={{ 
         height: '100vh',
         minHeight: '500px',
-        cursor: 'none'
       }}
     >
-      {/* Custom Cursor - PC only */}
-      <div 
-        className="custom-cursor hidden pointer-fine:block fixed w-3 h-3 rounded-full bg-white mix-blend-difference pointer-events-none z-50 transition-transform duration-150"
-        style={{
-          left: `${cursorPos.x}px`,
-          top: `${cursorPos.y}px`,
-          transform: `translate(-50%, -50%) scale(${isHovered ? 2 : 1})`,
-        }}
-      />
-
       {/* Backdrop Layer - changes to soft white on hover */}
       <div 
         className="absolute inset-0 pointer-events-none"
@@ -402,13 +370,13 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
                 zIndex: isActive ? 10 : 0,
               }}
             >
-              {/* Image Frame */}
-              <a
-                href={`#/work/${work.id}`}
-                className="slide__media block w-full h-full relative focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all duration-700 ease-out"
+              {/* Image Frame - Always Fullscreen */}
+              <div
+                onClick={handleNext}
+                className="slide__media block w-full h-full relative focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-all duration-700 ease-out cursor-pointer"
                 style={{
-                  clipPath: isHovered && isActive ? 'inset(18%)' : 'inset(0%)',
-                  transform: isHovered && isActive ? 'scale(0.95)' : 'scale(1)',
+                  clipPath: 'inset(0%)', // Always fullscreen
+                  transform: isHovered && isActive ? 'scale(1.02)' : 'scale(1)', // Slight zoom only, no shrinking
                 }}
               >
                 <div
@@ -422,9 +390,10 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
                     filter: 'grayscale(20%) contrast(1.05)',
                   }}
                 />
-              </a>
+              </div>
 
-              {/* Hover Overlay Content - Inside slide for bridge effect */}
+              {/* Hover Overlay Content - PC Only */}
+              {/* This is hidden on mobile/touch devices via pointer-fine media query */}
               {isHovered && isActive && (
                 <div 
                   className="absolute inset-0 z-30 hidden pointer-fine:block"
@@ -494,6 +463,29 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
                   </div>
                 </div>
               )}
+
+              {/* Mobile/Tablet Permanent Overlay */}
+              {/* Visible ONLY on touch devices where hover is not supported */}
+              {isActive && (
+                <div 
+                  className="absolute inset-0 z-30 pointer-coarse:block hidden pointer-events-none"
+                >
+                   <div className="absolute bottom-32 left-6 right-6 flex flex-col items-start gap-4">
+                      <div>
+                        <h3 className="text-3xl font-light text-white mb-1 drop-shadow-md">{title}</h3>
+                        <p className="text-white/70 text-sm font-mono tracking-widest drop-shadow-md">{work.year}</p>
+                      </div>
+                      
+                      <a
+                        href={`#/work/${work.id}`}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white pointer-events-auto active:bg-white/20 transition-all"
+                      >
+                         <span className="text-xs uppercase tracking-wider font-mono">View Project</span>
+                         <ArrowRight className="w-4 h-4" />
+                      </a>
+                   </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -501,17 +493,6 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
 
       {/* Variations Grid - ALWAYS VISIBLE (moved down below header) */}
       <div className="absolute top-32 right-8 md:right-16 z-30">
-        <p 
-          className="text-[9px] uppercase mb-5 text-right transition-colors duration-700"
-          style={{
-            color: isHovered ? '#0a0a0a' : '#0a0a0a',
-            opacity: isHovered ? 0.35 : 0.4,
-            letterSpacing: '0.2em',
-            fontWeight: 400,
-          }}
-        >
-          Variations
-        </p>
         <div className="flex items-center gap-x-5">
           {works.map((_, idx) => (
             <button
@@ -524,12 +505,13 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
               className="text-center transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
               style={{
                 color: idx === activeIndex 
-                  ? (isHovered ? '#0a0a0a' : '#0a0a0a')
-                  : (isHovered ? 'rgba(10, 10, 10, 0.25)' : 'rgba(10, 10, 10, 0.3)'),
+                  ? (isHovered ? '#0a0a0a' : '#fff') // White by default for fullscreen overlay
+                  : (isHovered ? 'rgba(10, 10, 10, 0.3)' : 'rgba(255, 255, 255, 0.5)'),
+                textShadow: isHovered ? 'none' : '0 1px 2px rgba(0,0,0,0.3)', // Shadow for visibility on image
                 fontSize: '14px',
                 fontWeight: idx === activeIndex ? 500 : 400,
                 letterSpacing: '0.03em',
-                opacity: idx === activeIndex ? 1 : (isHovered ? 0.5 : 0.6),
+                opacity: idx === activeIndex ? 1 : 0.7,
               }}
             >
               {String(idx + 1).padStart(2, '0')}
@@ -598,6 +580,7 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
             letterSpacing: '0.3em',
             color: isHovered ? '#0a0a0a' : '#fff',
             opacity: isHovered ? 0.25 : 0.25,
+            textShadow: isHovered ? 'none' : '0 1px 2px rgba(0,0,0,0.5)',
           }}
         >
           Scroll • Drag • Arrow Keys
@@ -618,10 +601,6 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
           pointer-events: none;
         }
 
-        .is-animating {
-          cursor: none !important;
-        }
-
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -634,13 +613,6 @@ export const PremiumSlideshow = ({ works }: PremiumSlideshowProps) => {
         /* Prevent text selection during animation */
         .is-animating * {
           user-select: none;
-        }
-
-        /* Hide default cursor on desktop */
-        @media (hover: hover) and (pointer: fine) {
-          * {
-            cursor: none !important;
-          }
         }
 
         /* Smooth font rendering */

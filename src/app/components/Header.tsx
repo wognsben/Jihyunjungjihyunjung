@@ -94,21 +94,21 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   // --------------------------------------------------------------------------------
   const renderContextLabel = () => {
     switch (currentView) {
-      case 'index': return 'INDEX / OVERVIEW';
-      case 'work': return 'WORK';
+      case 'index': return 'index / overview';
+      case 'work': return 'work';
       case 'work-detail': 
         if (detailTitle) {
           return (
             <span className="flex items-baseline gap-2">
               {/* Italiana 폰트 적용: 우아함을 강조 */}
               <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[220px] leading-tight break-words block">
-                {detailTitle.toUpperCase()}
+                {detailTitle}
               </span>
             </span>
           );
         }
-        return 'DETAIL VIEW';
-      case 'text': return 'TEXT';
+        return 'detail view';
+      case 'text': return 'text';
       case 'text-detail': 
         if (detailTitle) {
           const parts = detailTitle.split('_');
@@ -121,18 +121,18 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
               <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[220px] leading-tight break-words block">
                 {hasAuthor ? (
                   <>
-                    {titlePart.toUpperCase()}
-                    <span className="block opacity-70 mt-1">_{authorPart.toUpperCase()}</span>
+                    {titlePart}
+                    <span className="block opacity-70 mt-1">_{authorPart}</span>
                   </>
                 ) : (
-                  detailTitle.toUpperCase()
+                  detailTitle
                 )}
               </span>
             </span>
           );
         }
-        return 'READING';
-      case 'about': return 'STUDIO INFORMATION';
+        return 'reading';
+      case 'about': return 'studio information';
       default: return '';
     }
   };
@@ -206,10 +206,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
               {...translationGuardAttr}
             >
               <SplitTextLink
-                text="WORK"
+                text="work"
                 onClick={() => handleNavClick('work')}
                 isActive={currentView === 'work'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -217,10 +217,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
               />
 
               <SplitTextLink
-                text="TEXT"
+                text="text"
                 onClick={() => handleNavClick('text')}
                 isActive={currentView === 'text'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -228,10 +228,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
               />
 
               <SplitTextLink
-                text="ABOUT"
+                text="about"
                 onClick={() => handleNavClick('about')}
                 isActive={currentView === 'about'}
-                className="text-xs md:text-sm uppercase tracking-[0.15em] font-light cursor-pointer"
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
                 activeColor="text-white"
                 inactiveColor={inactiveColor}
                 hoverColor={hoverColor}
@@ -268,7 +268,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
         <div className="flex items-center gap-3">
           <div className="w-[3px] h-[3px] bg-white rounded-none" />
           
-          <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase opacity-80">
+          <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
             {renderContextLabel()}
           </span>
         </div>

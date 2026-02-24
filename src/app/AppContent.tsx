@@ -10,7 +10,6 @@ import { About } from '@/app/components/About';
 import { Text } from '@/app/components/Text';
 import { TextDetail } from '@/app/components/TextDetail';
 import { PageTransition } from '@/app/components/ui/PageTransition';
-import { CustomCursor } from '@/app/components/ui/CustomCursor';
 
 type View = 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
 
@@ -182,7 +181,6 @@ export const AppContent = () => {
           </PageTransition>
         )}
       </AnimatePresence>
-      <CustomCursor />
     </div>
   );
 };

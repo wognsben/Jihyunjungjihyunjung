@@ -2,37 +2,40 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
-import { ArrowLeft, X, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, X, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react';
 import gsap from 'gsap';
 import SplitType from 'split-type';
 import { motion, AnimatePresence } from 'motion/react';
 import { Resizable } from 're-resizable';
 import Draggable from 'react-draggable';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
 
 // Minimal Blur Reveal Component
 const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
   const elementRef = useRef<HTMLParagraphElement>(null);
   
   useEffect(() => {
-    if (!elementRef.current) return;
-    const split = new SplitType(elementRef.current, { types: 'words' });
-    const words = split.words;
-    if (!words) return;
+    if (!elementRef.current || !children) return;
+    
+    try {
+      const split = new SplitType(elementRef.current, { types: 'words' });
+      const words = split.words;
+      if (!words || words.length === 0) return;
 
-    gsap.set(words, { opacity: 0, filter: 'blur(10px)', y: 10, willChange: 'filter, opacity, transform' });
-    const ctx = gsap.context(() => {
-      gsap.to(words, {
-        opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.2,
-        stagger: 0.015, ease: 'power2.out', delay: delay
-      });
-    }, elementRef);
+      gsap.set(words, { opacity: 0, filter: 'blur(10px)', y: 10, willChange: 'filter, opacity, transform' });
+      const ctx = gsap.context(() => {
+        gsap.to(words, {
+          opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.2,
+          stagger: 0.015, ease: 'power2.out', delay: delay
+        });
+      }, elementRef);
 
-    return () => { ctx.revert(); split.revert(); };
+      return () => { 
+        ctx.revert(); 
+        if (split && split.revert) split.revert(); 
+      };
+    } catch (error) {
+      console.warn('BlurReveal animation skipped:', error);
+    }
   }, [children, delay]); 
 
   return <p ref={elementRef} className={className}>{children}</p>;
@@ -117,7 +120,9 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const nodeRef = useRef(null);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const swiperRef = useRef<any>(null);
+  
+  // Simple Slider State
+  const [currentSlide, setCurrentSlide] = useState(0);
   
   // Floating Text Window State
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
@@ -154,6 +159,29 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   
   const work = works.find(w => w.id === workId);
 
+  // Reset slide when work changes
+  useEffect(() => {
+    setCurrentSlide(0);
+  }, [workId]);
+
+  // Keyboard Navigation for Slider
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!work || !work.galleryImages) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPrevSlide();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextSlide();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentSlide, work]);
+
   // ESC Key
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
@@ -169,11 +197,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   if (!work) return null;
 
   const handleClose = () => { 
-    if (window.history.length > 1) {
-       window.history.back();
-    } else {
-       window.location.hash = '#/work'; 
-    }
+    window.location.hash = '#/work'; 
   };
   const handleWorkClick = (clickedWorkId: number) => { window.location.hash = `#/work/${clickedWorkId}`; };
 
@@ -182,6 +206,20 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const yearCaption = lang === 'ko' ? work.yearCaption_ko : (lang === 'jp' ? work.yearCaption_jp : work.yearCaption_en);
   
   const videoUrl = work.youtubeUrl || work.vimeoUrl;
+
+  // Slider Functions
+  const goToNextSlide = () => {
+    if (!work.galleryImages) return;
+    setCurrentSlide((prev) => (prev + 1) % work.galleryImages.length);
+  };
+
+  const goToPrevSlide = () => {
+    if (!work.galleryImages) return;
+    setCurrentSlide((prev) => (prev - 1 + work.galleryImages.length) % work.galleryImages.length);
+  };
+
+  // Filter out current work from "Other Works"
+  const otherWorks = works.filter(w => w.id !== workId);
 
   return (
     <>
@@ -192,121 +230,67 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           image={work.thumbnail} 
         />
 
-        {/* Custom Styles for Swiper */}
-        <style>{`
-          .work-gallery-swiper {
-            padding: 0 60px;
-          }
-          
-          @media (max-width: 1023px) {
-            .work-gallery-swiper {
-              padding: 0 20px;
-            }
-            
-            /* Hide default Swiper arrows on mobile & tablet */
-            .work-gallery-swiper .swiper-button-prev,
-            .work-gallery-swiper .swiper-button-next {
-              display: none !important;
-            }
-          }
-          
-          @media (min-width: 1024px) {
-            .work-gallery-swiper .swiper-button-prev,
-            .work-gallery-swiper .swiper-button-next {
-              color: currentColor;
-              opacity: 0.3;
-              transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-              width: 44px;
-              height: 44px;
-              background: transparent;
-              border-radius: 0;
-            }
-            
-            .work-gallery-swiper .swiper-button-prev:hover,
-            .work-gallery-swiper .swiper-button-next:hover {
-              opacity: 0.8;
-              transform: scale(1.05);
-            }
-            
-            .work-gallery-swiper .swiper-button-prev::after,
-            .work-gallery-swiper .swiper-button-next::after {
-              font-size: 16px;
-              font-weight: 300;
-            }
-          }
-          
-          .work-gallery-swiper .swiper-pagination-bullet {
-            width: 6px;
-            height: 6px;
-            background: currentColor;
-            opacity: 0.15;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border-radius: 50%;
-          }
-          
-          .work-gallery-swiper .swiper-pagination-bullet-active {
-            opacity: 0.6;
-            transform: scale(1.2);
-          }
-          
-          .work-gallery-swiper .swiper-pagination {
-            bottom: -50px !important;
-          }
-          
-          @media (max-width: 1023px) {
-            .work-gallery-swiper .swiper-pagination {
-              bottom: -35px !important;
-            }
-          }
-        `}</style>
-
         {/* Content Container */}
         <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1800px] mx-auto">
           
           {/* Back Button */}
-          <div className="fixed top-24 md:top-32 left-6 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
+          <div className="fixed top-24 md:top-32 left-6 md:left-16 z-[99999999] mix-blend-difference text-white dark:text-white pointer-events-none">
             <button
               ref={buttonRef}
               onClick={handleClose}
-              className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+              className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none cursor-pointer pointer-events-auto"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">BACK</span>
+              <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">back</span>
             </button>
           </div>
 
           {/* 1. Header Spec Sheet */}
-          <div className="mb-24 md:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-y-8 border-t border-black/5 dark:border-white/10 pt-6">
-              <div className="md:col-span-4 lg:col-span-3">
-                <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Project Title</span>
-                <h1 className="text-2xl md:text-3xl font-serif font-light text-foreground/90 leading-tight">{cleanText(title)}</h1>
+          <div className="mb-16 md:mb-24 lg:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+            <div className="max-w-4xl mx-auto">
+              {/* Classic Gallery Caption: Title, Year */}
+              <div className="text-center pb-6 md:pb-8 lg:pb-10 border-b border-black/5 dark:border-white/10">
+                <div className="flex items-baseline justify-center gap-2 mb-2 md:mb-3">
+                  <span className="tracking-[0.2em] text-muted-foreground/60 font-mono text-[12px]">Title</span>
+                  <span className="text-[9px] text-muted-foreground/30">/</span>
+                  <span className="text-[9px] tracking-[0.2em] text-muted-foreground/60 font-mono">Year</span>
+                </div>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-serif font-light text-foreground/90 leading-tight">
+                  {cleanText(title)}{work.year && `, ${work.year}`}
+                </h1>
               </div>
-              <div className="md:col-span-2 lg:col-span-2 md:col-start-6 lg:col-start-5">
-                <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Year</span>
-                <span className="block text-sm font-mono text-foreground/70">{work.year}</span>
-                {yearCaption && <span className="block text-[10px] text-muted-foreground/50 mt-1 font-serif italic">{yearCaption}</span>}
-              </div>
-              <div className="md:col-span-2 lg:col-span-2">
-                {work.client && (
-                  <>
-                    <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Client</span>
-                    <span className="block text-sm font-mono text-foreground/70">{work.client}</span>
-                  </>
-                )}
+              
+              {/* Metadata - Commission only */}
+              <div className="text-center mt-4 md:mt-6">
+                {(() => {
+                  const commission = lang === 'ko' ? work.commission_ko : (lang === 'jp' ? work.commission_jp : work.commission_en);
+                  if (commission) {
+                    return (
+                      <div className="text-sm md:text-base font-mono text-foreground/70">
+                        {cleanText(commission)}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {(() => {
+                  const yearCaption = lang === 'ko' ? work.yearCaption_ko : (lang === 'jp' ? work.yearCaption_jp : work.yearCaption_en);
+                  if (!yearCaption) return null;
+                  return <p className="mt-3 text-[10px] text-muted-foreground/50 font-serif italic">{cleanText(yearCaption)}</p>;
+                })()}
               </div>
             </div>
           </div>
 
           {/* 2. Description Text (Video moved to bottom) */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-40">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-32 md:mb-40">
             {/* Left: Empty for whitespace or future content */}
             <div className="hidden md:block md:col-span-5 lg:col-span-5"></div>
 
             {/* Right: Description Text */}
             <div className="md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7">
                {description && (
-                 <div className="space-y-8">
+                 <div className="space-y-6 md:space-y-8">
                    {description.split('\n\n').map((paragraph, index) => (
                       <BlurReveal 
                         key={index} 
@@ -321,91 +305,117 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             </div>
           </div>
 
-          {/* 3. Image Slider */}
-          <div className="mb-40 md:mb-64">
-            <Swiper
-              className="work-gallery-swiper"
-              modules={[Navigation, Pagination]}
-              spaceBetween={50}
-              slidesPerView={1}
-              navigation={false} // Disable default arrows, we use custom controls below
-              pagination={{ clickable: true }}
-              touchAngle={45}
-              touchRatio={1}
-              touchStartPreventDefault={false}
-              simulateTouch={true}
-              threshold={10}
-              resistance={true}
-              resistanceRatio={0.85}
-              onSwiper={(swiper) => { swiperRef.current = swiper; }}
-            >
-              {work.galleryImages.map((image, index) => (
-                <SwiperSlide key={index} className="outline-none focus:outline-none">
-                  <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
-                    <div className="relative h-[50vh] md:h-[70vh] group cursor-grab active:cursor-grabbing w-full">
-                      <div className="hidden md:block absolute inset-0 z-10 bg-black/0 group-hover:bg-black/20 dark:group-hover:bg-white/10 transition-colors duration-500 ease-out" />
-                      <img 
-                        src={image} 
-                        alt={`Gallery ${index + 1}`} 
-                        className="h-full w-full md:w-auto object-contain mx-auto block"
-                        draggable={false}
-                      />
-                      
-                      {/* Mobile Controls (Inside) */}
-                      <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
-                        <button 
-                          className="swiper-button-prev-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                          aria-label="Previous"
-                          onClick={() => swiperRef.current?.slidePrev()}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
-                            <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                          </svg>
-                        </button>
-                        <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
-                          {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
-                        </span>
-                        <button 
-                          className="swiper-button-next-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                          aria-label="Next"
-                          onClick={() => swiperRef.current?.slideNext()}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
-                            <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Desktop Controls (Outside/Below) */}
-                    <div className="hidden lg:flex items-center gap-10">
-                      <button 
-                        className="swiper-button-prev-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                        aria-label="Previous"
-                        onClick={() => swiperRef.current?.slidePrev()}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 w-5 h-5">
-                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                        </svg>
-                      </button>
-                      <span className="text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
-                        {String(index + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
-                      </span>
-                      <button 
-                        className="swiper-button-next-custom text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                        aria-label="Next"
-                        onClick={() => swiperRef.current?.slideNext()}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="w-5 h-5">
-                          <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                        </svg>
-                      </button>
-                    </div>
+          {/* 3. Simple Image Slider */}
+          {work.galleryImages && work.galleryImages.length > 0 && (
+            <div className="mb-32 md:mb-48 lg:mb-64">
+              <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
+                <div className="relative h-[45vh] md:h-[65vh] lg:h-[70vh] group w-full">
+                  {/* Click Areas for Navigation */}
+                  <div 
+                    className="absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToPrevSlide();
+                    }}
+                  />
+                  <div 
+                    className="absolute right-0 top-0 w-1/2 h-full z-20 cursor-e-resize"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToNextSlide();
+                    }}
+                  />
+                  
+                  {/* Hover indicators */}
+                  <div className="hidden md:block absolute inset-0 z-10 pointer-events-none">
+                    <div className="absolute left-0 top-0 w-1/2 h-full bg-gradient-to-r from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                    <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
                   </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
-          </div>
+                  
+                  {/* Current Image */}
+                  <AnimatePresence mode="wait">
+                    <motion.img 
+                      key={currentSlide}
+                      src={work.galleryImages[currentSlide]} 
+                      alt={`Gallery ${currentSlide + 1}`} 
+                      className="h-full w-full md:w-auto object-contain mx-auto block pointer-events-none"
+                      draggable={false}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </AnimatePresence>
+                  
+                  {/* Mobile Controls (Inside) */}
+                  <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
+                    <button 
+                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      aria-label="Previous"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToPrevSlide();
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
+                        <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                      </svg>
+                    </button>
+                    <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                      {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                    </span>
+                    <button 
+                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      aria-label="Next"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        goToNextSlide();
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
+                        <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop Controls (Outside/Below) */}
+                <div className="hidden lg:flex items-center gap-10">
+                  <button 
+                    type="button"
+                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                    aria-label="Previous"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goToPrevSlide();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 w-5 h-5 pointer-events-none">
+                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                    </svg>
+                  </button>
+                  <span className="text-[14px] font-['Ojuju'] text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                    {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                  </span>
+                  <button 
+                    type="button"
+                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                    aria-label="Next"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      goToNextSlide();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="w-5 h-5 pointer-events-none">
+                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 4. Video Section (Moved from top) */}
           {videoUrl && (
@@ -414,7 +424,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                  <div className="md:col-span-8 md:col-start-3">
                     <VideoPlayer url={videoUrl} />
                     <div className="mt-4 flex items-center justify-between opacity-50">
-                       <span className="text-[9px] uppercase tracking-widest font-mono">Featured Film</span>
+                       <span className="text-[14px] uppercase tracking-widest font-mono">Featured Film</span>
                        <div className="h-px bg-current flex-grow ml-4"></div>
                     </div>
                  </div>
@@ -422,23 +432,50 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             </div>
           )}
 
-          {/* 4. Related Texts */}
+          {/* 5. Credits / Artist Notes / Additional Information */}
+          {(() => {
+            const credits = lang === 'ko' ? work.credits_ko : (lang === 'jp' ? work.credits_jp : work.credits_en);
+            if (!credits) return null;
+            
+            return (
+              <div className="mb-40 md:mb-64 pt-12 border-t border-black/5 dark:border-white/5">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
+                  {/* Left: Section Title */}
+                  <div className="md:col-span-3 lg:col-span-3">
+                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono sticky top-40">
+                      Credits & Notes
+                    </h2>
+                  </div>
+
+                  {/* Right: Content */}
+                  <div className="md:col-span-8 md:col-start-5 lg:col-span-7 lg:col-start-5">
+                    <div 
+                      className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-serif prose-headings:font-light prose-p:font-serif prose-p:text-foreground/80 prose-p:leading-relaxed prose-ul:font-serif prose-li:text-foreground/80 prose-strong:text-foreground/90 prose-strong:font-medium max-w-none"
+                      dangerouslySetInnerHTML={{ __html: credits }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 6. Related Texts */}
           {work.relatedArticles && work.relatedArticles.length > 0 && (
             <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                 <div className="md:col-span-4 lg:col-span-3">
                   <div className="sticky top-40">
-                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">Related Texts</h2>
+                    <h2 className="text-[14px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
                     <div className="hidden md:block min-h-[100px]">
                       {hoveredArticleId && (
-                        <BlurReveal key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic">
+                        <div key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500">
                            {(() => {
                                const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
                                const textItem = texts.find(t => t.id === article?.id);
-                               const summary = textItem?.summary ? textItem.summary[lang] : article?.summary;
+                               const summary = textItem?.summary ? (lang === 'ko' ? textItem.summary.ko : lang === 'jp' ? textItem.summary.jp : textItem.summary.en) : article?.summary;
                                return summary ? cleanText(summary).slice(0, 120) + "..." : "";
                            })()}
-                        </BlurReveal>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -453,7 +490,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                     <div className="flex flex-col border-t border-black/10 dark:border-white/10">
                       {work.relatedArticles.map((article, index) => {
                          const textItem = texts.find(t => t.id === article.id);
-                         const displayTitle = textItem ? textItem.title[lang] : article.title;
+                         const displayTitle = textItem ? (lang === 'ko' ? textItem.title.ko : lang === 'jp' ? textItem.title.jp : textItem.title.en) : article.title;
                          return (
                             <div
                                key={article.id}
@@ -464,7 +501,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                             >
                                <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
                                  <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
-                                 <h3 className="text-[13px] md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
+                                 <h3 className="text-[14px] md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
                                </div>
                             </div>
                          );
@@ -477,7 +514,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
         </div>
 
         <div className="mt-40 border-t border-white/5">
-          <InfiniteWorkGrid works={works} onWorkClick={handleWorkClick} />
+          <InfiniteWorkGrid works={otherWorks} onWorkClick={handleWorkClick} />
         </div>
         <ScrollToTop />
       </div>

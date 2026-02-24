@@ -14,11 +14,10 @@ export const SeoHead = ({ title, description, image }: SeoHeadProps) => {
   const defaultDescription = 'Minimalist Portfolio of Architect Jihyun Jung. Exploring the raw texture of materials and the precision of space.';
   const defaultImage = 'https://raw.githubusercontent.com/wognsben/gallery/main/1.jpg';
   
-  // Ensure all values are strings
+  // Ensure all values are strings to prevent object rendering errors
   const fullTitle = String(title ? `${title} | ${siteTitle}` : siteTitle);
   const metaDescription = String(description || defaultDescription);
   const metaImage = String(image || defaultImage);
-  const htmlLang = String(lang || 'ko');
 
   return (
     <Helmet>
@@ -32,7 +31,6 @@ export const SeoHead = ({ title, description, image }: SeoHeadProps) => {
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={metaDescription} />
       <meta name="twitter:image" content={metaImage} />
-      <html lang={htmlLang} />
     </Helmet>
   );
 };

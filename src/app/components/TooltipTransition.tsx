@@ -1,21 +1,17 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
-import { Flip } from 'gsap/Flip';
 import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/types/work';
-
-gsap.registerPlugin(Flip);
+import { X } from 'lucide-react';
 
 interface TooltipTransitionProps {
   hoveredWorkId: string | null;
   isOpen: boolean;
   onClose: () => void;
   triggerRect?: DOMRect | null;
-  onClick?: () => void; // Mobile: 툴팁 클릭 시 프로젝트 열기
-  isMobile?: boolean; // Mobile 여부
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
+  onClick?: () => void;
+  isMobile?: boolean;
 }
 
 export const TooltipTransition: React.FC<TooltipTransitionProps> = ({ 
@@ -24,19 +20,15 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   onClose,
   triggerRect,
   onClick,
-  isMobile = false,
-  onMouseEnter,
-  onMouseLeave
+  isMobile = false
 }) => {
   const { works } = useWorks();
-  const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const galleryRef = useRef<HTMLDivElement>(null);
-  const navRef = useRef<HTMLDivElement>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
   const [activeWork, setActiveWork] = useState<Work | null>(null);
+  const slideshowTimer = useRef<gsap.core.Tween | null>(null);
 
+  // Update active work
   useEffect(() => {
     if (hoveredWorkId) {
       const found = works.find(w => w.id === hoveredWorkId);
@@ -46,11 +38,6 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
       }
     }
   }, [hoveredWorkId, works]);
-
-  // Timelines
-  const enterTl = useRef<gsap.core.Timeline | null>(null);
-  const leaveTl = useRef<gsap.core.Timeline | null>(null);
-  const slideshowTimer = useRef<gsap.core.Tween | null>(null);
 
   const images = useMemo(() => {
     if (!activeWork) return [];
@@ -62,14 +49,11 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     if (hoveredWorkId && !isOpen && images.length > 0) {
       let idx = 0; 
       const nextSlide = () => {
-        // Change state immediately when called
         idx = (idx + 1) % images.length;
         setCurrentImageIndex(idx);
-        // Then schedule the next one
         slideshowTimer.current = gsap.delayedCall(1.8, nextSlide);
       };
       
-      // Start the cycle
       const startTimer = gsap.delayedCall(1.8, nextSlide);
       return () => {
         if (slideshowTimer.current) slideshowTimer.current.kill();
@@ -78,154 +62,175 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     }
   }, [hoveredWorkId, isOpen, images.length]);
 
-  // Animation
+  // Premium animations
   useEffect(() => {
     if (!tooltipRef.current) return;
 
-    // Select lines inside the tooltip
-    const linesH = tooltipRef.current.querySelectorAll('.line-h');
-    const linesV = tooltipRef.current.querySelectorAll('.line-v');
-
-    if (enterTl.current) enterTl.current.kill();
-    if (leaveTl.current) leaveTl.current.kill();
-
-    if (hoveredWorkId && !isOpen) {
-        // ENTER
-        enterTl.current = gsap.timeline({
-            defaults: { duration: 0.6, ease: 'power3.out' }
-        })
-        .set(tooltipRef.current, { opacity: 1 })
-        .set([linesH, linesV], { opacity: 1 })
-        
-        // Animate lines "drawing" or sliding
-        .fromTo(linesH[0], { scaleX: 0, transformOrigin: 'left' }, { scaleX: 1 }, 0)
-        .fromTo(linesH[1], { scaleX: 0, transformOrigin: 'right' }, { scaleX: 1 }, 0)
-        .fromTo(linesV[0], { scaleY: 0, transformOrigin: 'top' }, { scaleY: 1 }, 0)
-        .fromTo(linesV[1], { scaleY: 0, transformOrigin: 'bottom' }, { scaleY: 1 }, 0)
-        
-        // Staggered Text Entrance (New Micro Detail)
-        .fromTo(tooltipRef.current.querySelectorAll('.stagger-item'), 
-            { y: 10, opacity: 0 }, 
-            { y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out' }, 0.2);
-
-    } else if (!hoveredWorkId && !isOpen) {
-        // LEAVE
-        leaveTl.current = gsap.timeline({
-            defaults: { duration: 0.4, ease: 'power3.in' }
-        })
-        .to(tooltipRef.current, { opacity: 0 });
+    if (hoveredWorkId && activeWork) {
+      // Elegant entrance
+      gsap.timeline()
+        .set(tooltipRef.current, { opacity: 0, y: 20, scale: 0.95 })
+        .to(tooltipRef.current, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.8,
+          ease: 'power3.out'
+        });
+    } else if (!hoveredWorkId) {
+      // Smooth exit
+      gsap.to(tooltipRef.current, {
+        opacity: 0,
+        y: 10,
+        scale: 0.98,
+        duration: 0.4,
+        ease: 'power2.in'
+      });
     }
-  }, [hoveredWorkId, isOpen, activeWork]);
-
+  }, [hoveredWorkId, activeWork]);
 
   const handleWorkClick = () => {
     if (activeWork) {
-      // Direct navigation as a fallback/primary method for mobile
       window.location.hash = `#/work/${activeWork.id}`;
-      if (onClick) onClick(); // Execute any parent cleanup logic
+      if (onClick) onClick();
     }
   };
 
-  if (!isMobile && !isOpen && !hoveredWorkId) return null;
+  // Don't show anything if no work is hovered
+  if (!hoveredWorkId || !activeWork) {
+    return null;
+  }
 
-  // Create a portal to render the tooltip at the very end of the document body
-  // This ensures it sits above ALL other stacking contexts (headers, lists, 3D transforms)
+  // Active tooltip
   return createPortal(
     <div 
-        ref={containerRef} 
-        className="fixed inset-0 z-[99999] pointer-events-none flex flex-col justify-end items-end"
-        style={{ zIndex: 99999 }} // Inline style to force override
+      className="fixed inset-0 z-[99999] pointer-events-none"
     >
-        {/* Tooltip Container */}
-        <aside 
-            ref={tooltipRef}
-            onClick={handleWorkClick}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            className={`
-                fixed right-[5vw] bottom-[10vh] w-[250px] 
-                z-[99999] 
-                flex flex-col 
-                bg-background dark:bg-zinc-900 
-                shadow-[0_20px_50px_rgba(0,0,0,0.3)] 
-                border border-border/10
-                overflow-hidden
-                pointer-events-auto cursor-pointer
-            `}
-            style={{ 
-                opacity: 0, // Controlled by GSAP
-                isolation: 'isolate' // Creates a new stacking context
-            }} 
-        >
-            {/* Lines - Decoration */}
-            <div className="line-h absolute left-0 top-0 w-full h-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
-            <div className="line-h absolute left-0 bottom-0 w-full h-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
-            <div className="line-v absolute left-0 top-0 h-full w-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
-            <div className="line-v absolute right-0 top-0 h-full w-[1px] bg-foreground z-50 pointer-events-none opacity-0" />
+      <aside 
+        ref={tooltipRef}
+        onClick={handleWorkClick}
+        className="fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group"
+        style={{ 
+          opacity: 0,
+          isolation: 'isolate'
+        }} 
+      >
+        {/* Premium Frame Lines */}
+        <div className="absolute inset-0 pointer-events-none z-50">
+          {/* Corner Accents */}
+          <div className="absolute top-0 left-0 w-8 h-8">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
+            <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
+          </div>
+          <div className="absolute top-0 right-0 w-8 h-8">
+            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
+            <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
+          </div>
+          <div className="absolute bottom-0 left-0 w-8 h-8">
+            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
+          </div>
+          <div className="absolute bottom-0 right-0 w-8 h-8">
+            <div className="absolute bottom-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
+            <div className="absolute bottom-0 right-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
+          </div>
+        </div>
 
-            {/* Inner Content Wrapper */}
-            <div className="tooltip-content w-full relative z-10 flex flex-col bg-background dark:bg-zinc-900">
-                {/* Image Wrapper - Solid Background to prevent transparency */}
-                <div className="tooltip__img-wrap relative w-full aspect-[4/3] overflow-hidden bg-muted shrink-0 z-20">
-                    {activeWork && images.map((img, i) => (
-                        <div 
-                            key={i}
-                            className={`tooltip__img absolute inset-0 bg-cover bg-center ${i === currentImageIndex ? 'tooltip__img--current opacity-100 scale-110' : 'opacity-0 scale-110'}`}
-                            style={{ 
-                                backgroundImage: `url(${img})`,
-                                // Transition updated: opacity 1.2s for soft cross-fade
-                                // Scale always active to prevent "jump" when fading out
-                                transition: 'opacity 1.2s ease-in-out, transform 10s ease-out' 
-                            }}
-                        />
-                    ))}
-                </div>
-                
-                {/* Text Section - Premium Gallery Caption Style */}
-                {activeWork && (
-                    <div className="tooltip__text w-full flex flex-col bg-background dark:bg-zinc-900 z-20 relative border-t border-border/10">
-                        {/* Title & Year Row */}
-                        <div className="p-4 flex flex-col gap-1 items-start text-left">
-                            <div className="stagger-item flex items-baseline justify-between w-full gap-2">
-                                <span className="text-sm font-serif font-medium text-foreground leading-tight tracking-tight">
-                                    {activeWork.title_en || activeWork.title}
-                                </span>
-                                <span className="shrink-0 text-[10px] font-mono text-muted-foreground/60 tracking-wider">
-                                    {activeWork.year}
-                                </span>
-                            </div>
-                            <span className="stagger-item text-[10px] text-muted-foreground/40 font-sans tracking-wide uppercase">
-                                {activeWork.category || 'Selected Work'}
-                            </span>
-                        </div>
-
-                        {/* Action Button Area - Full Width */}
-                        <div className={`
-                            stagger-item
-                            w-full py-3 px-4 
-                            border-t border-border/5
-                            flex items-center justify-between
-                            bg-muted/10 dark:bg-white/5
-                            transition-colors duration-300
-                            ${isMobile ? 'active:bg-muted/20' : ''}
-                        `}>
-                            <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/80">
-                                Click to project
-                            </span>
-                            {/* Arrow Icon */}
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className="text-foreground/60 transform rotate-[-45deg]">
-                                <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                )}
+        {/* Image Gallery with Premium Crossfade */}
+        <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
+          {/* Close Button - Top Right */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="absolute top-2 right-2 z-50 w-6 h-6 rounded-full bg-background/80 backdrop-blur-md border border-border/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-background hover:scale-110 pointer-events-auto"
+            aria-label="Close preview"
+          >
+            <X className="w-3 h-3 text-foreground/60" />
+          </button>
+          
+          {activeWork && images.map((img, i) => (
+            <div 
+              key={i}
+              className="absolute inset-0 transition-all duration-[1200ms] ease-in-out"
+              style={{ 
+                opacity: i === currentImageIndex ? 1 : 0,
+                transform: i === currentImageIndex ? 'scale(1.05)' : 'scale(1.1)',
+                transition: 'opacity 1.2s ease-in-out, transform 12s ease-out'
+              }}
+            >
+              <div 
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${img})` }}
+              />
             </div>
-        </aside>
+          ))}
+          
+          {/* Vignette Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20 pointer-events-none"></div>
+          
+          {/* Image Counter - Left Top */}
+          {images.length > 1 && (
+            <div className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full border border-border/20">
+              <span className="text-[8px] font-mono text-foreground/70 tabular-nums">
+                {currentImageIndex + 1}/{images.length}
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Premium Content Section */}
+        {activeWork && (
+          <div className="w-full flex flex-col bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm relative">
+            {/* Main Info */}
+            <div className="px-5 py-4 flex flex-col gap-2">
+              {/* Title Row */}
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80">
+                  {activeWork.title_en || activeWork.title}
+                </h3>
+                <span className="shrink-0 text-[10px] font-mono text-muted-foreground/60 tracking-wider mt-0.5">
+                  {activeWork.year}
+                </span>
+              </div>
+              
+              {/* Category Badge */}
+              <div className="flex items-center gap-2">
+                <div className="px-2 py-0.5 bg-muted/20 rounded-full border border-border/10">
+                  <span className="text-[9px] text-muted-foreground/50 font-sans tracking-wide uppercase">
+                    {activeWork.category || 'Selected Work'}
+                  </span>
+                </div>
+                {/* Medium if available */}
+                {activeWork.medium && (
+                  <span className="text-[9px] text-muted-foreground/40 font-mono">
+                    {activeWork.medium}
+                  </span>
+                )}
+              </div>
+            </div>
 
-        {/* Fullscreen Gallery Placeholder (If needed later) */}
-        {isOpen && activeWork && (
-            <div ref={galleryRef} className="hidden" />
+            {/* Action Footer */}
+            <div className="w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 group-hover:bg-muted/20">
+              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/70 group-hover:text-foreground transition-colors duration-300">
+                View project
+              </span>
+              {/* Arrow with micro animation */}
+              <div className="relative">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 group-hover:text-foreground transition-all duration-300 group-hover:translate-x-0.5">
+                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
         )}
+
+        {/* Shimmer Effect on Hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        </div>
+      </aside>
     </div>,
     document.body
   );
