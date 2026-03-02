@@ -149,7 +149,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       {/* Header: Title + Count + Progress */}
       <div className="px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
-          <h2 className="text-[14px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono">
+          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono">
             other works
           </h2>
           <span className="text-[10px] font-mono text-muted-foreground/40">
@@ -185,19 +185,15 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
         {/* Left Navigation Button */}
         <button
-          onMouseDown={(e) => {
+          onClick={(e) => {
             e.preventDefault();
-            startContinuousScroll('left');
+            e.stopPropagation();
+            if (!scrollContainerRef.current || !canScrollLeft) return;
+            scrollContainerRef.current.scrollBy({ left: -400, behavior: 'smooth' });
           }}
-          onMouseUp={stopContinuousScroll}
-          onMouseLeave={stopContinuousScroll}
-          onTouchStart={(e) => {
-            e.preventDefault();
-            startContinuousScroll('left');
-          }}
-          onTouchEnd={stopContinuousScroll}
           disabled={!canScrollLeft}
-          className={`hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+          className={`hidden md:flex absolute left-6 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+          style={{ top: 'calc(50% - 20px)' }}
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-5 h-5 text-foreground/70" />
@@ -205,19 +201,15 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
         {/* Right Navigation Button */}
         <button
-          onMouseDown={(e) => {
+          onClick={(e) => {
             e.preventDefault();
-            startContinuousScroll('right');
+            e.stopPropagation();
+            if (!scrollContainerRef.current || !canScrollRight) return;
+            scrollContainerRef.current.scrollBy({ left: 400, behavior: 'smooth' });
           }}
-          onMouseUp={stopContinuousScroll}
-          onMouseLeave={stopContinuousScroll}
-          onTouchStart={(e) => {
-            e.preventDefault();
-            startContinuousScroll('right');
-          }}
-          onTouchEnd={stopContinuousScroll}
           disabled={!canScrollRight}
-          className={`hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+          className={`hidden md:flex absolute right-6 z-20 w-10 h-10 items-center justify-center rounded-full bg-background/80 backdrop-blur-sm border border-foreground/10 transition-all duration-300 hover:bg-background hover:scale-110 disabled:opacity-0 disabled:pointer-events-none ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+          style={{ top: 'calc(50% - 20px)' }}
           aria-label="Scroll right"
         >
           <ChevronRight className="w-5 h-5 text-foreground/70" />

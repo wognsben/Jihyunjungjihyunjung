@@ -132,7 +132,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           );
         }
         return 'reading';
-      case 'about': return 'studio information';
+      case 'about': return 'about';
       default: return '';
     }
   };

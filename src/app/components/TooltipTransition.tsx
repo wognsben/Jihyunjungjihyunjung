@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { useWorks } from '@/contexts/WorkContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Work } from '@/types/work';
 import { X } from 'lucide-react';
 
@@ -12,6 +13,8 @@ interface TooltipTransitionProps {
   triggerRect?: DOMRect | null;
   onClick?: () => void;
   isMobile?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const TooltipTransition: React.FC<TooltipTransitionProps> = ({ 
@@ -20,13 +23,17 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   onClose,
   triggerRect,
   onClick,
-  isMobile = false
+  isMobile = false,
+  onMouseEnter,
+  onMouseLeave
 }) => {
   const { works } = useWorks();
+  const { lang } = useLanguage();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeWork, setActiveWork] = useState<Work | null>(null);
   const slideshowTimer = useRef<gsap.core.Tween | null>(null);
+  const slideshowIndexRef = useRef<number>(0); // Track slideshow index independently
 
   // Update active work
   useEffect(() => {
@@ -35,22 +42,28 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
       if (found) {
         setActiveWork(found);
         setCurrentImageIndex(0);
+        slideshowIndexRef.current = 0; // Reset index when work changes
       }
     }
   }, [hoveredWorkId, works]);
 
   const images = useMemo(() => {
     if (!activeWork) return [];
-    return [activeWork.thumbnail, ...(activeWork.galleryImages || [])].filter(Boolean) as string[];
+    
+    // Combine thumbnail and gallery images, then remove duplicates
+    const allImages = [activeWork.thumbnail, ...(activeWork.galleryImages || [])]
+      .filter(Boolean) as string[];
+    
+    // Remove duplicate URLs
+    return Array.from(new Set(allImages));
   }, [activeWork]);
 
   // Slideshow
   useEffect(() => {
-    if (hoveredWorkId && !isOpen && images.length > 0) {
-      let idx = 0; 
+    if (hoveredWorkId && !isOpen && images.length > 1) {
       const nextSlide = () => {
-        idx = (idx + 1) % images.length;
-        setCurrentImageIndex(idx);
+        slideshowIndexRef.current = (slideshowIndexRef.current + 1) % images.length;
+        setCurrentImageIndex(slideshowIndexRef.current);
         slideshowTimer.current = gsap.delayedCall(1.8, nextSlide);
       };
       
@@ -104,11 +117,14 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   return createPortal(
     <div 
       className="fixed inset-0 z-[99999] pointer-events-none"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <aside 
         ref={tooltipRef}
         onClick={handleWorkClick}
-        className="fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group"
+        className={`fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+        translate={lang === 'ko' ? 'no' : undefined}
         style={{ 
           opacity: 0,
           isolation: 'isolate'
@@ -184,36 +200,40 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
           <div className="w-full flex flex-col bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm relative">
             {/* Main Info */}
             <div className="px-5 py-4 flex flex-col gap-2">
-              {/* Title Row */}
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80">
-                  {activeWork.title_en || activeWork.title}
-                </h3>
-                <span className="shrink-0 text-[10px] font-mono text-muted-foreground/60 tracking-wider mt-0.5">
+              {/* Title / selected work / Year Row */}
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                  <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate">
+                    {lang === 'en' 
+                      ? (activeWork.title_en || activeWork.title_ko || activeWork.title) 
+                      : lang === 'jp'
+                        ? (activeWork.title_jp || activeWork.title_ko || activeWork.title)
+                        : (activeWork.title_ko || activeWork.title)
+                    }
+                  </h3>
+                  <span className="text-[9px] font-mono text-muted-foreground/50 tracking-wider whitespace-nowrap uppercase">
+                    · selected work
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
                   {activeWork.year}
                 </span>
               </div>
               
-              {/* Category Badge */}
-              <div className="flex items-center gap-2">
-                <div className="px-2 py-0.5 bg-muted/20 rounded-full border border-border/10">
-                  <span className="text-[9px] text-muted-foreground/50 font-sans tracking-wide uppercase">
-                    {activeWork.category || 'Selected Work'}
-                  </span>
-                </div>
-                {/* Medium if available */}
-                {activeWork.medium && (
+              {/* Medium if available */}
+              {activeWork.medium && (
+                <div className="flex items-center gap-2">
                   <span className="text-[9px] text-muted-foreground/40 font-mono">
                     {activeWork.medium}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Action Footer */}
             <div className="w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 group-hover:bg-muted/20">
-              <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-foreground/70 group-hover:text-foreground transition-colors duration-300">
-                View project
+              <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 group-hover:text-foreground transition-colors duration-300">
+                open
               </span>
               {/* Arrow with micro animation */}
               <div className="relative">

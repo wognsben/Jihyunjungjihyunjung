@@ -138,7 +138,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
               className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">BACK</span>
+              <span className="text-[10px] tracking-[0.25em] lowercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">back</span>
             </button>
           </div>
       )}
@@ -148,9 +148,9 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Header */}
           <header className="mb-8 md:mb-12 space-y-6">
             {/* Meta Info */}
-            <div className="flex items-center justify-between text-[10px] tracking-[0.15em] uppercase text-muted-foreground/60 font-mono">
+            <div className="flex items-center justify-between text-[10px] tracking-[0.15em] lowercase text-muted-foreground/60 font-mono">
               <div className="flex gap-3">
-                <span>{text.category}</span>
+                <span>{text.category.toLowerCase()}</span>
                 <span className="opacity-30">/</span>
                 <span>{text.year}</span>
               </div>
@@ -207,7 +207,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Related Works */}
           {allRelatedWorks.length > 0 && (
             <div className="mt-24 pt-12 border-t border-foreground/5">
-               <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60 font-mono mb-8">Related Works</h2>
+               <h2 className="text-[10px] lowercase tracking-[0.2em] text-muted-foreground/60 font-mono mb-8">related</h2>
                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-8">
                  {allRelatedWorks.map(work => (
                     <a 

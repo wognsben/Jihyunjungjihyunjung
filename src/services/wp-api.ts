@@ -587,7 +587,7 @@ export const fetchHistoryItems = async (): Promise<HistoryItem[]> => {
   } catch (error: any) {
     // Suppress 404 errors as they likely mean the CPT is not set up yet
     if (error.response && error.response.status === 404) {
-        console.warn('History items endpoint not found (404). Returning empty list.');
+        // Silently return empty array - History CPT is optional
         return [];
     }
     console.error('Error fetching history items:', error);

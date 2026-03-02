@@ -37,7 +37,7 @@ const RevealText = ({ children, delay = 0 }: { children: React.ReactNode; delay?
 
 const ContactLink = ({ label, value, link, onContactClick }: { label: string; value: string; link: string; onContactClick?: () => void }) => {
   const handleClick = (e: React.MouseEvent) => {
-    if (label === 'EMAIL' && onContactClick) {
+    if (label === 'email' && onContactClick) {
       e.preventDefault();
       e.stopPropagation();
       onContactClick();
@@ -47,8 +47,8 @@ const ContactLink = ({ label, value, link, onContactClick }: { label: string; va
   return (
     <a 
       href={link} 
-      target={label !== 'EMAIL' ? "_blank" : undefined}
-      rel={label !== 'EMAIL' ? "noopener noreferrer" : undefined}
+      target={label !== 'email' ? "_blank" : undefined}
+      rel={label !== 'email' ? "noopener noreferrer" : undefined}
       onClick={handleClick}
       className="text-xs font-light hover:text-foreground/50 transition-colors relative inline-block md:after:content-[''] md:after:absolute md:after:bottom-0 md:after:left-0 md:after:w-0 md:after:h-[1px] md:after:bg-foreground md:after:transition-all md:after:duration-300 md:hover:after:w-full cursor-pointer"
     >
@@ -71,10 +71,8 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
     const elements = Array.from(doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li'));
     let changed = false;
 
-    // Helper to find and link works in text
-    const linkWorksInText = (text: string) => {
-        let processedText = text;
-        
+    // Helper to check if text contains work title
+    const findWorkIdInText = (text: string) => {
         // Sort works by title length to match longest first
         const sortedWorks = [...works].sort((a, b) => {
             const titleA = (lang === 'ko' ? a.title_ko : a.title_en) || a.title;
@@ -87,10 +85,7 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
             if (!title) continue;
 
             // Escape regex special chars in title
-            // Flexible matching:
-            // 1. Allow variable whitespace (including none) where spaces exist in title
-            // 2. Match HTML entities for < and >
-            let safeTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // Basic escape
+            let safeTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
             // Allow spaces to match "no space" or "multiple spaces" or "nbsp"
             safeTitle = safeTitle.replace(/\s+/g, '[\\s\\u00A0]*');
@@ -100,22 +95,18 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
 
             const regex = new RegExp(`(${safeTitle})`, 'gi'); 
             
-            if (regex.test(processedText)) {
-                 processedText = processedText.replace(regex, (match) => {
-                     return `<span class="relative inline-flex flex-col items-center align-baseline text-current">
-                       <span class="hover-line peer relative cursor-pointer" data-work-id="${work.id}">${match}</span>
-                     </span>`;
-                 });
+            if (regex.test(text)) {
+                return work.id;
             }
         }
-        return processedText;
+        return null;
     };
 
     elements.forEach(el => {
       const rawHtml = el.innerHTML;
       const parts = rawHtml.split(/<br\s*\/?>/i);
       
-      const processedRows: { year: string, content: string }[] = [];
+      const processedRows: { year: string, content: string, workId: string | null }[] = [];
       let hasYearEntry = false;
 
       parts.forEach(originalPart => {
@@ -126,7 +117,7 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
         temp.innerHTML = part;
         const text = (temp.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
         
-        const match = text.match(/^(\d{4}(?:[-.~]\d{2,4})?)[\s.,\u00A0\t]+(.*)/s) || 
+        const match = text.match(/^(\d{4}(?:[-.~]\d{2,4})?)\s+(.*)/s) || 
                       text.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s);
         
         if (match) {
@@ -143,16 +134,14 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
              contentHtml = contentHtml.replace(entityRegex, '');
           }
           
-          // Link Works in Content
-          if (lang !== 'ko') {
-            contentHtml = linkWorksInText(contentHtml);
-          }
+          // Find if this row contains a work title
+          const workId = findWorkIdInText(text);
 
-          processedRows.push({ year: yearStr, content: contentHtml });
+          processedRows.push({ year: yearStr, content: contentHtml, workId });
         } else {
           if (text.length > 0) {
-             const linkedContent = lang !== 'ko' ? linkWorksInText(part) : part;
-             processedRows.push({ year: '', content: linkedContent });
+             const workId = findWorkIdInText(text);
+             processedRows.push({ year: '', content: part, workId });
           }
         }
       });
@@ -164,6 +153,12 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
         
         processedRows.forEach(row => {
            const tr = document.createElement('tr');
+           
+           // Add hover-line class and data-work-id to the entire row if it contains a work
+           if (row.workId) {
+             tr.className = 'hover-line';
+             tr.setAttribute('data-work-id', row.workId);
+           }
            
            const tdYear = document.createElement('td');
            tdYear.textContent = row.year;
@@ -196,9 +191,14 @@ export const About = () => {
   
   // Tooltip State
   const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
+  const [isManualHover, setIsManualHover] = useState(false); // Track if user is manually hovering
   
   // Mobile Detection (1024px 미만)
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Intersection Observer State for auto-showing thumbnails on scroll
+  const [visibleWorkRows, setVisibleWorkRows] = useState<Set<string>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
   
   // Data State
   const [aboutData, setAboutData] = useState<AboutData | null>(null);
@@ -313,7 +313,11 @@ export const About = () => {
     const link = target.closest('.hover-line') as HTMLElement;
     if (link) {
       const id = link.getAttribute('data-work-id');
-      if (id) setTooltipWorkId(id);
+      // 이미 같은 작품이 hover되어 있으면 무시 (깜빡임 방지)
+      if (id && id !== tooltipWorkId) {
+        setIsManualHover(true);
+        setTooltipWorkId(id);
+      }
     }
   };
 
@@ -323,6 +327,7 @@ export const About = () => {
     
      const target = e.target as HTMLElement;
      if (target.closest('.hover-line')) {
+        setIsManualHover(false);
         tooltipTimeoutRef.current = setTimeout(() => {
           setTooltipWorkId(null);
         }, 300);
@@ -334,12 +339,14 @@ export const About = () => {
       clearTimeout(tooltipTimeoutRef.current);
       tooltipTimeoutRef.current = null;
     }
+    setIsManualHover(true);
   };
 
   const handleTooltipMouseLeave = () => {
     tooltipTimeoutRef.current = setTimeout(() => {
       setTooltipWorkId(null);
     }, 300);
+    setIsManualHover(false);
   };
   
   // 모바일: 툴팁 외부 클릭 감지
@@ -380,6 +387,72 @@ export const About = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isMobile, tooltipWorkId]);
+
+  // Intersection Observer for auto-showing work thumbnails on scroll (Tablet+)
+  // DISABLED for now - manual hover only
+  /*
+  useEffect(() => {
+    if (isMobile || !contentRef.current || loading) return;
+    
+    // Create Intersection Observer
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const workId = entry.target.getAttribute('data-work-id');
+          if (!workId) return;
+          
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            // Row is visible in viewport - show thumbnail ONLY if not manually hovering
+            setVisibleWorkRows((prev) => new Set(prev).add(workId));
+            
+            // Check if user is manually hovering before auto-showing
+            if (!isManualHover) {
+              setTooltipWorkId(workId);
+            }
+          } else {
+            // Row is out of viewport - hide thumbnail
+            setVisibleWorkRows((prev) => {
+              const next = new Set(prev);
+              next.delete(workId);
+              return next;
+            });
+            
+            // Only hide if not manually hovering
+            if (!isManualHover && tooltipWorkId === workId) {
+              setTooltipWorkId(null);
+            }
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '-20% 0px -20% 0px', // Center area of viewport
+        threshold: [0, 0.5, 1]
+      }
+    );
+    
+    // Observe all work rows
+    const observeRows = () => {
+      if (!contentRef.current) return;
+      const workRows = contentRef.current.querySelectorAll('.hover-line[data-work-id]');
+      workRows.forEach((row) => {
+        if (observerRef.current) {
+          observerRef.current.observe(row);
+        }
+      });
+    };
+    
+    // Wait for content to be rendered
+    const timer = setTimeout(observeRows, 500);
+    
+    return () => {
+      clearTimeout(timer);
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [isMobile, loading, processedContent]);
+  */
 
   // Scroll Logic
   useEffect(() => {
@@ -478,9 +551,9 @@ export const About = () => {
   const sortedYears = Object.keys(groupedHistory).sort((a, b) => parseInt(b) - parseInt(a));
 
   const contactLinks = aboutData?.contact ? [
-    { label: 'WEBSITE', value: aboutData.contact.website, link: aboutData.contact.website.startsWith('http') ? aboutData.contact.website : `http://${aboutData.contact.website}` },
-    { label: 'EMAIL', value: aboutData.contact.email, link: `mailto:${aboutData.contact.email}` },
-    { label: 'INSTAGRAM', value: aboutData.contact.instagram, link: aboutData.contact.instagram.startsWith('http') ? aboutData.contact.instagram : `https://instagram.com/${aboutData.contact.instagram.replace('@', '')}` },
+    { label: 'website', value: aboutData.contact.website, link: aboutData.contact.website.startsWith('http') ? aboutData.contact.website : `http://${aboutData.contact.website}` },
+    { label: 'email', value: aboutData.contact.email, link: `mailto:${aboutData.contact.email}` },
+    { label: 'instagram', value: aboutData.contact.instagram, link: aboutData.contact.instagram.startsWith('http') ? aboutData.contact.instagram : `https://instagram.com/${aboutData.contact.instagram.replace('@', '')}` },
   ].filter(c => c.value) : [];
 
   if (loading) return <div className="min-h-screen bg-background" />;
@@ -534,7 +607,7 @@ export const About = () => {
                       label={item.label}
                       value={item.value}
                       link={item.link}
-                      onContactClick={item.label === 'EMAIL' ? () => setIsContactModalOpen(true) : undefined} 
+                      onContactClick={item.label === 'email' ? () => setIsContactModalOpen(true) : undefined} 
                     />
                   </RevealText>
                 </div>
@@ -603,7 +676,7 @@ export const About = () => {
                                label={item.label}
                                value={item.value}
                                link={item.link}
-                               onContactClick={item.label === 'EMAIL' ? () => setIsContactModalOpen(true) : undefined} 
+                               onContactClick={item.label === 'email' ? () => setIsContactModalOpen(true) : undefined} 
                              />
                          </div>
                        ))}
@@ -617,7 +690,7 @@ export const About = () => {
               <div className="flex flex-col gap-6 max-w-3xl">
                 <RevealText delay={0.3}>
                    <div 
-                     className={`text-[16px] leading-relaxed text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-col [&_tr]:gap-2 md:[&_tr]:!flex-row md:[&_tr]:!gap-0 [&_tr]:mb-2 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block md:[&_tr>*:first-child]:!w-[64px] md:[&_tr>*:first-child]:!min-w-[64px] md:[&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:w-full [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-relaxed [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr:hover]:bg-white [&_tr:hover]:!text-foreground [&_tr:hover_>_*]:!text-foreground md:[&_tr]:before:content-['→'] md:[&_tr]:before:absolute md:[&_tr]:before:left-2 md:[&_tr]:before:top-1/2 md:[&_tr]:before:-translate-y-1/2 md:[&_tr]:before:text-foreground md:[&_tr]:before:opacity-0 md:[&_tr:hover]:before:opacity-100 md:[&_tr]:before:-translate-x-2 md:[&_tr:hover]:before:translate-x-0 md:[&_tr]:before:transition-all md:[&_tr]:before:duration-300 md:[&_tr_>_*]:transition-transform md:[&_tr_>_*]:duration-300 md:[&_tr:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
+                     className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-3 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[48px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[48px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line]:before:content-['→'] md:[&_tr.hover-line]:before:absolute md:[&_tr.hover-line]:before:left-2 md:[&_tr.hover-line]:before:top-1/2 md:[&_tr.hover-line]:before:-translate-y-1/2 md:[&_tr.hover-line]:before:text-foreground md:[&_tr.hover-line]:before:opacity-0 md:[&_tr.hover-line:hover]:before:opacity-100 md:[&_tr.hover-line]:before:-translate-x-2 md:[&_tr.hover-line:hover]:before:translate-x-0 md:[&_tr.hover-line]:before:transition-all md:[&_tr.hover-line]:before:duration-300 md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
                      dangerouslySetInnerHTML={{ __html: processedContent || '' }}
                    />

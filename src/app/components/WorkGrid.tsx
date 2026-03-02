@@ -17,6 +17,31 @@ export const WorkGrid = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [currentFilter, setCurrentFilter] = useState('all');
 
+  // Filter labels by language
+  const filterLabels = {
+    ko: {
+      sel: 'Selected',
+      all: 'All',
+      works: 'Works',
+      proj: 'Projects',
+      exhib: 'Exhibitions'
+    },
+    en: {
+      sel: 'Selected',
+      all: 'All',
+      works: 'Works',
+      proj: 'Projects',
+      exhib: 'Exhibitions'
+    },
+    jp: {
+      sel: 'セレクト',
+      all: 'すべて',
+      works: '作品',
+      proj: 'プロジェクト',
+      exhib: '展覧会'
+    }
+  };
+
   useEffect(() => {
     const updateFilterFromUrl = () => {
       const hash = window.location.hash;
@@ -182,11 +207,11 @@ export const WorkGrid = () => {
       {/* Category Filters */}
       <div className="flex flex-wrap items-center gap-6 mb-12 md:mb-16">
         {[
-          { id: 'sel', label: 'Selected' },
-          { id: 'all', label: 'All' },
-          { id: 'works', label: 'Works' },
-          { id: 'proj', label: 'Projects' },
-          { id: 'exhib', label: 'Exhibitions' },
+          { id: 'sel', label: filterLabels[lang].sel },
+          { id: 'all', label: filterLabels[lang].all },
+          { id: 'works', label: filterLabels[lang].works },
+          { id: 'proj', label: filterLabels[lang].proj },
+          { id: 'exhib', label: filterLabels[lang].exhib },
         ].map((item) => (
           <button
             key={item.id}
@@ -225,7 +250,9 @@ export const WorkGrid = () => {
                   <PremiumImage
                     src={work.thumbnail || work.galleryImages[0]}
                     alt={getTitle(work)}
-                    className="w-full h-full object-cover transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] group-hover:brightness-[0.7] group-hover:contrast-[1.1]"
+                    className={`w-full h-full transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] group-hover:brightness-[0.7] group-hover:contrast-[1.1] ${
+                      isMobile ? 'object-contain' : 'object-cover'
+                    }`}
                     containerClassName="w-full h-full"
                   />
                   

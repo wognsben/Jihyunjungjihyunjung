@@ -300,10 +300,10 @@ export const Text = () => {
 
           {/* Category Filter */}
           <div className="flex flex-col gap-2 md:gap-4">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60 hidden md:block">
-              Filter By
+            <span className="text-[10px] font-mono lowercase tracking-widest text-muted-foreground/60 hidden md:block">
+              category
             </span>
-            <div className="flex overflow-x-auto md:overflow-visible md:flex-col gap-2 md:gap-3 pb-2 md:pb-0 scrollbar-hide">
+            <div className="flex flex-wrap gap-3">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -452,11 +452,12 @@ export const Text = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Type keywords..."
                       className="text-3xl font-light bg-transparent border-b border-foreground/20 pb-4 outline-none placeholder:text-foreground/20"
+                      style={{ fontSize: 'max(16px, 1.875rem)' }}
                     />
                  </div>
 
                  <div className="flex flex-col gap-4">
-                    <p className="text-sm font-mono text-muted-foreground">FILTER BY</p>
+                    <p className="text-sm font-mono text-muted-foreground">category</p>
                     <div className="flex flex-wrap gap-3">
                        {categories.map(cat => (
                           <button

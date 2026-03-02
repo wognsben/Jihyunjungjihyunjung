@@ -466,7 +466,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                 <div className="md:col-span-4 lg:col-span-3">
                   <div className="sticky top-40">
-                    <h2 className="text-[14px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
+                    <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
                     <div className="hidden md:block min-h-[100px]">
                       {hoveredArticleId && (
                         <div key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500">
@@ -502,7 +502,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                             >
                                <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
                                  <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
-                                 <h3 className="text-[14px] md:text-2xl font-serif font-light tracking-tight text-foreground/90">{cleanText(displayTitle)}</h3>
+                                 <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[20px]">{cleanText(displayTitle)}</h3>
                                </div>
                             </div>
                          );

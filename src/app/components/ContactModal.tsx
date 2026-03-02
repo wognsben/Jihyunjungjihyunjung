@@ -143,15 +143,23 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                         {/* macOS Dots */}
                         <div className="flex gap-1.5 group">
                         <div 
-                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center" 
-                            onClick={onClose}
+                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center relative z-50 pointer-events-auto" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClose();
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
                         >
                             <X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" />
                         </div>
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 group-hover:bg-amber-500/80 transition-colors" />
                         <div 
-                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors cursor-pointer" 
-                            onClick={() => setIsMaximized(!isMaximized)}
+                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors cursor-pointer relative z-50 pointer-events-auto" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsMaximized(!isMaximized);
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
                         />
                         </div>
                         
@@ -161,13 +169,24 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                     {/* Right Side - Controls */}
                     <div className="flex items-center gap-2">
                         <button 
-                            onClick={() => setIsMaximized(!isMaximized)} 
-                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsMaximized(!isMaximized);
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 relative z-50 pointer-events-auto"
                             title={isMaximized ? "Restore" : "Maximize"}
                         >
                             {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                         </button>
-                        <button onClick={onClose} className="text-muted-foreground/40 hover:text-foreground transition-colors p-1">
+                        <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onClose();
+                            }}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 relative z-50 pointer-events-auto"
+                        >
                             <X size={14} />
                         </button>
                     </div>

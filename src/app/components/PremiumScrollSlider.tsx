@@ -16,12 +16,21 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isDark, setIsDark] = useState(true); 
   const [isAutoPlayActive, setIsAutoPlayActive] = useState(true); // 자동 재생 상태
+  const [isMobile, setIsMobile] = useState(false); // 모바일 감지
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Helper functions for language-specific content
   const getTitle = (work: Work) => lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
-  
+
+  // 모바일 감지
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // 이미지 밝기 감지 함수 (Canvas API 사용) - 비활성화 가능성 고려
   // GitHub Raw 이미지는 CORS 이슈로 인해 Canvas tainting이 발생할 수 있음
   // 이 경우 안전하게 기본값(Dark)을 반환하도록 처리
@@ -108,7 +117,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     }, 1000);
   };
 
-  // 3��� 자동 슬라이더
+  // 3 자동 슬라이더
   useEffect(() => {
     if (!isAutoPlayActive || works.length === 0) return;
 
@@ -250,7 +259,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
   }
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
+    <div className={`fixed inset-0 overflow-hidden select-none touch-none ${isMobile ? 'bg-white' : 'bg-black'}`}>
       {/* Background Images */}
       {works.map((work, index) => {
         // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
@@ -268,7 +277,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           <PremiumImage
             src={imageSrc}
             alt={getTitle(work)}
-            className="w-full h-full object-cover"
+            className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
             containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}
