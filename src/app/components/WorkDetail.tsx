@@ -137,6 +137,41 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Hide global header and lock body scroll when popup is open
+  useEffect(() => {
+    if (selectedArticleId) {
+      // Hide header
+      const header = document.querySelector('header');
+      if (header) {
+        (header as HTMLElement).style.display = 'none';
+      }
+      
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '0px'; // Prevent layout shift
+    } else {
+      // Show header
+      const header = document.querySelector('header');
+      if (header) {
+        (header as HTMLElement).style.display = '';
+      }
+      
+      // Unlock body scroll
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      const header = document.querySelector('header');
+      if (header) {
+        (header as HTMLElement).style.display = '';
+      }
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [selectedArticleId]);
+
   useEffect(() => {
     if (workId && lang !== 'ko' && lang !== currentLang) {
       translateWorksByIds([workId], lang);
@@ -534,7 +569,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
         >
           <div 
             ref={nodeRef}
-            className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
+            className={`fixed z-[999999999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
             style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { width: 'fit-content', height: 'fit-content', position: 'fixed' }}
           >
             <motion.div
@@ -553,32 +588,52 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                 enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
                 className="flex flex-col relative"
               >
-                <div className="window-handle h-10 flex-shrink-0 bg-muted/20 flex items-center justify-between px-4 cursor-move select-none border-b border-foreground/5 transition-colors hover:bg-muted/30">
+                <div className="window-handle h-10 flex-shrink-0 bg-muted/20 flex items-center justify-between px-4 border-b border-foreground/5 transition-colors hover:bg-muted/30">
                   {/* Left Side - macOS dots */}
                   <div className="flex items-center gap-2">
                     {/* macOS Dots */}
-                    <div className="flex gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 hover:bg-red-500/50 transition-colors cursor-pointer" onClick={() => setSelectedArticleId(null)} />
+                    <div className="flex gap-1.5 z-10">
+                        <div 
+                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 hover:bg-red-500/50 transition-colors cursor-pointer" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedArticleId(null);
+                            }} 
+                        />
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 hover:bg-amber-500/50 transition-colors" />
                         <div 
                             className="w-2.5 h-2.5 rounded-full bg-green-500/20 hover:bg-green-500/50 transition-colors cursor-pointer" 
-                            onClick={() => setIsMaximized(!isMaximized)} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsMaximized(!isMaximized);
+                            }} 
                         />
                     </div>
                     
-                    <span className="ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40">Archive Reader</span>
+                    <span className="window-handle ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40 cursor-move select-none">Archive Reader</span>
                   </div>
                   
                   {/* Right Side - Controls */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 z-10">
                     <button 
-                        onClick={() => setIsMaximized(!isMaximized)} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsMaximized(!isMaximized);
+                        }} 
                         className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
                         title={isMaximized ? "Restore" : "Maximize"}
                     >
                         {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
                     </button>
-                    <button onClick={() => setSelectedArticleId(null)} className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"><X size={14} /></button>
+                    <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedArticleId(null);
+                        }} 
+                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
+                    >
+                        <X size={14} />
+                    </button>
                   </div>
                 </div>
                 <div className="w-full h-full overflow-hidden relative bg-background">

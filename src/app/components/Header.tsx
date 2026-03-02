@@ -52,15 +52,6 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
     { code: 'jp', label: 'JP' }
   ];
 
-  // --------------------------------------------------------------------------------
-  // [Premium UX] Translation Guard
-  // 한국어 모드(ko)일 때만 번역 방지 태그(notranslate)를 활성화하여
-  // 브라우저의 불필요한 자동/이중 번역 시도를 차단합니다.
-  // --------------------------------------------------------------------------------
-  const translationGuardClass = lang === 'ko' ? ' notranslate' : '';
-  const translationGuardAttr = lang === 'ko' ? { translate: 'no' as const } : {};
-
-
   const handleNavClick = (item: NavItem) => {
     if (item === 'work') {
       onNavigate('work');
@@ -157,10 +148,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             {/* Top Row: Logo + Language */}
             <div className="flex items-center justify-between">
               {/* Logo - Left */}
-              <div 
-                className={translationGuardClass} 
-                {...translationGuardAttr}
-              >
+              <div>
                 <SplitTextLink
                   text="Jihyun Jung"
                   onClick={() => onNavigate('index')}
@@ -201,10 +189,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             </div>
 
             {/* Bottom Row: Navigation */}
-            <nav 
-              className={`flex items-center gap-6 md:gap-10${translationGuardClass}`}
-              {...translationGuardAttr}
-            >
+            <nav className="flex items-center gap-6 md:gap-10">
               <SplitTextLink
                 text="work"
                 onClick={() => handleNavClick('work')}
@@ -261,9 +246,8 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 mix-blend-difference pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-          ${currentView === 'text-detail' ? 'hidden lg:block' : ''}${translationGuardClass}
+          ${currentView === 'text-detail' ? 'hidden lg:block' : ''}
         `}
-        {...translationGuardAttr}
       >
         <div className="flex items-center gap-3">
           <div className="w-[3px] h-[3px] bg-white rounded-none" />

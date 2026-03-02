@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { TooltipTransition } from '@/app/components/TooltipTransition';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface InfiniteWorkGridProps {
   works: Work[];
@@ -28,16 +29,19 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   const [scrollLeft, setScrollLeft] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Detect desktop (1024px+)
+  // Detect desktop (1024px+) and mobile (<768px)
   useEffect(() => {
-    const checkDesktop = () => {
+    const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 1024);
+      setIsMobile(window.innerWidth < 768);
     };
     
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
   // Update scroll state
@@ -144,6 +148,97 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
   if (works.length === 0) return null;
 
+  // Mobile Slider Functions
+  const goToNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % works.length);
+  };
+
+  const goToPrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + works.length) % works.length);
+  };
+
+  // Mobile: Render Slider
+  if (isMobile) {
+    return (
+      <div className="relative w-full bg-background py-24">
+        {/* Header */}
+        <div className="px-6 mb-8 flex items-end justify-between gap-4">
+          <div className="flex items-baseline gap-4">
+            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono">
+              other works
+            </h2>
+            <span className="text-[10px] font-mono text-muted-foreground/40">
+              {works.length} {works.length === 1 ? 'work' : 'works'}
+            </span>
+          </div>
+        </div>
+
+        {/* Slider */}
+        <div className="relative w-full px-6">
+          <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
+            {/* Click Areas for Navigation */}
+            <div 
+              className="absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer active:bg-black/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToPrevSlide();
+              }}
+            />
+            <div 
+              className="absolute right-0 top-0 w-1/2 h-full z-20 cursor-pointer active:bg-black/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                goToNextSlide();
+              }}
+            />
+            
+            {/* Current Image */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentSlide}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 cursor-pointer"
+                onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
+                drag="x"
+                dragConstraints={{ left: 0, right: 0 }}
+                dragElastic={0.2}
+                onDragEnd={(e, { offset, velocity }) => {
+                  const swipe = offset.x;
+                  const swipeVelocity = velocity.x;
+                  
+                  if (Math.abs(swipe) > 50 || Math.abs(swipeVelocity) > 500) {
+                    if (swipe > 0) {
+                      goToPrevSlide();
+                    } else {
+                      goToNextSlide();
+                    }
+                  }
+                }}
+              >
+                <ImageWithFallback
+                  src={works[currentSlide].thumbnail || works[currentSlide].galleryImages?.[0] || ''}
+                  alt={works[currentSlide].title_en}
+                  className="w-full h-full object-cover pointer-events-none"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Counter */}
+          <div className="mt-6 flex justify-center">
+            <span className="text-[12px] font-mono text-muted-foreground/60 tracking-wider tabular-nums">
+              {String(currentSlide + 1).padStart(2, '0')} / {String(works.length).padStart(2, '0')}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop/Tablet: Render Horizontal Scroll Grid
   return (
     <div className="relative w-full bg-background py-24 md:py-32">
       {/* Header: Title + Count + Progress */}

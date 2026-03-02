@@ -140,10 +140,7 @@ export const AppContent = () => {
   };
 
   return (
-    <div 
-      className={`min-h-screen bg-background text-foreground${lang === 'ko' ? ' notranslate' : ''}`}
-      translate={lang === 'ko' ? 'no' : undefined}
-    >
+    <div className="min-h-screen bg-background text-foreground">
       <Header 
         currentView={currentView} 
         onNavigate={handleNavigate} 

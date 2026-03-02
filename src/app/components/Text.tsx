@@ -8,15 +8,13 @@ import gsap from 'gsap';
 import { TextPlugin } from 'gsap/TextPlugin';
 import { Category } from '@/data/texts';
 
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(TextPlugin);
-}
+gsap.registerPlugin(TextPlugin);
 
 // ----------------------------------------------------------------------
 // Types & Data
 // ----------------------------------------------------------------------
 
-const categories: Category[] = ['All', 'Article', 'Note', 'Review'];
+const categories: Category[] = ['All', 'article', 'note', 'review'];
 
 const GHOST_PHRASES = [
     "Reflections on the Water",
@@ -314,7 +312,7 @@ export const Text = () => {
                       : 'bg-transparent text-muted-foreground hover:text-foreground border-foreground/10 md:border-transparent'
                   }`}
                 >
-                  <span className="capitalize">{cat}</span>
+                  <span>{cat}</span>
                 </button>
               ))}
             </div>
