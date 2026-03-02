@@ -259,7 +259,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
   }
 
   return (
-    <div className={`fixed inset-0 overflow-hidden select-none touch-none ${isMobile ? 'bg-white' : 'bg-black'}`}>
+    <div className="fixed inset-0 overflow-hidden select-none touch-none bg-background">
       {/* Background Images */}
       {works.map((work, index) => {
         // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
@@ -283,7 +283,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
             draggable={false}
           />
           {/* 미세한 딤 처리 (선택 사항 - 텍스트 가독성용) */}
-          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/10 pointer-events-none bg-[#ffffff1a]" />
         </div>
       )})}
 

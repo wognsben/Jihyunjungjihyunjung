@@ -36,7 +36,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsDesktop(window.innerWidth >= 1024);
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(false); // Always use grid layout
     };
     
     checkScreenSize();

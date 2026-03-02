@@ -346,23 +346,32 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             <div className="mb-32 md:mb-48 lg:mb-64">
               <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
                 <div className="relative h-[45vh] md:h-[65vh] lg:h-[70vh] group w-full">
-                  {/* Click Areas for Navigation */}
+                  {/* Desktop: Click Areas for Navigation (Left/Right split) */}
                   <div 
-                    className="absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
+                    className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
                     onClick={(e) => {
                       e.stopPropagation();
                       goToPrevSlide();
                     }}
                   />
                   <div 
-                    className="absolute right-0 top-0 w-1/2 h-full z-20 cursor-e-resize"
+                    className="hidden md:block absolute right-0 top-0 w-1/2 h-full z-20 cursor-e-resize"
                     onClick={(e) => {
                       e.stopPropagation();
                       goToNextSlide();
                     }}
                   />
                   
-                  {/* Hover indicators */}
+                  {/* Mobile: Full area click goes to next */}
+                  <div 
+                    className="md:hidden absolute inset-0 z-20 cursor-pointer active:bg-black/5"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToNextSlide();
+                    }}
+                  />
+                  
+                  {/* Hover indicators - Desktop only */}
                   <div className="hidden md:block absolute inset-0 z-10 pointer-events-none">
                     <div className="absolute left-0 top-0 w-1/2 h-full bg-gradient-to-r from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
                     <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
@@ -380,13 +389,31 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.2}
+                      onDragEnd={(e, { offset, velocity }) => {
+                        const swipe = offset.x;
+                        const swipeVelocity = velocity.x;
+                        
+                        // Mobile: swipe to change slides
+                        if (window.innerWidth < 768) {
+                          if (Math.abs(swipe) > 50 || Math.abs(swipeVelocity) > 500) {
+                            if (swipe > 0) {
+                              goToPrevSlide();
+                            } else {
+                              goToNextSlide();
+                            }
+                          }
+                        }
+                      }}
                     />
                   </AnimatePresence>
                   
                   {/* Mobile Controls (Inside) */}
-                  <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10">
+                  <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10 pointer-events-none">
                     <button 
-                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      className="pointer-events-auto text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                       aria-label="Previous"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -401,7 +428,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                     </span>
                     <button 
-                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      className="pointer-events-auto text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                       aria-label="Next"
                       onClick={(e) => {
                         e.stopPropagation();

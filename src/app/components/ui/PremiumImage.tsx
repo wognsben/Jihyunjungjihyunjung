@@ -34,7 +34,7 @@ export const PremiumImage = ({
   }, [src]);
 
   return (
-    <div className={`relative overflow-hidden bg-[#F0F0F0] dark:bg-[#1A1A1A] ${aspectRatio} ${containerClassName}`}>
+    <div className={`relative overflow-hidden bg-background ${aspectRatio} ${containerClassName}`}>
       {/* Skeleton / Loading State - Subtle Pulse */}
       {!isLoaded && !hasError && (
         <div className="absolute inset-0 animate-pulse bg-neutral-200/50 dark:bg-neutral-800/50 z-10" />

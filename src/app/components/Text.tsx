@@ -407,7 +407,14 @@ export const Text = () => {
              className="fixed bottom-8 left-0 right-0 z-50 flex justify-center md:hidden pointer-events-none"
            >
               <button
-                 onClick={() => setIsMobileMenuOpen(true)}
+                 onClick={() => {
+                   // Scroll to top smoothly
+                   window.scrollTo({ top: 0, behavior: 'smooth' });
+                   // Open menu after a short delay
+                   setTimeout(() => {
+                     setIsMobileMenuOpen(true);
+                   }, 300);
+                 }}
                  className="pointer-events-auto flex items-center gap-3 bg-foreground text-background px-6 py-3 rounded-full shadow-2xl shadow-black/20"
               >
                   <span className="text-lg font-serif italic">*</span>
@@ -427,10 +434,13 @@ export const Text = () => {
              animate={{ opacity: 1, y: 0 }}
              exit={{ opacity: 0, y: "100%" }}
              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-             className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl md:hidden flex flex-col p-6"
+             className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl md:hidden flex flex-col"
            >
               {/* Close Button */}
-              <div className="flex justify-end mb-8">
+              <div className="flex justify-between items-center px-6 pt-6 pb-4">
+                 <div className="text-xs text-muted-foreground font-mono">
+                    {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
+                 </div>
                  <button 
                    onClick={() => setIsMobileMenuOpen(false)}
                    className="p-2 rounded-full hover:bg-foreground/5"
@@ -440,46 +450,80 @@ export const Text = () => {
               </div>
 
               {/* Search Content */}
-              <div className="flex-1 flex flex-col gap-12">
-                 <div className="flex flex-col gap-2">
-                    <p className="text-sm font-mono text-muted-foreground">SEARCH</p>
-                    <input 
-                      autoFocus
-                      type="text" 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Type keywords..."
-                      className="text-3xl font-light bg-transparent border-b border-foreground/20 pb-4 outline-none placeholder:text-foreground/20"
-                      style={{ fontSize: 'max(16px, 1.875rem)' }}
-                    />
-                 </div>
+              <div className="flex-1 flex flex-col overflow-hidden px-6">
+                 <div className="flex flex-col gap-8 pb-6">
+                    <div className="flex flex-col gap-2">
+                       <p className="text-sm font-mono text-muted-foreground">SEARCH</p>
+                       <input 
+                         autoFocus
+                         type="text" 
+                         value={searchQuery}
+                         onChange={(e) => setSearchQuery(e.target.value)}
+                         placeholder="Type keywords..."
+                         className="text-3xl font-light bg-transparent border-b border-foreground/20 pb-4 outline-none placeholder:text-foreground/20"
+                         style={{ fontSize: 'max(16px, 1.875rem)' }}
+                       />
+                    </div>
 
-                 <div className="flex flex-col gap-4">
-                    <p className="text-sm font-mono text-muted-foreground">category</p>
-                    <div className="flex flex-wrap gap-3">
-                       {categories.map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => {
-                                setActiveCategory(cat);
-                                setIsMobileMenuOpen(false); // Close on select
-                            }}
-                            className={`px-4 py-2 rounded-full border text-sm transition-all ${
-                                activeCategory === cat 
-                                ? 'bg-foreground text-background border-foreground' 
-                                : 'bg-transparent text-foreground border-foreground/20'
-                            }`}
-                          >
-                            {cat}
-                          </button>
-                       ))}
+                    <div className="flex flex-col gap-4">
+                       <p className="text-sm font-mono text-muted-foreground">category</p>
+                       <div className="flex flex-wrap gap-3">
+                          {categories.map(cat => (
+                             <button
+                               key={cat}
+                               onClick={() => setActiveCategory(cat)}
+                               className={`px-4 py-2 rounded-full border text-sm transition-all ${
+                                   activeCategory === cat 
+                                   ? 'bg-foreground text-background border-foreground' 
+                                   : 'bg-transparent text-foreground border-foreground/20'
+                               }`}
+                             >
+                               {cat}
+                             </button>
+                          ))}
+                       </div>
                     </div>
                  </div>
 
-                 <div className="mt-auto">
-                    <p className="text-xs text-center text-muted-foreground">
-                        {filteredData.length} results found
-                    </p>
+                 {/* Results List - Scrollable */}
+                 <div className="flex-1 overflow-y-auto -mx-6 px-6">
+                    <div className="border-t border-foreground/10 pt-4">
+                       <p className="text-xs font-mono text-muted-foreground mb-4">RESULTS</p>
+                       
+                       {filteredData.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+                             <Search size={20} strokeWidth={1} />
+                             <p className="text-sm font-light">No results found</p>
+                          </div>
+                       ) : (
+                          <div className="flex flex-col gap-1 pb-6">
+                             {filteredData.map((item, index) => (
+                                <a
+                                  href={`#/text/${item.id}`}
+                                  key={item.id}
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                  className="group/item relative border-b border-foreground/5 py-4 transition-all duration-300 -mx-2 px-2 rounded-lg active:bg-white"
+                                >
+                                   <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1 min-w-0">
+                                         <h3 className="font-serif text-sm font-light leading-snug text-foreground mb-1">
+                                           <FormattedTitle text={item.title[lang]} />
+                                         </h3>
+                                         <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">
+                                            <span>{item.category.toLowerCase()}</span>
+                                            <span>·</span>
+                                            <span>{item.year}</span>
+                                         </div>
+                                      </div>
+                                      <div className="text-foreground/30 group-active/item:text-foreground transition-colors text-sm">
+                                         →
+                                      </div>
+                                   </div>
+                                </a>
+                             ))}
+                          </div>
+                       )}
+                    </div>
                  </div>
               </div>
            </motion.div>

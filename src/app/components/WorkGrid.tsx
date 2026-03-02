@@ -248,7 +248,10 @@ export const WorkGrid = () => {
                 }}
               >
                 {/* Container: 4/3 aspect ratio */}
-                <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-zinc-800">
+                <div 
+                  className="relative w-full aspect-[4/3] overflow-hidden"
+                  style={{ backgroundColor: 'var(--background)' }}
+                >
                   
                   {/* Image with Dimming Effect on Hover */}
                   <PremiumImage

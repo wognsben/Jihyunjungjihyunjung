@@ -103,8 +103,8 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   }, [hoveredWorkId, activeWork]);
 
   const handleWorkClick = () => {
-    if (activeWork) {
-      if (onClick) onClick();
+    if (activeWork && onClick) {
+      onClick();
     }
   };
 
@@ -123,7 +123,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
       <aside 
         ref={tooltipRef}
         onClick={handleWorkClick}
-        className={`fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+        className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
         translate={lang === 'ko' ? 'no' : undefined}
         style={{ 
           opacity: 0,
