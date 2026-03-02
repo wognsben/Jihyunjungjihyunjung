@@ -205,26 +205,30 @@ export const WorkGrid = () => {
   return (
     <div ref={containerRef} className="w-full min-h-screen bg-background text-foreground pt-32 pb-20 px-4 md:px-6">
       {/* Category Filters */}
-      <div className="flex flex-wrap items-center gap-6 mb-12 md:mb-16">
+      <div className="flex flex-wrap items-center gap-3 mb-12 md:mb-16">
         {[
           { id: 'sel', label: filterLabels[lang].sel },
           { id: 'all', label: filterLabels[lang].all },
           { id: 'works', label: filterLabels[lang].works },
           { id: 'proj', label: filterLabels[lang].proj },
           { id: 'exhib', label: filterLabels[lang].exhib },
-        ].map((item) => (
-          <button
-            key={item.id}
-            onClick={() => handleFilterChange(item.id)}
-            className={`
-              text-xs md:text-sm tracking-widest uppercase transition-colors duration-300
-              ${currentFilter.toLowerCase() === item.id 
-                ? 'text-black dark:text-white font-bold' 
-                : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'}
-            `}
-          >
-            {item.label}
-          </button>
+        ].map((item, index, array) => (
+          <div key={item.id} className="flex items-center gap-3">
+            <button
+              onClick={() => handleFilterChange(item.id)}
+              className={`
+                text-xs md:text-sm tracking-widest transition-colors duration-300
+                ${currentFilter.toLowerCase() === item.id 
+                  ? 'text-black dark:text-white font-bold' 
+                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'}
+              `}
+            >
+              {item.label}
+            </button>
+            {index < array.length - 1 && (
+              <span className="text-gray-400 dark:text-gray-500 text-xs">/</span>
+            )}
+          </div>
         ))}
       </div>
 

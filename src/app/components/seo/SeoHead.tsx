@@ -10,7 +10,7 @@ interface SeoHeadProps {
 export const SeoHead = ({ title, description, image }: SeoHeadProps) => {
   const { lang } = useLanguage();
   
-  const siteTitle = 'JIHYUN JUNG';
+  const siteTitle = 'jihyunjung';
   const defaultDescription = 'Minimalist Portfolio of Architect Jihyun Jung. Exploring the raw texture of materials and the precision of space.';
   const defaultImage = 'https://raw.githubusercontent.com/wognsben/gallery/main/1.jpg';
   

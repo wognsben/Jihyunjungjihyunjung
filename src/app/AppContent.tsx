@@ -10,6 +10,7 @@ import { About } from '@/app/components/About';
 import { Text } from '@/app/components/Text';
 import { TextDetail } from '@/app/components/TextDetail';
 import { PageTransition } from '@/app/components/ui/PageTransition';
+import { SeoHead } from '@/app/components/seo/SeoHead';
 
 type View = 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
 
@@ -141,6 +142,7 @@ export const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SeoHead />
       <Header 
         currentView={currentView} 
         onNavigate={handleNavigate} 
