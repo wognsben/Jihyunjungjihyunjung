@@ -260,6 +260,7 @@ export const Text = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="relative w-full h-full bg-transparent text-sm font-light outline-none text-foreground placeholder-transparent z-10"
+                        style={{ fontSize: 'max(16px, 0.875rem)' }}
                         autoComplete="off"
                         spellCheck="false"
                     />
@@ -408,12 +409,7 @@ export const Text = () => {
            >
               <button
                  onClick={() => {
-                   // Scroll to top smoothly
-                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                   // Open menu after a short delay
-                   setTimeout(() => {
-                     setIsMobileMenuOpen(true);
-                   }, 300);
+                   setIsMobileMenuOpen(true);
                  }}
                  className="pointer-events-auto flex items-center gap-3 bg-foreground text-background px-6 py-3 rounded-full shadow-2xl shadow-black/20"
               >

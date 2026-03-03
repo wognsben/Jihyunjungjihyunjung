@@ -20,21 +20,18 @@ export const WorkGrid = () => {
   // Filter labels by language
   const filterLabels = {
     ko: {
-      sel: 'Selected',
       all: 'All',
       works: 'Works',
       proj: 'Projects',
       exhib: 'Exhibitions'
     },
     en: {
-      sel: 'Selected',
       all: 'All',
       works: 'Works',
       proj: 'Projects',
       exhib: 'Exhibitions'
     },
     jp: {
-      sel: 'セレクト',
       all: 'すべて',
       works: '作品',
       proj: 'プロジェクト',
@@ -112,9 +109,6 @@ export const WorkGrid = () => {
     const source = [...sortedWorks];
     
     switch (currentFilter.toLowerCase()) {
-      case 'sel':
-        return source.slice(0, 5); // Mock selection
-        
       case 'proj':
         return source.filter(work => {
            const medium = (work.medium_en || '').toLowerCase();
@@ -207,7 +201,6 @@ export const WorkGrid = () => {
       {/* Category Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-12 md:mb-16">
         {[
-          { id: 'sel', label: filterLabels[lang].sel },
           { id: 'all', label: filterLabels[lang].all },
           { id: 'works', label: filterLabels[lang].works },
           { id: 'proj', label: filterLabels[lang].proj },

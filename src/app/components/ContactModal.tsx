@@ -115,7 +115,7 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
           {/* Draggable Wrapper (Position Logic) */}
           <div 
              ref={draggableRef} 
-             className={`fixed z-[9999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}${lang === 'ko' ? ' notranslate' : ''}`}
+             className={`fixed z-[99999999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}${lang === 'ko' ? ' notranslate' : ''}`}
              translate={lang === 'ko' ? 'no' : undefined}
              style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { position: 'fixed' }}
           >
@@ -143,23 +143,33 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                         {/* macOS Dots */}
                         <div className="flex gap-1.5 group">
                         <div 
-                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center relative z-50 pointer-events-auto" 
+                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center relative z-50 pointer-events-auto before:content-[''] before:absolute before:-inset-2" 
                             onClick={(e) => {
                               e.stopPropagation();
                               onClose();
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
+                            onTouchEnd={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onClose();
+                            }}
                         >
                             <X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" />
                         </div>
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 group-hover:bg-amber-500/80 transition-colors" />
                         <div 
-                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors cursor-pointer relative z-50 pointer-events-auto" 
+                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors cursor-pointer relative z-50 pointer-events-auto before:content-[''] before:absolute before:-inset-2" 
                             onClick={(e) => {
                               e.stopPropagation();
                               setIsMaximized(!isMaximized);
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
+                            onTouchEnd={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsMaximized(prev => !prev);
+                            }}
                         />
                         </div>
                         
@@ -174,7 +184,12 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                               setIsMaximized(!isMaximized);
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
-                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 relative z-50 pointer-events-auto"
+                            onTouchEnd={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsMaximized(prev => !prev);
+                            }}
+                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 relative z-50 pointer-events-auto"
                             title={isMaximized ? "Restore" : "Maximize"}
                         >
                             {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -185,7 +200,12 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                               onClose();
                             }}
                             onPointerDown={(e) => e.stopPropagation()}
-                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-1 relative z-50 pointer-events-auto"
+                            onTouchEnd={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onClose();
+                            }}
+                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 relative z-50 pointer-events-auto"
                         >
                             <X size={14} />
                         </button>

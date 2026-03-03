@@ -265,10 +265,22 @@ export const About = () => {
   const processProfileText = (text: string | undefined) => {
     if (!text) return '';
     
-    // en 모드에서만 한글 이름 "정지현"을 "Jihyun Jung"으로 강제 치환 및 번역 방지
-    // ko는 원본 유지, jp는 자동 번역에 맡김
     if (lang === 'en') {
-      return text.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
+      let result = text;
+      result = result.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
+      result = result.replace(/수원\s*생/g, 'Born in Suwon');
+      result = result.replace(/서울\s*기반으로\s*활동\s*중/g, 'Based in Seoul');
+      result = result.replace(/\(1986\s*[–\-]\s*\)/g, '(1986 – )');
+      return result;
+    }
+    
+    if (lang === 'jp') {
+      let result = text;
+      result = result.replace(/정지현/g, 'チョン・ジヒョン');
+      result = result.replace(/수원\s*생/g, '水原生まれ');
+      result = result.replace(/서울\s*기반으로\s*활동\s*중/g, 'ソウルを拠点に活動中');
+      result = result.replace(/\(1986\s*[–\-]\s*\)/g, '(1986 – )');
+      return result;
     }
     
     return text;
@@ -576,7 +588,7 @@ export const About = () => {
                    className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
                    translate={lang === 'en' ? 'no' : undefined}
                  >
-                   {lang === 'en' ? 'Jihyun Jung' : (aboutData?.name || aboutData?.title || 'About')}
+                   {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
                  </h1>
                  {aboutData?.profile_info && (
                    <div 
@@ -647,7 +659,7 @@ export const About = () => {
                           className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
                           translate={lang === 'en' ? 'no' : undefined}
                         >
-                           {lang === 'en' ? 'Jihyun Jung' : (aboutData?.name || aboutData?.title || 'About')}
+                           {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
                         </h1>
                         {aboutData.profile_info && (
                            <div 
