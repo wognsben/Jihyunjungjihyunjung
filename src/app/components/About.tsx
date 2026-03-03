@@ -183,6 +183,34 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
   }
 };
 
+// Section header translations for About bio content
+const translateSectionHeaders = (html: string, lang: string): string => {
+  if (lang === 'ko' || !html) return html;
+  
+  // Longest phrases first to avoid partial matches
+  const headers: [RegExp, string, string][] = [
+    [/수상\s*경력\s*및\s*레지던스/g, 'Awards & Residencies', '受賞歴・レジデンス'],
+    [/수상\s*경력/g, 'Awards', '受賞歴'],
+    [/레지던스/g, 'Residencies', 'レジデンス'],
+    [/개인\s*전/g, 'Solo Exhibitions', '個展'],
+    [/단체\s*전/g, 'Group Exhibitions', 'グループ展'],
+    [/프로젝트/g, 'Projects', 'プロジェクト'],
+    [/출\s*판/g, 'Publications', '出版'],
+    [/학\s*력/g, 'Education', '学歴'],
+  ];
+  
+  let result = html;
+  
+  for (const [regex, en, jp] of headers) {
+    const translation = lang === 'en' ? en : lang === 'jp' ? jp : '';
+    if (translation) {
+      result = result.replace(regex, translation);
+    }
+  }
+  
+  return result;
+};
+
 export const About = () => {
   const { lang } = useLanguage();
   const { works } = useWorks();
@@ -612,7 +640,7 @@ export const About = () => {
               {contactLinks.map((item, idx) => (
                 <div key={item.label} className="flex flex-col gap-0.5">
                   <RevealText delay={0.5 + (idx * 0.1)}>
-                    <span className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1 block">
+                    <span className="text-[10px] font-mono text-muted-foreground/50 tracking-widest mb-1 block">
                         {item.label}
                     </span>
                     <ContactLink 
@@ -681,7 +709,7 @@ export const About = () => {
                     <div className="flex flex-col gap-4 mt-8 mb-8">
                        {contactLinks.map((item, idx) => (
                          <div key={item.label} className="flex flex-col gap-0.5">
-                             <span className="text-[8px] font-mono text-muted-foreground/50 uppercase tracking-widest mb-1 block">
+                             <span className="text-[10px] font-mono text-muted-foreground/50 tracking-widest mb-1 block">
                                  {item.label}
                              </span>
                              <ContactLink 
@@ -704,7 +732,7 @@ export const About = () => {
                    <div 
                      className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-3 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[48px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[48px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line]:before:content-['→'] md:[&_tr.hover-line]:before:absolute md:[&_tr.hover-line]:before:left-2 md:[&_tr.hover-line]:before:top-1/2 md:[&_tr.hover-line]:before:-translate-y-1/2 md:[&_tr.hover-line]:before:text-foreground md:[&_tr.hover-line]:before:opacity-0 md:[&_tr.hover-line:hover]:before:opacity-100 md:[&_tr.hover-line]:before:-translate-x-2 md:[&_tr.hover-line:hover]:before:translate-x-0 md:[&_tr.hover-line]:before:transition-all md:[&_tr.hover-line]:before:duration-300 md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: processedContent || '' }}
+                     dangerouslySetInnerHTML={{ __html: translateSectionHeaders(processedContent || '', lang) }}
                    />
                 </RevealText>
               </div>

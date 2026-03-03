@@ -16,6 +16,19 @@ gsap.registerPlugin(TextPlugin);
 
 const categories: Category[] = ['All', 'article', 'note', 'review'];
 
+// Category & section label translations
+const categoryLabels: Record<string, Record<string, string>> = {
+  All:      { ko: 'All', en: 'All', jp: 'すべて' },
+  article:  { ko: 'article', en: 'article', jp: '記事' },
+  note:     { ko: 'note', en: 'note', jp: 'ノート' },
+  review:   { ko: 'review', en: 'review', jp: 'レビュー' },
+};
+
+const sectionLabels: Record<string, Record<string, string>> = {
+  category: { ko: 'category', en: 'category', jp: 'カテゴリー' },
+  results:  { ko: 'RESULTS', en: 'RESULTS', jp: '結果' },
+};
+
 const GHOST_PHRASES = [
     "Reflections on the Water",
     "Black and white film",
@@ -300,7 +313,7 @@ export const Text = () => {
           {/* Category Filter */}
           <div className="flex flex-col gap-2 md:gap-4">
             <span className="text-[10px] font-mono lowercase tracking-widest text-muted-foreground/60 hidden md:block">
-              category
+              {sectionLabels.category[lang]}
             </span>
             <div className="flex flex-wrap gap-3">
               {categories.map((cat) => (
@@ -313,7 +326,7 @@ export const Text = () => {
                       : 'bg-transparent text-muted-foreground hover:text-foreground border-foreground/10 md:border-transparent'
                   }`}
                 >
-                  <span>{cat}</span>
+                  <span>{categoryLabels[cat][lang]}</span>
                 </button>
               ))}
             </div>
@@ -355,7 +368,7 @@ export const Text = () => {
                     {/* Mobile: Category & Year in same row */}
                     <div className="flex md:hidden items-center justify-between w-full mb-2">
                       <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
-                         {item.category.toLowerCase()}
+                         {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
                       </span>
                       <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {item.year}
@@ -364,7 +377,7 @@ export const Text = () => {
                     
                     {/* Desktop: Category Label */}
                     <span className="hidden md:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
-                       {item.category.toLowerCase()}
+                       {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
                     </span>
                     
                     <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-black text-foreground">
@@ -462,7 +475,7 @@ export const Text = () => {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                       <p className="text-sm font-mono text-muted-foreground">category</p>
+                       <p className="text-sm font-mono text-muted-foreground">{sectionLabels.category[lang]}</p>
                        <div className="flex flex-wrap gap-3">
                           {categories.map(cat => (
                              <button
@@ -474,7 +487,7 @@ export const Text = () => {
                                    : 'bg-transparent text-foreground border-foreground/20'
                                }`}
                              >
-                               {cat}
+                               {categoryLabels[cat][lang]}
                              </button>
                           ))}
                        </div>
@@ -484,7 +497,7 @@ export const Text = () => {
                  {/* Results List - Scrollable */}
                  <div className="flex-1 overflow-y-auto -mx-6 px-6">
                     <div className="border-t border-foreground/10 pt-4">
-                       <p className="text-xs font-mono text-muted-foreground mb-4">RESULTS</p>
+                       <p className="text-xs font-mono text-muted-foreground mb-4">{sectionLabels.results[lang]}</p>
                        
                        {filteredData.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
@@ -506,7 +519,7 @@ export const Text = () => {
                                            <FormattedTitle text={item.title[lang]} />
                                          </h3>
                                          <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">
-                                            <span>{item.category.toLowerCase()}</span>
+                                            <span>{categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}</span>
                                             <span>·</span>
                                             <span>{item.year}</span>
                                          </div>
