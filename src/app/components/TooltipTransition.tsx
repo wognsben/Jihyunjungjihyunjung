@@ -102,9 +102,19 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     }
   }, [hoveredWorkId, activeWork]);
 
-  const handleWorkClick = () => {
+  const handleWorkClick = (e: React.MouseEvent) => {
+    console.log('🔥 TooltipTransition handleWorkClick CALLED', { activeWork: activeWork?.id, hasOnClick: !!onClick });
+    e.preventDefault();
+    e.stopPropagation();
+    // 네이티브 이벤트도 즉시 중단
+    if (e.nativeEvent) {
+      e.nativeEvent.stopImmediatePropagation();
+    }
     if (activeWork && onClick) {
+      console.log('🔥 Calling onClick prop');
       onClick();
+    } else {
+      console.log('❌ Cannot call onClick', { activeWork, onClick });
     }
   };
 
@@ -116,14 +126,22 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   // Active tooltip
   return createPortal(
     <div 
-      className="fixed inset-0 z-[99999] pointer-events-none"
+      className={`fixed inset-0 z-[99999] ${isMobile ? 'pointer-events-auto bg-black/0' : 'pointer-events-none'}`}
+      onClick={(e) => {
+        // 모바일에서 tooltip 외부 클릭 시 툴팁 닫기
+        if (isMobile) {
+          const target = e.target as HTMLElement;
+          if (!target.closest('.tooltip')) {
+            onClose();
+          }
+        }
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <aside 
         ref={tooltipRef}
-        onClick={handleWorkClick}
-        className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto cursor-pointer backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+        className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
         translate={lang === 'ko' ? 'no' : undefined}
         style={{ 
           opacity: 0,
@@ -152,7 +170,10 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         </div>
 
         {/* Image Gallery with Premium Crossfade */}
-        <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
+        <div 
+          onClick={handleWorkClick}
+          className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10 cursor-pointer"
+        >
           {/* Close Button - Top Right */}
           <button
             onClick={(e) => {
@@ -231,13 +252,16 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
             </div>
 
             {/* Action Footer */}
-            <div className="w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 group-hover:bg-muted/20">
-              <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 group-hover:text-foreground transition-colors duration-300">
+            <div 
+              onClick={handleWorkClick}
+              className="tooltip-action w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 cursor-pointer hover:bg-muted/30 active:bg-muted/40"
+            >
+              <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 transition-colors duration-300 pointer-events-none">
                 open
               </span>
               {/* Arrow with micro animation */}
-              <div className="relative">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 group-hover:text-foreground transition-all duration-300 group-hover:translate-x-0.5">
+              <div className="relative pointer-events-none">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 transition-all duration-300">
                   <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>

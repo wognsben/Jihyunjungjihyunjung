@@ -316,12 +316,14 @@ export const About = () => {
 
   // Event Handlers for Dynamic Content (React Synthetic Events)
   const handleContentClick = (e: any) => {
+    console.log('🟢 About handleContentClick CALLED');
     const target = e.target as HTMLElement;
     const link = target.closest('.hover-line') as HTMLElement;
     
     if (link) {
       const id = link.getAttribute('data-work-id');
       if (id) {
+        console.log('🟢 Found work link', { id, isMobile });
         e.preventDefault();
         e.stopPropagation();
         
@@ -388,30 +390,6 @@ export const About = () => {
     }, 300);
     setIsManualHover(false);
   };
-  
-  // 모바일: 툴팁 외부 클릭 감지
-  useEffect(() => {
-    if (!isMobile || !tooltipWorkId) return;
-    
-    const handleOutsideClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // 툴팁 자체나 작품명을 클릭한 경우 무시
-      if (target.closest('.tooltip') || target.closest('.hover-line')) {
-        return;
-      }
-      setTooltipWorkId(null);
-    };
-    
-    // 짧은 딜레이 후 리스너 등록 (툴팁 열기 클릭과 충돌 방지)
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleOutsideClick);
-    }, 100);
-    
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, [isMobile, tooltipWorkId]);
   
   // 모바일: 스크롤 시 툴팁 닫기
   useEffect(() => {
@@ -760,11 +738,13 @@ export const About = () => {
       <TooltipTransition 
         hoveredWorkId={tooltipWorkId} 
         isOpen={false} 
-        onClose={() => {}}
+        onClose={() => setTooltipWorkId(null)}
         onClick={() => {
+          console.log('🔵 About TooltipTransition onClick CALLED', { tooltipWorkId });
           if (tooltipWorkId) {
             setTooltipWorkId(null);
             setSelectedWorkId(tooltipWorkId);
+            console.log('🔵 Setting selectedWorkId to', tooltipWorkId);
           }
         }}
         isMobile={isMobile}
