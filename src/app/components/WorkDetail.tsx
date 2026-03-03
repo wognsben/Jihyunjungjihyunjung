@@ -329,7 +329,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                  <div className="space-y-6 md:space-y-8">
                    {description.split('\n\n').map((paragraph, index) => (
                       <BlurReveal 
-                        key={index} 
+                        key={`${lang}-${index}`} 
                         className={`font-serif text-foreground/80 ${index === 0 ? 'text-lg md:text-xl leading-[1.6] opacity-90' : 'text-sm md:text-base leading-[1.8] opacity-70'}`}
                         delay={0.2 + (index * 0.1)}
                       >
