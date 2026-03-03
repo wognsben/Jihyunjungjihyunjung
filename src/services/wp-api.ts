@@ -135,49 +135,66 @@ const transformWork = (post: WPPost, lang: string): Work => {
   // Combine featured image + content images, removing duplicates
   const galleryImages = Array.from(new Set([featuredImage, ...contentImages].filter(Boolean)));
 
-  // Try to find category for "Medium" and "Year"
-  let medium = 'Installation';
+  // Try to find "Year" from work_category taxonomy
   let yearFromCategory: number | undefined;
   
   const terms = post._embedded?.['wp:term'];
   if (terms) {
     for (const taxonomyTerms of terms) {
       if (taxonomyTerms.length > 0 && taxonomyTerms[0].taxonomy === 'work_category') {
-        const mediumTerms: string[] = [];
-        const yearTerms: string[] = [];
-
         taxonomyTerms.forEach(t => {
           const name = t.name;
-          // Check if it looks like a year (e.g. "2023", "2024")
-          // Also handles ranges like "2023-2024" by taking the first 4 digits
           if (/^\d{4}/.test(name)) {
-             yearTerms.push(name);
-          } else {
-             mediumTerms.push(name);
+            const match = name.match(/^(\d{4})/);
+            if (match) {
+              yearFromCategory = parseInt(match[1], 10);
+            }
           }
         });
-
-        // If we found year-like categories, use the first one
-        if (yearTerms.length > 0) {
-          // Parse the first 4 digits as the year number
-          const match = yearTerms[0].match(/^(\d{4})/);
-          if (match) {
-            yearFromCategory = parseInt(match[1], 10);
-          }
-        }
-        
-        // Join the rest as medium
-        if (mediumTerms.length > 0) {
-          medium = mediumTerms.join(', ');
-        }
         break;
       }
     }
   }
 
-  const title = decode(post.title.rendered);
-  const description = post.content.rendered; 
-  const descriptionText = description.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim();
+  // ACF fields for multilingual support
+  const acf = post.acf || {};
+
+  // KO: WordPress default fields (title, content, excerpt)
+  const title_ko = decode(post.title.rendered);
+  const description_raw = post.content.rendered;
+  const description_ko = description_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim();
+  const oneLineInfo_ko = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
+
+  // EN: ACF fields, fallback to KO
+  const title_en = acf['제목_en'] ? decode(acf['제목_en']) : title_ko;
+  const description_en = acf['작품_설명_en'] ? decode(acf['작품_설명_en']) : description_ko;
+  const oneLineInfo_en = acf.one_line_info_en ? decode(acf.one_line_info_en) : oneLineInfo_ko;
+
+  // JP: ACF fields, fallback to KO
+  const title_jp = acf['제목_jp'] ? decode(acf['제목_jp']) : title_ko;
+  const description_jp = acf['작품_설명_jp'] ? decode(acf['작품_설명_jp']) : description_ko;
+  const oneLineInfo_jp = acf.one_line_info_jp ? decode(acf.one_line_info_jp) : oneLineInfo_ko;
+
+  // Year Caption: ACF multilingual
+  const yearCaption_ko = acf.year_caption_ko || acf.year_caption || '';
+  const yearCaption_en = acf.year_caption_en || yearCaption_ko;
+  const yearCaption_jp = acf.year_caption_jp || yearCaption_ko;
+
+  // Commission: ACF multilingual
+  const commission_ko = acf.commission_ko || acf.commission || '';
+  const commission_en = acf.commission_en || commission_ko;
+  const commission_jp = acf.commission_jp || commission_ko;
+
+  // Credits: ACF multilingual
+  const credits_ko = acf.credits_ko || acf.credits || '';
+  const credits_en = acf.credits_en || credits_ko;
+  const credits_jp = acf.credits_jp || credits_ko;
+
+  // Medium: ACF field (작품_medium), same across all languages
+  const medium = acf['작품_medium'] || '';
+  const medium_ko = medium;
+  const medium_en = medium;
+  const medium_jp = medium;
 
   // Extract YouTube URL from ACF, meta, or content
   let youtubeUrl: string | undefined;
@@ -261,25 +278,37 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const work: Work = {
     id: String(post.id),
     
-    title_ko: title,
-    title_en: title,
-    title_jp: title,
+    title_ko,
+    title_en,
+    title_jp,
 
     year: yearFromCategory || new Date(post.date).getFullYear(),
     
-    medium_ko: medium,
-    medium_en: medium,
-    medium_jp: medium,
+    yearCaption_ko: yearCaption_ko || undefined,
+    yearCaption_en: yearCaption_en || undefined,
+    yearCaption_jp: yearCaption_jp || undefined,
+
+    medium_ko,
+    medium_en,
+    medium_jp,
 
     thumbnail: featuredImage,
     
-    oneLineInfo_ko: decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim()),
-    oneLineInfo_en: decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim()),
-    oneLineInfo_jp: decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim()),
+    oneLineInfo_ko,
+    oneLineInfo_en,
+    oneLineInfo_jp,
 
-    description_ko: descriptionText,
-    description_en: descriptionText,
-    description_jp: descriptionText,
+    description_ko,
+    description_en,
+    description_jp,
+
+    commission_ko: commission_ko || undefined,
+    commission_en: commission_en || undefined,
+    commission_jp: commission_jp || undefined,
+
+    credits_ko: credits_ko || undefined,
+    credits_en: credits_en || undefined,
+    credits_jp: credits_jp || undefined,
 
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
     youtubeUrl,
@@ -293,12 +322,25 @@ const transformWork = (post: WPPost, lang: string): Work => {
 };
 
 const transformText = (post: WPPost): TextItem => {
-  const title = decode(post.title.rendered);
-  const summary = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
+  const title_ko = decode(post.title.rendered);
+  const summary_ko = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
   const featuredImage = getFullSizeUrl(post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '');
   
   const contentHtml = post.content.rendered || '';
-  const contentText = decode(contentHtml.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim());
+  const content_ko = decode(contentHtml.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim());
+
+  // ACF multilingual fields
+  const acf = post.acf || {};
+  
+  // EN: ACF fields, fallback to KO
+  const title_en = acf.title_en ? decode(acf.title_en) : title_ko;
+  const summary_en = acf.summary_en ? decode(acf.summary_en) : summary_ko;
+  const content_en = acf.content_en ? decode(acf.content_en.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) : content_ko;
+
+  // JP: ACF fields, fallback to KO
+  const title_jp = acf.title_jp ? decode(acf.title_jp) : title_ko;
+  const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : summary_ko;
+  const content_jp = acf.content_jp ? decode(acf.content_jp.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) : content_ko;
   
   // Transform ACF related_works
   let relatedWorks: TextItem['relatedWorks'] = undefined;
@@ -339,7 +381,7 @@ const transformText = (post: WPPost): TextItem => {
 
       // Year & Medium (Try to find in terms)
       let workYear = String(new Date(workObj.date).getFullYear());
-      let workMedium = 'Installation';
+      let workMedium = '';
 
       // Try standard term embedding
       const terms = workObj._embedded?.['wp:term'];
@@ -414,21 +456,21 @@ const transformText = (post: WPPost): TextItem => {
       jp: 'Ji Hyun Jung'
     },
     title: {
-      en: title,
-      ko: title,
-      jp: title
+      en: title_en,
+      ko: title_ko,
+      jp: title_jp
     },
     link: post.link,
     image: featuredImage,
     summary: {
-      en: summary,
-      ko: summary,
-      jp: summary
+      en: summary_en,
+      ko: summary_ko,
+      jp: summary_jp
     },
     content: {
-      en: contentText,
-      ko: contentText,
-      jp: contentText
+      en: content_en,
+      ko: content_ko,
+      jp: content_jp
     },
     relatedWorks
   };
