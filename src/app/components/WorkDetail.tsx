@@ -345,7 +345,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           {work.galleryImages && work.galleryImages.length > 0 && (
             <div className="mb-32 md:mb-48 lg:mb-64">
               <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
-                <div className="relative h-auto max-h-[45vh] md:max-h-[65vh] lg:max-h-[70vh] group w-full">
+                <div className="relative h-auto max-h-[45svh] md:max-h-[65svh] lg:max-h-[70svh] group w-full">
                   {/* Desktop: Click Areas for Navigation (Left/Right split) */}
                   <div 
                     className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
