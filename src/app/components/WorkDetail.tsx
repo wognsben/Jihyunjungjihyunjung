@@ -345,7 +345,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           {work.galleryImages && work.galleryImages.length > 0 && (
             <div className="mb-32 md:mb-48 lg:mb-64">
               <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
-                <div className="relative h-[45vh] md:h-[65vh] lg:h-[70vh] group w-full">
+                <div className="relative h-auto max-h-[45vh] md:max-h-[65vh] lg:max-h-[70vh] group w-full">
                   {/* Desktop: Click Areas for Navigation (Left/Right split) */}
                   <div 
                     className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
@@ -411,7 +411,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                   </AnimatePresence>
                   
                   {/* Mobile Controls (Inside) */}
-                  <div className="lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-8 md:gap-10 pointer-events-none">
+                  <div className="hidden md:flex lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 items-center gap-8 md:gap-10 pointer-events-none">
                     <button 
                       className="pointer-events-auto text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                       aria-label="Previous"
@@ -440,6 +440,38 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       </svg>
                     </button>
                   </div>
+
+                </div>
+
+                {/* Mobile Controls (Outside - below image) */}
+                <div className="flex md:hidden items-center justify-center gap-8 mt-4">
+                  <button 
+                    className="text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="Previous"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToPrevSlide();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180">
+                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                    </svg>
+                  </button>
+                  <span className="text-[9px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                    {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
+                  </span>
+                  <button 
+                    className="text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="Next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      goToNextSlide();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
+                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Desktop Controls (Outside/Below) */}
