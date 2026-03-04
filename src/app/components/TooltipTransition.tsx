@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { gsap } from 'gsap';
 import { useWorks } from '@/contexts/WorkContext';
@@ -33,7 +33,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [activeWork, setActiveWork] = useState<Work | null>(null);
   const slideshowTimer = useRef<gsap.core.Tween | null>(null);
-  const slideshowIndexRef = useRef<number>(0); // Track slideshow index independently
+  const slideshowIndexRef = useRef<number>(0);
 
   // Update active work
   useEffect(() => {
@@ -42,19 +42,15 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
       if (found) {
         setActiveWork(found);
         setCurrentImageIndex(0);
-        slideshowIndexRef.current = 0; // Reset index when work changes
+        slideshowIndexRef.current = 0;
       }
     }
   }, [hoveredWorkId, works]);
 
   const images = useMemo(() => {
     if (!activeWork) return [];
-    
-    // Combine thumbnail and gallery images, then remove duplicates
     const allImages = [activeWork.thumbnail, ...(activeWork.galleryImages || [])]
       .filter(Boolean) as string[];
-    
-    // Remove duplicate URLs
     return Array.from(new Set(allImages));
   }, [activeWork]);
 
@@ -75,12 +71,11 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     }
   }, [hoveredWorkId, isOpen, images.length]);
 
-  // Premium animations
+  // Entrance/exit animation
   useEffect(() => {
     if (!tooltipRef.current) return;
 
     if (hoveredWorkId && activeWork) {
-      // Elegant entrance
       gsap.timeline()
         .set(tooltipRef.current, { opacity: 0, y: 20, scale: 0.95 })
         .to(tooltipRef.current, {
@@ -91,7 +86,6 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
           ease: 'power3.out'
         });
     } else if (!hoveredWorkId) {
-      // Smooth exit
       gsap.to(tooltipRef.current, {
         opacity: 0,
         y: 10,
@@ -102,179 +96,181 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     }
   }, [hoveredWorkId, activeWork]);
 
-  const handleWorkClick = (e: React.MouseEvent) => {
-    console.log('🔥 TooltipTransition handleWorkClick CALLED', { activeWork: activeWork?.id, hasOnClick: !!onClick });
+  // Mobile: close tooltip on outside click (document-level)
+  useEffect(() => {
+    if (!isMobile || !hoveredWorkId) return;
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    // Delay to avoid immediate close from the same click that opened it
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleDocumentClick, true);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleDocumentClick, true);
+    };
+  }, [isMobile, hoveredWorkId, onClose]);
+
+  const handleWorkClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // 네이티브 이벤트도 즉시 중단
-    if (e.nativeEvent) {
-      e.nativeEvent.stopImmediatePropagation();
-    }
     if (activeWork && onClick) {
-      console.log('🔥 Calling onClick prop');
       onClick();
-    } else {
-      console.log('❌ Cannot call onClick', { activeWork, onClick });
     }
-  };
+  }, [activeWork, onClick]);
 
   // Don't show anything if no work is hovered
   if (!hoveredWorkId || !activeWork) {
     return null;
   }
 
-  // Active tooltip
+  // Render tooltip directly to body - NO wrapper div
   return createPortal(
-    <div 
-      className={`fixed inset-0 z-[99999] ${isMobile ? 'pointer-events-auto bg-black/0' : 'pointer-events-none'}`}
-      onClick={(e) => {
-        // 모바일에서 tooltip 외부 클릭 시 툴팁 닫기
-        if (isMobile) {
-          const target = e.target as HTMLElement;
-          if (!target.closest('.tooltip')) {
-            onClose();
-          }
-        }
+    <aside 
+      ref={tooltipRef}
+      className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[9999999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+      translate={lang === 'ko' ? 'no' : undefined}
+      style={{ 
+        opacity: 0,
+        pointerEvents: 'auto',
+        isolation: 'isolate'
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <aside 
-        ref={tooltipRef}
-        className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[99999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden pointer-events-auto backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
-        translate={lang === 'ko' ? 'no' : undefined}
-        style={{ 
-          opacity: 0,
-          isolation: 'isolate'
-        }} 
+      {/* Premium Frame Lines */}
+      <div className="absolute inset-0 pointer-events-none z-10">
+        {/* Corner Accents */}
+        <div className="absolute top-0 left-0 w-8 h-8">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
+          <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
+        </div>
+        <div className="absolute top-0 right-0 w-8 h-8">
+          <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
+          <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
+        </div>
+        <div className="absolute bottom-0 left-0 w-8 h-8">
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
+        </div>
+        <div className="absolute bottom-0 right-0 w-8 h-8">
+          <div className="absolute bottom-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
+          <div className="absolute bottom-0 right-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
+        </div>
+      </div>
+
+      {/* Image Gallery with Premium Crossfade */}
+      <div 
+        onClick={handleWorkClick}
+        className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10 cursor-pointer z-20"
       >
-        {/* Premium Frame Lines */}
-        <div className="absolute inset-0 pointer-events-none z-50">
-          {/* Corner Accents */}
-          <div className="absolute top-0 left-0 w-8 h-8">
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
-            <div className="absolute top-0 left-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
-          </div>
-          <div className="absolute top-0 right-0 w-8 h-8">
-            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
-            <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-foreground/40 to-transparent"></div>
-          </div>
-          <div className="absolute bottom-0 left-0 w-8 h-8">
-            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-foreground/40 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
-          </div>
-          <div className="absolute bottom-0 right-0 w-8 h-8">
-            <div className="absolute bottom-0 right-0 w-full h-[1px] bg-gradient-to-l from-foreground/40 to-transparent"></div>
-            <div className="absolute bottom-0 right-0 w-[1px] h-full bg-gradient-to-t from-foreground/40 to-transparent"></div>
-          </div>
-        </div>
-
-        {/* Image Gallery with Premium Crossfade */}
-        <div 
-          onClick={handleWorkClick}
-          className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10 cursor-pointer"
+        {/* Close Button - Top Right */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="absolute top-2 right-2 z-50 w-6 h-6 rounded-full bg-background/80 backdrop-blur-md border border-border/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-background hover:scale-110"
+          aria-label="Close preview"
         >
-          {/* Close Button - Top Right */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="absolute top-2 right-2 z-50 w-6 h-6 rounded-full bg-background/80 backdrop-blur-md border border-border/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-background hover:scale-110 pointer-events-auto"
-            aria-label="Close preview"
-          >
-            <X className="w-3 h-3 text-foreground/60" />
-          </button>
-          
-          {activeWork && images.map((img, i) => (
-            <div 
-              key={i}
-              className="absolute inset-0 transition-all duration-[1200ms] ease-in-out"
-              style={{ 
-                opacity: i === currentImageIndex ? 1 : 0,
-                transform: i === currentImageIndex ? 'scale(1.05)' : 'scale(1.1)',
-                transition: 'opacity 1.2s ease-in-out, transform 12s ease-out'
-              }}
-            >
-              <div 
-                className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url(${img})` }}
-              />
-            </div>
-          ))}
-          
-          {/* Vignette Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20 pointer-events-none"></div>
-          
-          {/* Image Counter - Left Top */}
-          {images.length > 1 && (
-            <div className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full border border-border/20">
-              <span className="text-[8px] font-mono text-foreground/70 tabular-nums">
-                {currentImageIndex + 1}/{images.length}
-              </span>
-            </div>
-          )}
-        </div>
+          <X className="w-3 h-3 text-foreground/60" />
+        </button>
         
-        {/* Premium Content Section */}
-        {activeWork && (
-          <div className="w-full flex flex-col bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm relative">
-            {/* Main Info */}
-            <div className="px-5 py-4 flex flex-col gap-2">
-              {/* Title / selected work / Year Row */}
-              <div className="flex items-baseline justify-between gap-3">
-                <div className="flex items-baseline gap-2 min-w-0 flex-1">
-                  <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate">
-                    {lang === 'en' 
-                      ? (activeWork.title_en || activeWork.title_ko || activeWork.title) 
-                      : lang === 'jp'
-                        ? (activeWork.title_jp || activeWork.title_ko || activeWork.title)
-                        : (activeWork.title_ko || activeWork.title)
-                    }
-                  </h3>
-                  <span className="text-[9px] font-mono text-muted-foreground/50 tracking-wider whitespace-nowrap uppercase">
-                    · selected work
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
-                  {activeWork.year}
-                </span>
-              </div>
-              
-              {/* Medium if available */}
-              {activeWork.medium && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-muted-foreground/40 font-mono">
-                    {activeWork.medium}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Action Footer */}
+        {activeWork && images.map((img, i) => (
+          <div 
+            key={i}
+            className="absolute inset-0 transition-all duration-[1200ms] ease-in-out pointer-events-none"
+            style={{ 
+              opacity: i === currentImageIndex ? 1 : 0,
+              transform: i === currentImageIndex ? 'scale(1.05)' : 'scale(1.1)',
+              transition: 'opacity 1.2s ease-in-out, transform 12s ease-out'
+            }}
+          >
             <div 
-              onClick={handleWorkClick}
-              className="tooltip-action w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 cursor-pointer hover:bg-muted/30 active:bg-muted/40"
-            >
-              <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 transition-colors duration-300 pointer-events-none">
-                open
-              </span>
-              {/* Arrow with micro animation */}
-              <div className="relative pointer-events-none">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 transition-all duration-300">
-                  <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </div>
+              className="w-full h-full bg-cover bg-center"
+              style={{ backgroundImage: `url(${img})` }}
+            />
+          </div>
+        ))}
+        
+        {/* Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20 pointer-events-none"></div>
+        
+        {/* Image Counter - Left Top */}
+        {images.length > 1 && (
+          <div className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full border border-border/20 pointer-events-none">
+            <span className="text-[8px] font-mono text-foreground/70 tabular-nums">
+              {currentImageIndex + 1}/{images.length}
+            </span>
           </div>
         )}
+      </div>
+      
+      {/* Premium Content Section */}
+      {activeWork && (
+        <div className="w-full flex flex-col bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm relative z-20">
+          {/* Main Info */}
+          <div className="px-5 py-4 flex flex-col gap-2">
+            {/* Title / selected work / Year Row */}
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate">
+                  {lang === 'en' 
+                    ? (activeWork.title_en || activeWork.title_ko || activeWork.title) 
+                    : lang === 'jp'
+                      ? (activeWork.title_jp || activeWork.title_ko || activeWork.title)
+                      : (activeWork.title_ko || activeWork.title)
+                  }
+                </h3>
+                <span className="text-[9px] font-mono text-muted-foreground/50 tracking-wider whitespace-nowrap">
+                  · selected work
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
+                {activeWork.year}
+              </span>
+            </div>
+            
+            {/* Medium if available */}
+            {activeWork.medium && (
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-muted-foreground/40 font-mono">
+                  {activeWork.medium}
+                </span>
+              </div>
+            )}
+          </div>
 
-        {/* Shimmer Effect on Hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+          {/* Action Footer - OPEN button */}
+          <div 
+            role="button"
+            tabIndex={0}
+            onClick={handleWorkClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleWorkClick(e as any); }}
+            className="tooltip-action w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 cursor-pointer hover:bg-muted/30 active:bg-muted/40 select-none"
+          >
+            <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 transition-colors duration-300">
+              open
+            </span>
+            {/* Arrow */}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 transition-all duration-300">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </div>
-      </aside>
-    </div>,
+      )}
+
+      {/* Shimmer Effect on Hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+      </div>
+    </aside>,
     document.body
   );
 };

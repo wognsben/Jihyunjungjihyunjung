@@ -4,7 +4,6 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { ScrambleText } from '@/app/components/ui/ScrambleText';
 import { ContactModal } from '@/app/components/ContactModal';
-import { WorkModal } from '@/app/components/WorkModal';
 import { AboutData, HistoryItem, fetchAboutPage, fetchHistoryItems } from '@/services/wp-api';
 import { TooltipTransition } from '@/app/components/TooltipTransition';
 import { Work } from '@/types/work';
@@ -215,13 +214,12 @@ export const About = () => {
   const { lang } = useLanguage();
   const { works } = useWorks();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   
   // Tooltip State
   const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
   const [isManualHover, setIsManualHover] = useState(false); // Track if user is manually hovering
   
-  // Mobile Detection (1024px 미만)
+  // Mobile Detection (768px 미만)
   const [isMobile, setIsMobile] = useState(false);
   
   // Intersection Observer State for auto-showing thumbnails on scroll
@@ -239,6 +237,8 @@ export const About = () => {
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 툴팁 내부에 마우스가 있는지 추적 (ref로 관리 → 불필요한 리렌더 방지)
+  const isInTooltip = useRef(false);
 
   // Scroll State
   const state = useRef({
@@ -273,10 +273,10 @@ export const About = () => {
     loadData();
   }, []);
 
-  // Mobile Detection (1024px 미만)
+  // Mobile Detection (768px 미만)
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
+      setIsMobile(window.innerWidth < 768);
     };
     
     checkMobile();
@@ -316,18 +316,16 @@ export const About = () => {
 
   // Event Handlers for Dynamic Content (React Synthetic Events)
   const handleContentClick = (e: any) => {
-    console.log('🟢 About handleContentClick CALLED');
     const target = e.target as HTMLElement;
     const link = target.closest('.hover-line') as HTMLElement;
     
     if (link) {
       const id = link.getAttribute('data-work-id');
       if (id) {
-        console.log('🟢 Found work link', { id, isMobile });
         e.preventDefault();
         e.stopPropagation();
         
-        // 모바일: 툴팁 토글, 데스크탑: WorkModal 열기
+        // 모바일: 툴팁 토글, 데스크탑: Work 상세 페이지로 이동
         if (isMobile) {
           if (tooltipWorkId === id) {
             setTooltipWorkId(null); // 같은 작품 재클릭 시 툴팁 닫기
@@ -336,29 +334,33 @@ export const About = () => {
           }
         } else {
           setTooltipWorkId(null);
-          setSelectedWorkId(id);
+          window.location.hash = `#/work/${id}`;
         }
       }
     }
   };
 
   const handleContentMouseOver = (e: any) => {
-    // 데스크탑에서만 호버 작동
     if (isMobile) return;
-    
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current);
-      tooltipTimeoutRef.current = null;
-    }
-    
+    if (isInTooltip.current) return;
+
     const target = e.target as HTMLElement;
     const link = target.closest('.hover-line') as HTMLElement;
+
     if (link) {
-      const id = link.getAttribute('data-work-id');
-      // 이미 같은 작품이 hover되어 있으면 무시 (깜빡임 방지)
-      if (id && id !== tooltipWorkId) {
-        setIsManualHover(true);
-        setTooltipWorkId(id);
+      // ★ 행 위에 있는 한 닫기 타이머는 항상 취소 (tooltipWorkId 여부 무관)
+      if (tooltipTimeoutRef.current) {
+        clearTimeout(tooltipTimeoutRef.current);
+        tooltipTimeoutRef.current = null;
+      }
+
+      // 툴팁이 없을 때만 새로 열기
+      if (tooltipWorkId === null) {
+        const id = link.getAttribute('data-work-id');
+        if (id) {
+          setIsManualHover(true);
+          setTooltipWorkId(id);
+        }
       }
     }
   };
@@ -367,16 +369,22 @@ export const About = () => {
     // 데스크탑에서만 호버 작동
     if (isMobile) return;
     
+    // ★ 툴팁 안에 있으면 닫기 타이머 무시
+    if (isInTooltip.current) return;
+    
      const target = e.target as HTMLElement;
      if (target.closest('.hover-line')) {
         setIsManualHover(false);
+        // ★ 600ms로 늘려 툴팁까지 이동할 여유 시간 확보
         tooltipTimeoutRef.current = setTimeout(() => {
           setTooltipWorkId(null);
-        }, 300);
+        }, 600);
      }
   };
 
   const handleTooltipMouseEnter = () => {
+    // ★ 툴팁 진입 즉시 lock — 이후 행 hover 이벤트를 차단
+    isInTooltip.current = true;
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
       tooltipTimeoutRef.current = null;
@@ -385,9 +393,11 @@ export const About = () => {
   };
 
   const handleTooltipMouseLeave = () => {
+    // ★ 툴팁 이탈 시 lock 해제
+    isInTooltip.current = false;
     tooltipTimeoutRef.current = setTimeout(() => {
       setTooltipWorkId(null);
-    }, 300);
+    }, 1200);
     setIsManualHover(false);
   };
   
@@ -723,15 +733,12 @@ export const About = () => {
         </div>
       </div>
       
+      {/* pointer-events 스타일 주입 제거 — 무한 루프의 원인이었음.
+           tooltipWorkId가 설정되면 handleContentMouseOver에서 이미 새 툴팁 열기를 차단하므로 불필요 */}
+
       <ContactModal 
         isOpen={isContactModalOpen} 
         onClose={() => setIsContactModalOpen(false)} 
-      />
-      
-      {/* Moved WorkModal to end and ensure z-index is high */}
-      <WorkModal 
-        workId={selectedWorkId} 
-        onClose={() => setSelectedWorkId(null)} 
       />
       
       {/* Tooltip Transition Effect */}
@@ -740,11 +747,10 @@ export const About = () => {
         isOpen={false} 
         onClose={() => setTooltipWorkId(null)}
         onClick={() => {
-          console.log('🔵 About TooltipTransition onClick CALLED', { tooltipWorkId });
           if (tooltipWorkId) {
-            setTooltipWorkId(null);
-            setSelectedWorkId(tooltipWorkId);
-            console.log('🔵 Setting selectedWorkId to', tooltipWorkId);
+            // ★ 툴팁을 먼저 닫지 않고 바로 이동
+            // (닫는 순간 마우스 아래 행이 재발동하는 버그 방지)
+            window.location.hash = `#/work/${tooltipWorkId}`;
           }
         }}
         isMobile={isMobile}

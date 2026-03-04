@@ -412,6 +412,16 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
             }
           }}
           isMobile={false}
+          onMouseEnter={() => {
+            // 툴팁에 마우스 진입 시 hoveredWorkId 유지
+            if (lastHoveredWorkId) {
+              setHoveredWorkId(lastHoveredWorkId);
+            }
+          }}
+          onMouseLeave={() => {
+            setHoveredWorkId(null);
+            setLastHoveredWorkId(null);
+          }}
         />
       )}
 
