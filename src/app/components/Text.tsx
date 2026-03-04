@@ -80,6 +80,10 @@ export const Text = () => {
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Bottom Sheet drag state
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   // Desktop Fade Out State
   const [sidebarOpacity, setSidebarOpacity] = useState(1);
@@ -95,7 +99,7 @@ export const Text = () => {
   // Filter Logic
   const filteredData = useMemo(() => {
     return texts.filter((item) => {
-      if (activeCategory !== 'All' && item.category !== activeCategory) return false;
+      if (activeCategory !== 'All' && item.category.toLowerCase() !== activeCategory.toLowerCase()) return false;
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
         const title = item.title[lang].toLowerCase();
@@ -182,9 +186,10 @@ export const Text = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
-        inputRef.current?.focus();
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 1025) {
            setIsMobileMenuOpen(true);
+        } else {
+           inputRef.current?.focus();
         }
       }
     };
@@ -241,18 +246,18 @@ export const Text = () => {
         </AnimatePresence>
       </div>
 
-      <div className="w-full px-6 md:px-12 pt-28 md:pt-32 pb-24 flex flex-col md:flex-row gap-8 md:gap-24 relative">
+      <div className="w-full px-6 md:px-12 pt-28 md:pt-32 pb-24 flex flex-col min-[1025px]:flex-row gap-8 min-[1025px]:gap-24 relative">
 
         {/* ------------------------------------------------------- */}
-        {/* SIDEBAR (Desktop: Sticky, Mobile: Hidden on Scroll)     */}
+        {/* SIDEBAR (Desktop: Sticky, Mobile/Tablet: Hidden on Scroll) */}
         {/* ------------------------------------------------------- */}
         <motion.div 
             style={{ opacity: sidebarOpacity }}
             className={`
-               md:w-1/4 lg:w-1/5 md:h-[calc(100vh-5rem)] 
-               md:sticky md:top-32 z-30 flex flex-col gap-6 md:gap-12 
+               min-[1025px]:w-1/4 lg:w-1/5 min-[1025px]:h-[calc(100vh-5rem)] 
+               min-[1025px]:sticky min-[1025px]:top-32 z-30 flex flex-col gap-6 min-[1025px]:gap-12 
                transition-all duration-300 ease-out
-               ${showFloatingBar ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : 'opacity-100'}
+               ${showFloatingBar ? 'opacity-0 pointer-events-none min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto' : 'opacity-100'}
             `}
         >
           {/* GHOST SEARCH BAR */}
@@ -289,7 +294,7 @@ export const Text = () => {
                     ) : (
                         <div 
                             onClick={() => inputRef.current?.focus()}
-                            className="hidden md:flex items-center justify-center w-5 h-5 cursor-pointer group/hint"
+                            className="hidden min-[1025px]:flex items-center justify-center w-5 h-5 cursor-pointer group/hint"
                         >
                             <span className="text-xl leading-none font-serif text-muted-foreground/60 group-hover/hint:text-foreground transition-all duration-700 group-hover/hint:rotate-180 origin-center">
                                 *
@@ -299,7 +304,7 @@ export const Text = () => {
                 </div>
             </div>
             
-            <div className="mt-4 hidden md:block opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 delay-100">
+            <div className="mt-4 hidden min-[1025px]:block opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 delay-100">
                 <button 
                     onClick={() => inputRef.current?.focus()}
                     className="text-[10px] uppercase tracking-widest font-mono text-foreground/40 hover:text-foreground transition-colors flex items-center gap-2"
@@ -311,19 +316,22 @@ export const Text = () => {
           </div>
 
           {/* Category Filter */}
-          <div className="flex flex-col gap-2 md:gap-4">
-            <span className="text-[10px] font-mono lowercase tracking-widest text-muted-foreground/60 hidden md:block">
+          <div className="flex flex-col gap-2 min-[1025px]:gap-4">
+            <span className="text-[10px] font-mono lowercase tracking-widest text-muted-foreground/60 hidden min-[1025px]:block">
               {sectionLabels.category[lang]}
             </span>
             <div className="flex flex-wrap gap-3">
               {categories.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`flex-shrink-0 text-left text-sm transition-all duration-300 flex items-center gap-2 group/btn whitespace-nowrap px-3 py-1 md:px-0 md:py-0 rounded-full md:rounded-none border md:border-0 ${
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className={`flex-shrink-0 text-left text-sm transition-all duration-300 flex items-center gap-2 group/btn whitespace-nowrap px-3 py-1 min-[1025px]:px-0 min-[1025px]:py-0 rounded-full min-[1025px]:rounded-none border min-[1025px]:border-0 ${
                     activeCategory === cat 
-                      ? 'bg-foreground text-background md:bg-transparent md:text-foreground md:font-medium md:pl-2 md:border-l md:border-foreground border-transparent' 
-                      : 'bg-transparent text-muted-foreground hover:text-foreground border-foreground/10 md:border-transparent'
+                      ? 'bg-foreground text-background min-[1025px]:bg-transparent min-[1025px]:text-foreground min-[1025px]:font-medium min-[1025px]:pl-2 min-[1025px]:border-l min-[1025px]:border-foreground border-transparent' 
+                      : 'bg-transparent text-muted-foreground hover:text-foreground border-foreground/10 min-[1025px]:border-transparent'
                   }`}
                 >
                   <span>{categoryLabels[cat][lang]}</span>
@@ -345,7 +353,7 @@ export const Text = () => {
             </div>
           )}
 
-          <div className="flex flex-col mt-4 md:mt-0">
+          <div className="flex flex-col mt-4 min-[1025px]:mt-0">
             {filteredData.map((item, index) => (
               <motion.a
                 href={`#/text/${item.id}`}
@@ -368,7 +376,7 @@ export const Text = () => {
                     {/* Mobile + Tablet: Category & Year in same row */}
                     <div className="flex min-[1025px]:hidden items-center justify-between w-full mb-2">
                       <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
-                         {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
+                         {categoryLabels[item.category.toLowerCase()]?.[lang] || item.category.toLowerCase()}
                       </span>
                       <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {item.year}
@@ -377,7 +385,7 @@ export const Text = () => {
                     
                     {/* Desktop: Category Label */}
                     <span className="hidden min-[1025px]:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
-                       {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
+                       {categoryLabels[item.category.toLowerCase()]?.[lang] || item.category.toLowerCase()}
                     </span>
                     
                     <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-black text-foreground">
@@ -409,133 +417,153 @@ export const Text = () => {
       </div>
 
       {/* ------------------------------------------------------- */}
-      {/* MOBILE FLOATING ACTION BAR                              */}
+      {/* MOBILE/TABLET FLOATING ACTION BUTTON                     */}
       {/* ------------------------------------------------------- */}
       <AnimatePresence>
         {showFloatingBar && (
            <motion.div 
-             initial={{ y: 100, opacity: 0 }}
-             animate={{ y: 0, opacity: 1 }}
-             exit={{ y: 100, opacity: 0 }}
-             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-             className="fixed bottom-8 left-0 right-0 z-50 flex justify-center md:hidden pointer-events-none"
+             initial={{ y: 80, opacity: 0, scale: 0.8 }}
+             animate={{ y: 0, opacity: 1, scale: 1 }}
+             exit={{ y: 80, opacity: 0, scale: 0.8 }}
+             transition={{ type: "spring", stiffness: 400, damping: 28 }}
+             className="fixed bottom-8 left-0 right-0 z-50 flex justify-center min-[1025px]:hidden pointer-events-none"
            >
               <button
-                 onClick={() => {
-                   setIsMobileMenuOpen(true);
-                 }}
-                 className="pointer-events-auto flex items-center gap-3 bg-foreground text-background px-6 py-3 rounded-full shadow-2xl shadow-black/20"
+                 onClick={() => setIsMobileMenuOpen(true)}
+                 className="pointer-events-auto flex items-center gap-3 bg-foreground/90 backdrop-blur-md text-background px-6 py-3 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.25),0_2px_8px_rgba(0,0,0,0.15)] border border-white/[0.08] active:scale-[0.96] transition-transform duration-150"
               >
-                  <span className="text-lg font-serif italic">*</span>
+                  <motion.span 
+                    className="text-lg font-serif italic"
+                    animate={{ rotate: [0, 180, 360] }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  >
+                    *
+                  </motion.span>
                   <span className="text-xs font-mono uppercase tracking-widest">Search</span>
+                  {/* Active filter indicator */}
+                  {(activeCategory !== 'All' || searchQuery) && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
+                  )}
               </button>
            </motion.div>
         )}
       </AnimatePresence>
 
       {/* ------------------------------------------------------- */}
-      {/* MOBILE FULLSCREEN MENU (Overlay)                        */}
+      {/* BOTTOM SHEET (Mobile/Tablet)                             */}
       {/* ------------------------------------------------------- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-           <motion.div 
-             initial={{ opacity: 0, y: "100%" }}
-             animate={{ opacity: 1, y: 0 }}
-             exit={{ opacity: 0, y: "100%" }}
-             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-             className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl md:hidden flex flex-col"
-           >
-              {/* Close Button */}
-              <div className="flex justify-between items-center px-6 pt-6 pb-4">
-                 <div className="text-xs text-muted-foreground font-mono">
-                    {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
-                 </div>
-                 <button 
-                   onClick={() => setIsMobileMenuOpen(false)}
-                   className="p-2 rounded-full hover:bg-foreground/5"
-                 >
-                    <X size={24} />
-                 </button>
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="fixed inset-0 z-[60] bg-black/30 min-[1025px]:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            
+            {/* Sheet */}
+            <motion.div
+              ref={sheetRef}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 32, stiffness: 350 }}
+              className="fixed bottom-0 left-0 right-0 z-[61] min-[1025px]:hidden"
+            >
+              <div className="bg-background rounded-t-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] max-h-[70vh] overflow-hidden">
+                {/* Drag Handle */}
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="w-10 h-1 rounded-full bg-foreground/15" />
+                </div>
+                
+                {/* Sheet Content */}
+                <div className="px-6 pb-8 pt-2 flex flex-col gap-6">
+                  {/* Search Input */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">Search</span>
+                      <button 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <div className="relative flex items-center border-b border-foreground/20 pb-3 focus-within:border-foreground transition-colors">
+                      <Search size={16} strokeWidth={1.5} className="mr-3 text-muted-foreground shrink-0" />
+                      <input
+                        ref={mobileInputRef}
+                        autoFocus
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Type keywords..."
+                        className="flex-1 bg-transparent text-base font-light outline-none text-foreground placeholder:text-foreground/25"
+                        style={{ fontSize: 'max(16px, 1rem)' }}
+                        autoComplete="off"
+                        spellCheck="false"
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className="ml-2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Categories */}
+                  <div className="flex flex-col gap-3">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
+                      {sectionLabels.category[lang]}
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => {
+                            setActiveCategory(cat);
+                            // Auto-close sheet after category selection, then smooth scroll to top
+                            setTimeout(() => {
+                              setIsMobileMenuOpen(false);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }, 300);
+                          }}
+                          className={`px-4 py-2 rounded-full border text-sm transition-all duration-200 ${
+                            activeCategory === cat 
+                              ? 'bg-foreground text-background border-foreground' 
+                              : 'bg-transparent text-foreground/70 border-foreground/15 active:bg-foreground/5'
+                          }`}
+                        >
+                          {categoryLabels[cat][lang]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Result Count */}
+                  <div className="flex items-center justify-between pt-2 border-t border-foreground/5">
+                    <span className="text-xs font-mono text-muted-foreground/50">
+                      {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
+                    </span>
+                    <button
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-xs font-mono text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1.5"
+                    >
+                      <span>Done</span>
+                      <span className="text-foreground/30">↓</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              {/* Search Content */}
-              <div className="flex-1 flex flex-col overflow-hidden px-6">
-                 <div className="flex flex-col gap-8 pb-6">
-                    <div className="flex flex-col gap-2">
-                       <p className="text-sm font-mono text-muted-foreground">SEARCH</p>
-                       <input 
-                         autoFocus
-                         type="text" 
-                         value={searchQuery}
-                         onChange={(e) => setSearchQuery(e.target.value)}
-                         placeholder="Type keywords..."
-                         className="text-3xl font-light bg-transparent border-b border-foreground/20 pb-4 outline-none placeholder:text-foreground/20"
-                         style={{ fontSize: 'max(16px, 1.875rem)' }}
-                       />
-                    </div>
-
-                    <div className="flex flex-col gap-4">
-                       <p className="text-sm font-mono text-muted-foreground">{sectionLabels.category[lang]}</p>
-                       <div className="flex flex-wrap gap-3">
-                          {categories.map(cat => (
-                             <button
-                               key={cat}
-                               onClick={() => setActiveCategory(cat)}
-                               className={`px-4 py-2 rounded-full border text-sm transition-all ${
-                                   activeCategory === cat 
-                                   ? 'bg-foreground text-background border-foreground' 
-                                   : 'bg-transparent text-foreground border-foreground/20'
-                               }`}
-                             >
-                               {categoryLabels[cat][lang]}
-                             </button>
-                          ))}
-                       </div>
-                    </div>
-                 </div>
-
-                 {/* Results List - Scrollable */}
-                 <div className="flex-1 overflow-y-auto -mx-6 px-6">
-                    <div className="border-t border-foreground/10 pt-4">
-                       <p className="text-xs font-mono text-muted-foreground mb-4">{sectionLabels.results[lang]}</p>
-                       
-                       {filteredData.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
-                             <Search size={20} strokeWidth={1} />
-                             <p className="text-sm font-light">No results found</p>
-                          </div>
-                       ) : (
-                          <div className="flex flex-col gap-1 pb-6">
-                             {filteredData.map((item, index) => (
-                                <a
-                                  href={`#/text/${item.id}`}
-                                  key={item.id}
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                  className="group/item relative border-b border-foreground/5 py-4 transition-all duration-300 -mx-2 px-2 rounded-lg active:bg-white"
-                                >
-                                   <div className="flex items-start justify-between gap-3">
-                                      <div className="flex-1 min-w-0">
-                                         <h3 className="font-serif text-sm font-light leading-snug text-foreground mb-1">
-                                           <FormattedTitle text={item.title[lang]} />
-                                         </h3>
-                                         <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/60">
-                                            <span>{categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}</span>
-                                            <span>·</span>
-                                            <span>{item.year}</span>
-                                         </div>
-                                      </div>
-                                      <div className="text-foreground/30 group-active/item:text-foreground transition-colors text-sm">
-                                         →
-                                      </div>
-                                   </div>
-                                </a>
-                             ))}
-                          </div>
-                       )}
-                    </div>
-                 </div>
-              </div>
-           </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
