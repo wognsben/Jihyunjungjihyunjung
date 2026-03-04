@@ -550,7 +550,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                     >
                        {hoveredArticleImg && <img src={hoveredArticleImg} alt="Preview" className="w-full h-full object-cover grayscale contrast-125" />}
                     </div>
-                    <div className="flex flex-col border-t border-black/10 dark:border-white/10">
+                    <div className="flex flex-col divide-y divide-black/10 dark:divide-white/10 border-t border-black/10 dark:border-white/10">
                       {work.relatedArticles.map((article, index) => {
                          const textItem = texts.find(t => t.id === article.id);
                          const displayTitle = textItem ? (lang === 'ko' ? textItem.title.ko : lang === 'jp' ? textItem.title.jp : textItem.title.en) : article.title;
@@ -562,9 +562,9 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                                onMouseEnter={() => { setHoveredArticleId(article.id); if (textItem?.image) setHoveredArticleImg(textItem.image); }}
                                onMouseLeave={() => { setHoveredArticleId(null); setHoveredArticleImg(null); }}
                             >
-                               <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
-                                 <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
-                                 <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[16px]">{cleanText(displayTitle)}</h3>
+                               <div className={`flex items-baseline gap-3 md:gap-4 py-2 md:py-4 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
+                                 <span className="shrink-0 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
+                                 <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[14px] md:text-[16px] leading-snug m-0">{cleanText(displayTitle)}</h3>
                                </div>
                             </div>
                          );
