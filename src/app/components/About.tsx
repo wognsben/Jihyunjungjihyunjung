@@ -219,10 +219,12 @@ export const About = () => {
   const [tooltipWorkId, setTooltipWorkId] = useState<string | null>(null);
   const [isManualHover, setIsManualHover] = useState(false); // Track if user is manually hovering
   
-  // Mobile Detection (768px 미만)
+  // Mobile Detection (768px 미만) — 레이아웃용
   const [isMobile, setIsMobile] = useState(false);
+  // Touch Device Detection (1024px 미만) — 툴팁 동작용 (모바일+태블릿은 클릭 토글)
+  const [isTouch, setIsTouch] = useState(false);
   
-  // Intersection Observer State for auto-showing thumbnails on scroll
+  // Intersection Observer State
   const [visibleWorkRows, setVisibleWorkRows] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
   
@@ -277,6 +279,7 @@ export const About = () => {
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
+      setIsTouch(window.innerWidth < 1025);
     };
     
     checkMobile();
@@ -325,8 +328,8 @@ export const About = () => {
         e.preventDefault();
         e.stopPropagation();
         
-        // 모바일: 툴팁 토글, 데스크탑: Work 상세 페이지로 이동
-        if (isMobile) {
+        // 터치 디바이스(모바일+태블릿): 툴팁 토글, 데스크탑: Work 상세 페이지로 이동
+        if (isTouch) {
           if (tooltipWorkId === id) {
             setTooltipWorkId(null); // 같은 작품 재클릭 시 툴팁 닫기
           } else {
@@ -341,7 +344,7 @@ export const About = () => {
   };
 
   const handleContentMouseOver = (e: any) => {
-    if (isMobile) return;
+    if (isTouch) return;
     if (isInTooltip.current) return;
 
     const target = e.target as HTMLElement;
@@ -367,7 +370,7 @@ export const About = () => {
 
   const handleContentMouseOut = (e: any) => {
     // 데스크탑에서만 호버 작동
-    if (isMobile) return;
+    if (isTouch) return;
     
     // ★ 툴팁 안에 있으면 닫기 타이머 무시
     if (isInTooltip.current) return;
@@ -401,9 +404,9 @@ export const About = () => {
     setIsManualHover(false);
   };
   
-  // 모바일: 스크롤 시 툴팁 닫기
+  // 터치 디바이스(모바일+태블릿): 스크롤 시 툴팁 닫기
   useEffect(() => {
-    if (!isMobile || !tooltipWorkId) return;
+    if (!isTouch || !tooltipWorkId) return;
     
     const handleScroll = () => {
       setTooltipWorkId(null);
@@ -414,7 +417,7 @@ export const About = () => {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [isMobile, tooltipWorkId]);
+  }, [isTouch, tooltipWorkId]);
 
   // Intersection Observer for auto-showing work thumbnails on scroll (Tablet+)
   // DISABLED for now - manual hover only
@@ -753,7 +756,7 @@ export const About = () => {
             window.location.hash = `#/work/${tooltipWorkId}`;
           }
         }}
-        isMobile={isMobile}
+        isMobile={isTouch}
         onMouseEnter={handleTooltipMouseEnter}
         onMouseLeave={handleTooltipMouseLeave}
       />
