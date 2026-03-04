@@ -247,7 +247,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
           <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono">
             other works
           </h2>
-          <span className="text-[10px] font-mono text-muted-foreground/40">
+          <span className="font-mono text-muted-foreground/40 text-[10px]">
             {works.length} {works.length === 1 ? 'work' : 'works'}
           </span>
         </div>
