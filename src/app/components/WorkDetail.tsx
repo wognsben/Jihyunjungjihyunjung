@@ -412,73 +412,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                   
                 </div>
 
-                {/* Tablet Controls (Outside - below image) */}
-                <div className="hidden md:flex lg:hidden items-center justify-center gap-10 mt-4">
-                    <button 
-                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                      aria-label="Previous"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goToPrevSlide();
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 12 12" fill="none" className="rotate-180">
-                        <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                      </svg>
-                    </button>
-                    <span className="text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
-                      {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
-                    </span>
-                    <button 
-                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
-                      aria-label="Next"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        goToNextSlide();
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
-                        <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                      </svg>
-                    </button>
-                </div>
-
-                {/* Mobile Controls (Outside - below image) */}
-                <div className="flex md:hidden items-center justify-center gap-8 mt-4">
-                  <button 
-                    className="text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="Previous"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToPrevSlide();
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180">
-                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                    </svg>
-                  </button>
-                  <span className="text-[9px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
-                    {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
-                  </span>
-                  <button 
-                    className="text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="Next"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToNextSlide();
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none">
-                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Desktop Controls (Outside/Below) */}
-                <div className="hidden lg:flex items-center gap-10">
+                {/* Slider Controls - Single unified control */}
+                <div className="flex items-center justify-center gap-8 md:gap-10 mt-4">
                   <button 
                     type="button"
-                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
                     aria-label="Previous"
                     onClick={(e) => {
                       e.preventDefault();
@@ -486,16 +424,16 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       goToPrevSlide();
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 w-5 h-5 pointer-events-none">
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
                       <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                     </svg>
                   </button>
-                  <span className="text-[14px] font-['Ojuju'] text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                  <span className="min-[1025px]:text-[14px] font-mono min-[1025px]:font-['Ojuju'] text-foreground/50 tracking-[0.1em] whitespace-nowrap text-[11px]">
                     {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                   </span>
                   <button 
                     type="button"
-                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
                     aria-label="Next"
                     onClick={(e) => {
                       e.preventDefault();
@@ -503,7 +441,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       goToNextSlide();
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="w-5 h-5 pointer-events-none">
+                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
                       <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                     </svg>
                   </button>
