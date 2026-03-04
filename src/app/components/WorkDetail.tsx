@@ -410,37 +410,37 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                     />
                   </AnimatePresence>
                   
-                  {/* Mobile Controls (Inside) */}
-                  <div className="hidden md:flex lg:hidden absolute bottom-4 left-1/2 -translate-x-1/2 z-30 items-center gap-8 md:gap-10 pointer-events-none">
+                </div>
+
+                {/* Tablet Controls (Outside - below image) */}
+                <div className="hidden md:flex lg:hidden items-center justify-center gap-10 mt-4">
                     <button 
-                      className="pointer-events-auto text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                       aria-label="Previous"
                       onClick={(e) => {
                         e.stopPropagation();
                         goToPrevSlide();
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 md:w-5 md:h-5">
+                      <svg width="20" height="20" viewBox="0 0 12 12" fill="none" className="rotate-180">
                         <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                       </svg>
                     </button>
-                    <span className="text-[9px] md:text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
+                    <span className="text-[11px] font-mono text-foreground/50 tracking-[0.1em] whitespace-nowrap">
                       {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
                     </span>
                     <button 
-                      className="pointer-events-auto text-foreground/50 hover:text-foreground transition-colors active:scale-95"
+                      className="text-foreground/50 hover:text-foreground transition-colors active:scale-95"
                       aria-label="Next"
                       onClick={(e) => {
                         e.stopPropagation();
                         goToNextSlide();
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="md:w-5 md:h-5">
+                      <svg width="20" height="20" viewBox="0 0 12 12" fill="none">
                         <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
                       </svg>
                     </button>
-                  </div>
-
                 </div>
 
                 {/* Mobile Controls (Outside - below image) */}

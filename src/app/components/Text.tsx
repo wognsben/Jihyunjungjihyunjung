@@ -361,12 +361,12 @@ export const Text = () => {
                 {/* Hover Background (White instead of Dark) */}
                 <div className="absolute inset-0 bg-white opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
 
-                <div className="relative z-10 flex flex-col md:grid md:grid-cols-[1fr_80px] md:gap-8 md:items-baseline">
+                <div className="relative z-10 flex flex-col min-[1025px]:grid min-[1025px]:grid-cols-[1fr_80px] min-[1025px]:gap-8 min-[1025px]:items-baseline">
                   
                   {/* Title Area + Category */}
-                  <div className="flex flex-col md:flex-row md:items-baseline gap-2 md:gap-8 order-1">
-                    {/* Mobile: Category & Year in same row */}
-                    <div className="flex md:hidden items-center justify-between w-full mb-2">
+                  <div className="flex flex-col min-[1025px]:flex-row min-[1025px]:items-baseline gap-2 min-[1025px]:gap-8 order-1">
+                    {/* Mobile + Tablet: Category & Year in same row */}
+                    <div className="flex min-[1025px]:hidden items-center justify-between w-full mb-2">
                       <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
                       </span>
@@ -376,7 +376,7 @@ export const Text = () => {
                     </div>
                     
                     {/* Desktop: Category Label */}
-                    <span className="hidden md:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
+                    <span className="hidden min-[1025px]:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
                        {categoryLabels[item.category]?.[lang] || item.category.toLowerCase()}
                     </span>
                     
@@ -386,14 +386,14 @@ export const Text = () => {
                   </div>
 
                   {/* Desktop Layout - Year Only */}
-                  <div className="hidden md:block order-2 mt-1 md:mt-0 md:text-right md:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
+                  <div className="hidden min-[1025px]:block order-2 mt-1 min-[1025px]:mt-0 min-[1025px]:text-right min-[1025px]:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
                     <span className="text-xs font-mono text-muted-foreground group-hover/item:text-black transition-colors duration-300">
                       {item.year}
                     </span>
                   </div>
                 </div>
 
-                <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-black text-sm z-10">
+                <div className="hidden min-[1025px]:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-black text-sm z-10">
                   →
                 </div>
               </motion.a>
