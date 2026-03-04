@@ -319,27 +319,27 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           </div>
 
           {/* 2. Description Text (Video moved to bottom) */}
+          {description && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-32 md:mb-40">
             {/* Left: Empty for whitespace or future content */}
             <div className="hidden md:block md:col-span-5 lg:col-span-5"></div>
 
             {/* Right: Description Text */}
             <div className="md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7">
-               {description && (
                  <div className="space-y-6 md:space-y-8">
                    {description.split('\n\n').map((paragraph, index) => (
                       <BlurReveal 
                         key={`${lang}-${index}`} 
-                        className={`font-serif text-foreground/80 ${index === 0 ? 'text-lg md:text-xl leading-[1.6] opacity-90' : 'text-sm md:text-base leading-[1.8] opacity-70'}`}
+                        className={`font-serif text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
                         delay={0.2 + (index * 0.1)}
                       >
                         {cleanText(paragraph)}
                       </BlurReveal>
                    ))}
                  </div>
-               )}
             </div>
           </div>
+          )}
 
           {/* 3. Simple Image Slider */}
           {work.galleryImages && work.galleryImages.length > 0 && (
@@ -564,7 +564,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                             >
                                <div className={`flex items-baseline py-8 border-b border-black/10 dark:border-white/10 transition-all duration-300 ${hoveredArticleId === article.id ? 'pl-6 opacity-100' : 'pl-0 opacity-80'}`}>
                                  <span className="w-16 text-[10px] font-mono text-muted-foreground/60">{String(index + 1).padStart(2, '0')}</span>
-                                 <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[20px]">{cleanText(displayTitle)}</h3>
+                                 <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[16px]">{cleanText(displayTitle)}</h3>
                                </div>
                             </div>
                          );

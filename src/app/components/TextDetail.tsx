@@ -207,7 +207,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Related Works */}
           {allRelatedWorks.length > 0 && (
             <div className="mt-24 pt-12 border-t border-foreground/5">
-               <h2 className="text-[10px] lowercase tracking-[0.2em] text-muted-foreground/60 font-mono mb-8">related</h2>
+               <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/60 font-mono mb-8">related</h2>
                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-8">
                  {allRelatedWorks.map(work => (
                     <a 
