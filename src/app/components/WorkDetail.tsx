@@ -592,7 +592,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           }} 
           bounds="body" 
           nodeRef={nodeRef}
-          disabled={isMaximized}
+          disabled={isMaximized || isMobile}
         >
           <div 
             ref={nodeRef}
@@ -641,13 +641,14 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                   </div>
                   
                   {/* Right Side - Controls */}
-                  <div className="flex items-center gap-2 z-10">
+                  <div className="flex items-center gap-1 z-10">
                     <button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           setIsMaximized(!isMaximized);
                         }} 
-                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
+                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
                         title={isMaximized ? "Restore" : "Maximize"}
                     >
                         {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -655,9 +656,10 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                     <button 
                         onClick={(e) => {
                           e.stopPropagation();
+                          e.preventDefault();
                           setSelectedArticleId(null);
                         }} 
-                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-1"
+                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
                     >
                         <X size={14} />
                     </button>
