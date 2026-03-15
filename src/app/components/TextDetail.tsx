@@ -161,7 +161,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="md:text-3xl font-serif font-light text-foreground/90 leading-tight text-[20px]"
+              className={`md:text-3xl font-light text-foreground/90 leading-tight text-[20px] ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
             >
               {cleanText(title)}
             </motion.h1>
@@ -197,7 +197,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
                   delay: 0.3 + (index * 0.1), // Staggered delay for reading flow
                   ease: "easeOut" 
                 }}
-                className="font-serif text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify"
+                className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
               >
                 {cleanText(paragraph)}
               </motion.p>

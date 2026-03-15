@@ -254,7 +254,7 @@ export const Text = () => {
         <motion.div 
             style={{ opacity: sidebarOpacity }}
             className={`
-               min-[1025px]:w-1/4 lg:w-1/5 min-[1025px]:h-[calc(100vh-5rem)] 
+               min-[1025px]:w-1/4 min-[1025px]:h-[calc(100vh-5rem)] 
                min-[1025px]:sticky min-[1025px]:top-32 z-30 flex flex-col gap-6 min-[1025px]:gap-12 
                transition-all duration-300 ease-out
                ${showFloatingBar ? 'opacity-0 pointer-events-none min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto' : 'opacity-100'}

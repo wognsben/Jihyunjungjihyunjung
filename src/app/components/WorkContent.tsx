@@ -146,16 +146,16 @@ export const WorkContent = ({ work, isModal = false, onArticleClick, onHoverArti
       {/* 1. Header Spec Sheet */}
       <div className={`${isModal ? 'mb-12' : 'mb-24 md:mb-32'} animate-in fade-in duration-1000 slide-in-from-bottom-4`}>
         <div className={`grid grid-cols-1 ${isModal ? 'gap-y-6' : 'md:grid-cols-12 gap-y-8'} border-t border-black/5 dark:border-white/10 pt-6`}>
-          <div className={isModal ? '' : 'md:col-span-4 lg:col-span-3'}>
+          <div className={isModal ? '' : 'md:col-span-4 min-[1025px]:col-span-3'}>
             <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Project Title</span>
             <h1 className={`${isModal ? 'text-xl' : 'text-2xl md:text-3xl'} font-serif font-light text-foreground/90 leading-tight`}>{cleanText(title)}</h1>
           </div>
-          <div className={isModal ? '' : 'md:col-span-2 lg:col-span-2 md:col-start-6 lg:col-start-5'}>
+          <div className={isModal ? '' : 'md:col-span-2 min-[1025px]:col-span-2 md:col-start-6 min-[1025px]:col-start-5'}>
             <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Year</span>
             <span className="block text-sm font-mono text-foreground/70">{work.year}</span>
             {yearCaption && <span className="block text-[10px] text-muted-foreground/50 mt-1 font-serif italic">{yearCaption}</span>}
           </div>
-          <div className={isModal ? '' : 'md:col-span-2 lg:col-span-2'}>
+          <div className={isModal ? '' : 'md:col-span-2 min-[1025px]:col-span-2'}>
             {work.client && (
               <>
                 <span className="block text-[9px] uppercase tracking-[0.2em] text-muted-foreground/60 mb-3 font-mono">Client</span>
@@ -169,7 +169,7 @@ export const WorkContent = ({ work, isModal = false, onArticleClick, onHoverArti
       {/* 2. Split Layout: Video & Text */}
       <div className={`grid grid-cols-1 ${isModal ? 'gap-8' : 'md:grid-cols-12 gap-12'} mb-40`}>
         {/* Video */}
-        <div className={isModal ? 'w-full' : 'md:col-span-5 lg:col-span-5 relative'}>
+        <div className={isModal ? 'w-full' : 'md:col-span-5 min-[1025px]:col-span-5 relative'}>
           <div className={!isModal ? "md:sticky md:top-32 space-y-4" : "space-y-4"}>
             {videoUrl && (
               <div className="w-full">
@@ -184,7 +184,7 @@ export const WorkContent = ({ work, isModal = false, onArticleClick, onHoverArti
         </div>
 
         {/* Description */}
-        <div className={isModal ? 'w-full' : 'md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7'}>
+        <div className={isModal ? 'w-full' : 'md:col-span-6 md:col-start-7 min-[1025px]:col-span-6 min-[1025px]:col-start-7'}>
            {description && (
              <div className="space-y-8">
                {description.split('\n\n').map((paragraph, index) => (
@@ -226,11 +226,11 @@ export const WorkContent = ({ work, isModal = false, onArticleClick, onHoverArti
       {/* 4. Related Texts */}
       {work.relatedArticles && work.relatedArticles.length > 0 && (
         <div className={`${isModal ? 'mb-20' : 'mb-40'} pt-12 border-t border-black/5 dark:border-white/5`}>
-          <div className={`grid grid-cols-1 ${isModal ? 'gap-8' : 'lg:grid-cols-12 gap-12'}`}>
-            <div className={isModal ? '' : 'md:col-span-4 lg:col-span-3'}>
+          <div className={`grid grid-cols-1 ${isModal ? 'gap-8' : 'min-[1025px]:grid-cols-12 gap-12'}`}>
+            <div className={isModal ? '' : 'md:col-span-4 min-[1025px]:col-span-3'}>
                <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">Related Texts</h2>
             </div>
-            <div className={isModal ? '' : 'md:col-span-8 lg:col-span-9'}>
+            <div className={isModal ? '' : 'md:col-span-8 min-[1025px]:col-span-9'}>
                 <div className="flex flex-col border-t border-black/10 dark:border-white/10">
                   {work.relatedArticles.map((article: any, index: number) => {
                      const textItem = texts.find(t => t.id === article.id);

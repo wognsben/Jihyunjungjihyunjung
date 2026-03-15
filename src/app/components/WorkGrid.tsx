@@ -15,6 +15,7 @@ export const WorkGrid = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
   const [currentFilter, setCurrentFilter] = useState('all');
 
   // Filter labels by language
@@ -68,7 +69,11 @@ export const WorkGrid = () => {
   };
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      setIsTablet(w >= 768 && w <= 1024);
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -107,24 +112,27 @@ export const WorkGrid = () => {
     if (!sortedWorks.length) return [];
     
     const source = [...sortedWorks];
+
+    const getCat = (work: any): string => {
+      const raw = work.category;
+      if (!raw) return '';
+      if (typeof raw === 'string') return raw.toLowerCase();
+      if (Array.isArray(raw)) return raw.join(' ').toLowerCase();
+      if (typeof raw === 'object' && raw.label) return String(raw.label).toLowerCase();
+      return String(raw).toLowerCase();
+    };
     
     switch (currentFilter.toLowerCase()) {
       case 'proj':
-        return source.filter(work => {
-           const medium = (work.medium_en || '').toLowerCase();
-           return medium.includes('project');
-        });
+        return source.filter(work => getCat(work).includes('project'));
         
       case 'exhib':
-        return source.filter(work => {
-           const medium = (work.medium_en || '').toLowerCase();
-           return medium.includes('exhibition');
-        });
+        return source.filter(work => getCat(work).includes('exhibition'));
         
       case 'works':
         return source.filter(work => {
-           const medium = (work.medium_en || '').toLowerCase();
-           return !medium.includes('project') && !medium.includes('exhibition');
+          const cat = getCat(work);
+          return cat.includes('work') || cat === '';
         });
         
       case 'all':
@@ -134,7 +142,7 @@ export const WorkGrid = () => {
   }, [sortedWorks, currentFilter]);
 
   const columns = useMemo(() => {
-    const numCols = isMobile ? 1 : 4;
+    const numCols = isMobile ? 1 : isTablet ? 2 : 4;
     const cols: Work[][] = Array.from({ length: numCols }, () => []);
     
     filteredWorks.forEach((work, index) => {
@@ -142,7 +150,7 @@ export const WorkGrid = () => {
       cols[colIndex].push(work);
     });
     return cols;
-  }, [filteredWorks, isMobile]);
+  }, [filteredWorks, isMobile, isTablet]);
 
   useLayoutEffect(() => {
     if (!containerRef.current) return;
@@ -230,7 +238,7 @@ export const WorkGrid = () => {
           <div 
             key={`col-${colIndex}`}
             ref={el => { columnRefs.current[colIndex] = el; }}
-            className="flex flex-col gap-1 flex-1 w-full md:w-1/4 will-change-transform"
+            className={`flex flex-col gap-1 flex-1 w-full ${isTablet ? 'md:w-1/2' : 'md:w-1/4'} will-change-transform`}
           >
             {colWorks.map((work) => (
               <div 

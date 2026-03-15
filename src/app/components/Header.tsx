@@ -246,7 +246,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 mix-blend-difference pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-          ${currentView === 'text-detail' ? 'hidden lg:block' : ''}
+          ${currentView === 'text-detail' ? 'hidden min-[1025px]:block' : ''}
         `}
       >
         <div className="flex items-center gap-3">

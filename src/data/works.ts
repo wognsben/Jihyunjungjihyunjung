@@ -33,6 +33,7 @@ export interface Work {
   credits_en?: string;
   credits_jp?: string;
   galleryImages: string[];
+  category?: string; // From work_category taxonomy (e.g. "project", "exhibition", or empty for works)
   youtubeUrl?: string; // YouTube video URL
   vimeoUrl?: string; // Vimeo video URL
   selected: boolean;

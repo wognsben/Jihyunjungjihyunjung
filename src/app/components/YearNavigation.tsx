@@ -81,7 +81,7 @@ export const YearNavigation = ({ allWorks, currentYear }: YearNavigationProps) =
       }}
     >
       {/* 2-Column Layout: List + Preview Stage */}
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 lg:gap-16">
+      <div className="grid grid-cols-1 min-[1025px]:grid-cols-[280px_1fr] gap-8 min-[1025px]:gap-16">
         
         {/* LEFT COLUMN: Year List Only */}
         <div className="space-y-4">
@@ -120,7 +120,7 @@ export const YearNavigation = ({ allWorks, currentYear }: YearNavigationProps) =
         </div>
 
         {/* RIGHT COLUMN: Preview Stage (Larger Fixed Area) */}
-        <div className="hidden lg:block sticky top-24 h-[calc(100vh-12rem)]">
+        <div className="hidden min-[1025px]:block sticky top-24 h-[calc(100vh-12rem)]">
           {/* Preview Stage Container */}
           <div className="relative w-full h-full overflow-hidden">
             

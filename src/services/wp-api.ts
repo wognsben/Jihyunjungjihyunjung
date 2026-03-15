@@ -196,6 +196,14 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const medium_en = medium;
   const medium_jp = medium;
 
+  // Category: ACF select field (카테고리) — "Works", "Projects", "Exhibitions"
+  const rawCategory = acf['카테고리'] || '';
+  const workCategory = typeof rawCategory === 'string' 
+    ? rawCategory 
+    : Array.isArray(rawCategory) 
+      ? rawCategory.join(', ') 
+      : (rawCategory?.label || String(rawCategory));
+
   // Extract YouTube URL from ACF, meta, or content
   let youtubeUrl: string | undefined;
   if (post.acf?.youtube_url) {
@@ -311,6 +319,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
     credits_jp: credits_jp || undefined,
 
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
+    category: workCategory || undefined,
     youtubeUrl,
     vimeoUrl,
     relatedArticles,

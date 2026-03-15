@@ -282,16 +282,16 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           </div>
 
           {/* 1. Header Spec Sheet */}
-          <div className="mb-16 md:mb-24 lg:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+          <div className="mb-16 md:mb-24 min-[1025px]:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
             <div className="max-w-4xl mx-auto">
               {/* Classic Gallery Caption: Title, Year */}
-              <div className="text-center pb-6 md:pb-8 lg:pb-10 border-b border-black/5 dark:border-white/10">
+              <div className="text-center pb-6 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
                 <div className="flex items-baseline justify-center gap-2 mb-2 md:mb-3">
                   <span className="tracking-[0.2em] text-muted-foreground/60 font-mono text-[12px]">Title</span>
                   <span className="text-[9px] text-muted-foreground/30">/</span>
                   <span className="text-[12px] tracking-[0.2em] text-muted-foreground/60 font-mono">Year</span>
                 </div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-serif font-light text-foreground/90 leading-tight">
+                <h1 className="text-xl md:text-2xl min-[1025px]:text-3xl font-serif font-light text-foreground/90 leading-tight">
                   {cleanText(title)}{work.year && `, ${work.year}`}
                 </h1>
               </div>
@@ -322,15 +322,15 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           {description && (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-32 md:mb-40">
             {/* Left: Empty for whitespace or future content */}
-            <div className="hidden md:block md:col-span-5 lg:col-span-5"></div>
+            <div className="hidden md:block md:col-span-5 min-[1025px]:col-span-5"></div>
 
             {/* Right: Description Text */}
-            <div className="md:col-span-6 md:col-start-7 lg:col-span-6 lg:col-start-7">
+            <div className="md:col-span-6 md:col-start-7 min-[1025px]:col-span-6 min-[1025px]:col-start-7">
                  <div className="space-y-6 md:space-y-8">
                    {description.split('\n\n').map((paragraph, index) => (
                       <BlurReveal 
                         key={`${lang}-${index}`} 
-                        className={`font-serif text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
+                        className={`${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
                         delay={0.2 + (index * 0.1)}
                       >
                         {cleanText(paragraph)}
@@ -343,9 +343,9 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
           {/* 3. Simple Image Slider */}
           {work.galleryImages && work.galleryImages.length > 0 && (
-            <div className="mb-32 md:mb-48 lg:mb-64">
+            <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
               <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
-                <div className="relative max-h-[45svh] md:max-h-[65svh] lg:max-h-[70svh] overflow-hidden group w-full">
+                <div className="relative max-h-[45svh] md:max-h-[65svh] min-[1025px]:max-h-[70svh] overflow-hidden group w-full">
                   {/* Desktop: Click Areas for Navigation (Left/Right split) */}
                   <div 
                     className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
@@ -383,7 +383,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       key={currentSlide}
                       src={work.galleryImages[currentSlide]} 
                       alt={`Gallery ${currentSlide + 1}`} 
-                      className="max-h-[45svh] md:max-h-[65svh] lg:max-h-[70svh] w-full md:w-auto object-contain mx-auto block pointer-events-none"
+                      className="max-h-[45svh] md:max-h-[65svh] min-[1025px]:max-h-[70svh] w-full md:w-auto object-contain mx-auto block pointer-events-none"
                       draggable={false}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -474,16 +474,16 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               <div className="mb-40 md:mb-64 pt-12 border-t border-black/5 dark:border-white/5">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
                   {/* Left: Section Title */}
-                  <div className="md:col-span-3 lg:col-span-3">
+                  <div className="md:col-span-3 min-[1025px]:col-span-3">
                     <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono sticky top-40">
                       Credits & Notes
                     </h2>
                   </div>
 
                   {/* Right: Content */}
-                  <div className="md:col-span-8 md:col-start-5 lg:col-span-7 lg:col-start-5">
+                  <div className="md:col-span-8 md:col-start-5 min-[1025px]:col-span-7 min-[1025px]:col-start-5">
                     <div 
-                      className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-serif prose-headings:font-light prose-p:font-serif prose-p:text-foreground/80 prose-p:leading-relaxed prose-ul:font-serif prose-li:text-foreground/80 prose-strong:text-foreground/90 prose-strong:font-medium max-w-none"
+                      className={`prose prose-sm md:prose-base dark:prose-invert prose-headings:font-light prose-p:text-foreground/80 prose-p:leading-relaxed prose-li:text-foreground/80 prose-strong:text-foreground/90 prose-strong:font-medium max-w-none ${lang === 'jp' ? 'prose-headings:font-[Shippori_Mincho] prose-p:font-[Shippori_Mincho] prose-ul:font-[Shippori_Mincho]' : 'prose-headings:font-serif prose-p:font-serif prose-ul:font-serif'}`}
                       dangerouslySetInnerHTML={{ __html: credits }}
                     />
                   </div>
@@ -495,8 +495,8 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           {/* 6. Related Texts */}
           {work.relatedArticles && work.relatedArticles.length > 0 && (
             <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                <div className="md:col-span-4 lg:col-span-3">
+              <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
+                <div className="md:col-span-4 min-[1025px]:col-span-3">
                   <div className="sticky top-40">
                     <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
                     <div className="hidden md:block min-h-[100px]">
@@ -513,7 +513,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                     </div>
                   </div>
                 </div>
-                <div className="md:col-span-8 lg:col-span-9 relative">
+                <div className="md:col-span-8 min-[1025px]:col-span-9 relative">
                    <div 
                       ref={cursorImgRef}
                       className={`fixed top-0 left-0 z-50 pointer-events-none w-[240px] aspect-[4/3] overflow-hidden bg-background transition-opacity duration-300 ease-out border border-black/10 ${hoveredArticleImg ? 'opacity-100' : 'opacity-0'}`}
