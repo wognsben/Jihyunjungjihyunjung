@@ -391,6 +391,11 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const credits_en = acf.credits_en || credits_ko;
   const credits_jp = acf.credits_jp || credits_ko;
 
+  // Additional text: ACF multilingual (artist notes, supplementary text)
+  const additional_ko = acf.work_additional_ko || '';
+  const additional_en = acf.work_additional_en || additional_ko;
+  const additional_jp = acf.work_additional_jp || additional_ko;
+
   // Medium: ACF field (작품_medium), same across all languages
   const medium = acf['작품_medium'] || '';
   const medium_ko = medium;
@@ -518,6 +523,10 @@ const transformWork = (post: WPPost, lang: string): Work => {
     credits_ko: credits_ko || undefined,
     credits_en: credits_en || undefined,
     credits_jp: credits_jp || undefined,
+
+    additional_ko: additional_ko || undefined,
+    additional_en: additional_en || undefined,
+    additional_jp: additional_jp || undefined,
 
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
     imageCredits: imageCredits.length > 0 ? imageCredits : undefined,

@@ -458,6 +458,39 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             </div>
           )}
 
+          {/* 4.5 Additional Text (Artist Notes / Supplementary Description) */}
+          {(() => {
+            const additional = lang === 'ko' ? work.additional_ko : (lang === 'jp' ? work.additional_jp : work.additional_en);
+            if (!additional) return null;
+            
+            return (
+              <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
+                  {/* Left: Section Label */}
+                  <div className="md:col-span-3 min-[1025px]:col-span-3">
+                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono sticky top-40">
+                      {lang === 'ko' ? 'Artist Note' : lang === 'jp' ? 'Artist Note' : 'Artist Note'}
+                    </h2>
+                  </div>
+
+                  {/* Right: Content */}
+                  <div className="md:col-span-8 md:col-start-5 min-[1025px]:col-span-7 min-[1025px]:col-start-5">
+                    <div className="space-y-6 md:space-y-8">
+                      {additional.split('\n\n').map((paragraph, index) => (
+                        <p
+                          key={`additional-${lang}-${index}`}
+                          className={`${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
+                        >
+                          <span dangerouslySetInnerHTML={{ __html: paragraph.trim() }} />
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 5. Credits / Artist Notes / Additional Information */}
           {(() => {
             const credits = lang === 'ko' ? work.credits_ko : (lang === 'jp' ? work.credits_jp : work.credits_en);
@@ -498,14 +531,19 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                            {(() => {
                                const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
                                const textItem = texts.find(t => t.id === article?.id);
-                               const summary = textItem?.summary 
-                                 ? (lang === 'ko' 
-                                     ? textItem.summary.ko 
-                                     : lang === 'jp' 
-                                       ? (textItem.summary.jp || textItem.summary.ko) 
-                                       : (textItem.summary.en || textItem.summary.ko)) 
-                                 : article?.summary;
-                               return summary ? cleanText(summary).slice(0, 120) + "..." : "";
+                               if (!textItem) {
+                                 return article?.summary ? cleanText(article.summary).slice(0, 120) + "..." : "";
+                               }
+                               // Prefer content-based preview with proper language, since summary ACF fields may not have translations
+                               const contentForLang = lang === 'ko' ? textItem.content?.ko 
+                                 : lang === 'jp' ? (textItem.content?.jp && textItem.content.jp !== textItem.content?.ko ? textItem.content.jp : textItem.content?.ko)
+                                 : (textItem.content?.en && textItem.content.en !== textItem.content?.ko ? textItem.content.en : textItem.content?.ko);
+                               const summaryForLang = lang === 'ko' ? textItem.summary?.ko
+                                 : lang === 'jp' ? (textItem.summary?.jp && textItem.summary.jp !== textItem.summary?.ko ? textItem.summary.jp : undefined)
+                                 : (textItem.summary?.en && textItem.summary.en !== textItem.summary?.ko ? textItem.summary.en : undefined);
+                               // Use translated summary first, then translated content preview, then Korean summary
+                               const preview = summaryForLang || (contentForLang ? contentForLang.slice(0, 120) : '') || textItem.summary?.ko || '';
+                               return preview ? cleanText(preview).slice(0, 120) + "..." : "";
                            })()}
                         </div>
                       )}
@@ -545,9 +583,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           )}
         </div>
 
-        <div className="mt-16 md:mt-20 border-t border-white/5">
-          <InfiniteWorkGrid works={otherWorks} onWorkClick={handleWorkClick} />
-        </div>
+        {otherWorks.length > 0 && (
+          <div className="mt-16 md:mt-20 border-t border-white/5">
+            <InfiniteWorkGrid works={otherWorks} onWorkClick={handleWorkClick} />
+          </div>
+        )}
         <ScrollToTop />
       </div>
 
