@@ -288,9 +288,26 @@ export const About = () => {
   }, []);
 
   // Process Content
-  const processedContent = useMemo(() => 
-    transformBioContent(aboutData?.content, works, lang), 
-  [aboutData?.content, works, lang]);
+  const processedContent = useMemo(() => {
+    // Use ACF translated content when available, otherwise fall back to KO content with header translation
+    let rawContent: string | undefined;
+    if (lang === 'en' && aboutData?.content_en) {
+      rawContent = aboutData.content_en;
+    } else if (lang === 'jp' && aboutData?.content_jp) {
+      rawContent = aboutData.content_jp;
+    } else {
+      rawContent = aboutData?.content;
+    }
+    
+    const transformed = transformBioContent(rawContent, works, lang);
+    
+    // Only apply header translation when using KO fallback content
+    if (lang !== 'ko' && !(lang === 'en' && aboutData?.content_en) && !(lang === 'jp' && aboutData?.content_jp)) {
+      return translateSectionHeaders(transformed || '', lang);
+    }
+    
+    return transformed;
+  }, [aboutData?.content, aboutData?.content_en, aboutData?.content_jp, works, lang]);
 
   // Helper to safely replace name in profile text for translation
   const processProfileText = (text: string | undefined) => {
@@ -723,7 +740,7 @@ export const About = () => {
                    <div 
                      className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-2 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[40px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[40px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug max-[1025px]:[&_tr>*:last-child]:truncate [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line]:before:content-['→'] md:[&_tr.hover-line]:before:absolute md:[&_tr.hover-line]:before:left-2 md:[&_tr.hover-line]:before:top-1/2 md:[&_tr.hover-line]:before:-translate-y-1/2 md:[&_tr.hover-line]:before:text-foreground md:[&_tr.hover-line]:before:opacity-0 md:[&_tr.hover-line:hover]:before:opacity-100 md:[&_tr.hover-line]:before:-translate-x-2 md:[&_tr.hover-line:hover]:before:translate-x-0 md:[&_tr.hover-line]:before:transition-all md:[&_tr.hover-line]:before:duration-300 md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: translateSectionHeaders(processedContent || '', lang) }}
+                     dangerouslySetInnerHTML={{ __html: processedContent }}
                    />
                 </RevealText>
               </div>

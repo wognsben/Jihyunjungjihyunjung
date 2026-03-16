@@ -18,8 +18,6 @@ interface WorkContextType {
   currentLang: Language;
 }
 
-const WorkContext = createContext<WorkContextType | undefined>(undefined);
-
 // Default fallback values to prevent crashes during HMR/hot reload
 const defaultContextValue: WorkContextType = {
   works: [],
@@ -31,6 +29,8 @@ const defaultContextValue: WorkContextType = {
   translateTextsByIds: async () => {},
   currentLang: 'ko',
 };
+
+const WorkContext = createContext<WorkContextType>(defaultContextValue);
 
 export const WorkProvider = ({ children }: { children: ReactNode }) => {
   const [works, setWorks] = useState<Work[]>([]);
@@ -102,10 +102,5 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const useWorks = () => {
-  const context = useContext(WorkContext);
-  if (context === undefined) {
-    console.warn('[useWorks] Context is undefined — returning default fallback. This may happen during HMR.');
-    return defaultContextValue;
-  }
-  return context;
+  return useContext(WorkContext);
 };

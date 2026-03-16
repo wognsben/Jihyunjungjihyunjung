@@ -14,7 +14,9 @@ const api = axios.create({
 export interface AboutData {
   title: string;
   name?: string; // Add name field from ACF
-  content: string; // HTML
+  content: string; // HTML (Korean - default)
+  content_en?: string; // Assembled from ACF EN fields
+  content_jp?: string; // Assembled from ACF JP fields
   image: string;
   profile_info?: string;
   profile_info2?: string; // Add profile_info2 field
@@ -82,13 +84,151 @@ const getFullSizeUrl = (url: string): string => {
 
 // Extract images from HTML content
 const extractImagesFromContent = (html: string): string[] => {
-  const regex = /<img[^>]+src="([^">]+)"/g;
+  const regex = /<img[^>]+src="([^\">]+)"/g;
   const images: string[] = [];
   let match;
   while ((match = regex.exec(html)) !== null) {
     images.push(getFullSizeUrl(match[1])); // Always try to get full size
   }
   return images;
+};
+
+// Extract images and captions together (maintains proper matching)
+const extractImagesAndCaptions = (html: string): { url: string; caption: string }[] => {
+  const results: { url: string; caption: string }[] = [];
+  const processedUrls = new Set<string>();
+  
+  // 1. Block Editor: <figure><img><figcaption>Caption</figcaption></figure>
+  const figureRegex = /<figure[^>]*>\s*(?:<a[^>]*>)?\s*<img[^>]+src="([^"]+)"[^>]*>\s*(?:<\/a>)?\s*(?:<figcaption[^>]*>([\s\S]*?)<\/figcaption>)?\s*<\/figure>/gi;
+  let match;
+  
+  while ((match = figureRegex.exec(html)) !== null) {
+    const rawUrl = match[1];
+    const url = getFullSizeUrl(rawUrl);
+    const caption = match[2] ? match[2].replace(/<[^>]+>/g, '').trim() : '';
+    
+    results.push({ url, caption });
+    processedUrls.add(rawUrl);
+    processedUrls.add(url);
+  }
+  
+  // 2. Classic Editor: [caption]<img src="..."> Caption text[/caption]
+  const captionShortcodeRegex = /\[caption[^\]]*\][\s\S]*?<img[^>]+src="([^"]+)"[^>]*>[\s\S]*?([\s\S]*?)\[\/caption\]/gi;
+  
+  while ((match = captionShortcodeRegex.exec(html)) !== null) {
+    const rawUrl = match[1];
+    const url = getFullSizeUrl(rawUrl);
+    
+    if (!processedUrls.has(rawUrl) && !processedUrls.has(url)) {
+      const caption = match[2].replace(/<[^>]+>/g, '').trim();
+      results.push({ url, caption });
+      processedUrls.add(rawUrl);
+      processedUrls.add(url);
+    }
+  }
+  
+  // 3. Standalone <img> tags (no caption wrapper)
+  const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
+  
+  while ((match = imgRegex.exec(html)) !== null) {
+    const rawUrl = match[1];
+    const url = getFullSizeUrl(rawUrl);
+    
+    if (!processedUrls.has(rawUrl) && !processedUrls.has(url)) {
+      results.push({ url, caption: '' });
+      processedUrls.add(rawUrl);
+      processedUrls.add(url);
+    }
+  }
+  
+  return results;
+};
+
+// Parse multilingual caption format: [KO]한글[EN]English[JP]日本語
+export const parseMultilingualCaption = (caption: string, lang: string): string => {
+  if (!caption) return '';
+  
+  // If no language tags, return as-is
+  if (!caption.includes('[KO]') && !caption.includes('[EN]') && !caption.includes('[JP]')) {
+    return caption;
+  }
+  
+  // Extract content for specific language
+  const patterns: Record<string, RegExp> = {
+    ko: /\[KO\](.*?)(?:\[EN\]|\[JP\]|$)/s,
+    en: /\[EN\](.*?)(?:\[KO\]|\[JP\]|$)/s,
+    jp: /\[JP\](.*?)(?:\[KO\]|\[EN\]|$)/s,
+  };
+  
+  const pattern = patterns[lang.toLowerCase()];
+  if (!pattern) return caption;
+  
+  const match = caption.match(pattern);
+  return match ? match[1].trim() : '';
+};
+
+// Remove caption shortcodes from content (for clean description text)
+const removecaptionShortcodes = (html: string): string => {
+  let cleaned = html;
+  // Remove [caption]...[/caption] shortcodes
+  cleaned = cleaned.replace(/\[caption[^\]]*\].*?\[\/caption\]/gs, '');
+  // Remove <figure>...</figure> blocks (WordPress Block Editor gallery items with figcaptions)
+  cleaned = cleaned.replace(/<figure[^>]*>.*?<\/figure>/gs, '');
+  // Remove standalone <figcaption>...</figcaption> tags and their content
+  cleaned = cleaned.replace(/<figcaption[^>]*>.*?<\/figcaption>/gs, '');
+  return cleaned;
+};
+
+// Remove leftover multilingual caption patterns and standalone caption text from plain text descriptions
+const removeMultilingualCaptionPatterns = (text: string): string => {
+  if (!text) return '';
+  let cleaned = text;
+  // Remove lines that contain [KO]...[EN]...[JP]... multilingual patterns
+  cleaned = cleaned.replace(/^.*\[KO\].*\[EN\].*\[JP\].*$/gm, '');
+  // Remove lines that are ONLY [KO] or [EN] or [JP] tags with content between them
+  cleaned = cleaned.replace(/^\s*\[(?:KO|EN|JP)\]\s*.*$/gm, (match) => {
+    // Only remove if it looks like a caption line (contains at least 2 language tags)
+    const tagCount = (match.match(/\[(?:KO|EN|JP)\]/g) || []).length;
+    return tagCount >= 2 ? '' : match;
+  });
+  // Clean up excessive blank lines left behind
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+  return cleaned;
+};
+
+// Extract image captions from WordPress content
+// Looks for figcaption, wp-caption-text, or data-caption attributes
+const extractImageCaptions = (html: string): string[] => {
+  const captions: string[] = [];
+  
+  // First, try to extract from HTML5 figure/figcaption (WordPress Gallery Block)
+  const figureRegex = /<figure[^>]*>.*?<img[^>]+>.*?(?:<figcaption[^>]*>(.*?)<\/figcaption>)?.*?<\/figure>/gs;
+  let figureMatch;
+  
+  while ((figureMatch = figureRegex.exec(html)) !== null) {
+    const caption = figureMatch[1] ? decode(figureMatch[1].replace(/<[^>]+>/g, '').trim()) : '';
+    captions.push(caption);
+  }
+  
+  // If no figures found, try WordPress caption shortcode: [caption]...[/caption]
+  if (captions.length === 0) {
+    const captionShortcodeRegex = /\[caption[^\]]*\](.*?)\[\/caption\]/gs;
+    let captionMatch;
+    
+    while ((captionMatch = captionShortcodeRegex.exec(html)) !== null) {
+      const captionContent = captionMatch[1];
+      // Extract text after the img tag (the caption text)
+      const textMatch = captionContent.match(/<\/a>(.+?)$|<img[^>]+>(.+?)$/s);
+      if (textMatch) {
+        const caption = (textMatch[1] || textMatch[2] || '').replace(/<[^>]+>/g, '').trim();
+        captions.push(decode(caption));
+      } else {
+        captions.push(''); // No caption for this image
+      }
+    }
+  }
+  
+  return captions;
 };
 
 // Extract YouTube URL from content (iframe or link)
@@ -125,15 +265,69 @@ const extractVimeoUrl = (html: string): string | undefined => {
 const transformWork = (post: WPPost, lang: string): Work => {
   const rawFeaturedImage = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
   let featuredImage = getFullSizeUrl(rawFeaturedImage);
-  const contentImages = extractImagesFromContent(post.content.rendered);
   
-  // Fallback: If no featured image, use first content image as thumbnail
-  if (!featuredImage && contentImages.length > 0) {
-    featuredImage = contentImages[0];
+  // ACF fields for multilingual support
+  const acf = post.acf || {};
+  
+  // 🖼️ ACF Gallery Field - Primary source for images and captions
+  let galleryImages: string[] = [];
+  let imageCredits: string[] = [];
+  
+  // Check for ACF gallery field (field name: gallery_images or similar)
+  const acfGallery = acf.gallery_images || acf.gallery || acf['갤러리_이미지'];
+  
+  // 🔍 DEBUG: Log gallery data
+  console.log('🖼️ [transformWork Debug] Post ID:', post.id, 'Title:', decode(post.title.rendered));
+  console.log('🖼️ [transformWork Debug] ACF Gallery Field:', acfGallery);
+  console.log('🖼️ [transformWork Debug] Gallery is array?', Array.isArray(acfGallery));
+  if (acfGallery && Array.isArray(acfGallery)) {
+    console.log('🖼️ [transformWork Debug] Gallery length:', acfGallery.length);
+    console.log('🖼️ [transformWork Debug] First image object:', acfGallery[0]);
   }
   
-  // Combine featured image + content images, removing duplicates
-  const galleryImages = Array.from(new Set([featuredImage, ...contentImages].filter(Boolean)));
+  if (acfGallery && Array.isArray(acfGallery) && acfGallery.length > 0) {
+    // ACF Gallery exists - use it as primary source
+    acfGallery.forEach((imageObj: any, index: number) => {
+      if (imageObj) {
+        // Handle both Image Object and Image Array return formats
+        const imageUrl = typeof imageObj === 'string' 
+          ? imageObj 
+          : (imageObj.url || imageObj.sizes?.large || imageObj.sizes?.full || '');
+        
+        const caption = typeof imageObj === 'object' ? (imageObj.caption || '') : '';
+        
+        console.log(`🖼️ [transformWork Debug] Image ${index}:`, { imageUrl, caption });
+        
+        if (imageUrl) {
+          galleryImages.push(getFullSizeUrl(imageUrl));
+          imageCredits.push(caption ? decode(caption) : '');
+        }
+      }
+    });
+    
+    console.log('🖼️ [transformWork Debug] Final galleryImages:', galleryImages.length);
+    console.log('🖼️ [transformWork Debug] Final imageCredits:', imageCredits);
+  } else {
+    console.log('🖼️ [transformWork Debug] No ACF gallery - using fallback content extraction');
+    // Fallback: Extract images and captions together from content
+    const imagesAndCaptions = extractImagesAndCaptions(post.content.rendered);
+    
+    // Separate into arrays
+    galleryImages = imagesAndCaptions.map(item => item.url);
+    const rawCaptions = imagesAndCaptions.map(item => item.caption);
+    
+    // Store raw captions (multilingual parsing happens at render time)
+    imageCredits = rawCaptions;
+    
+    // Fallback: If no featured image, use first content image as thumbnail
+    if (!featuredImage && galleryImages.length > 0) {
+      featuredImage = galleryImages[0];
+    }
+    
+    console.log('🖼️ [transformWork Debug] Extracted from content:', galleryImages.length, 'images');
+    console.log('🖼️ [transformWork Debug] Raw captions:', rawCaptions);
+    console.log('🖼️ [transformWork Debug] Parsed captions (lang=' + lang + '):', imageCredits);
+  }
 
   // Try to find "Year" from work_category taxonomy
   let yearFromCategory: number | undefined;
@@ -156,23 +350,30 @@ const transformWork = (post: WPPost, lang: string): Work => {
     }
   }
 
-  // ACF fields for multilingual support
-  const acf = post.acf || {};
-
   // KO: WordPress default fields (title, content, excerpt)
   const title_ko = decode(post.title.rendered);
   const description_raw = post.content.rendered;
-  const description_ko = description_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim();
+  // Remove [caption] shortcodes from description to keep it clean
+  const description_cleaned = removecaptionShortcodes(description_raw);
+  const description_ko = removeMultilingualCaptionPatterns(
+    stripHtmlToText(description_cleaned)
+  );
   const oneLineInfo_ko = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
 
   // EN: ACF fields, fallback to KO
   const title_en = acf['제목_en'] ? decode(acf['제목_en']) : title_ko;
-  const description_en = acf['작품_설명_en'] ? decode(acf['작품_설명_en']) : description_ko;
+  const description_en_raw = acf['작품_설명_en'] || description_cleaned;
+  const description_en = removeMultilingualCaptionPatterns(
+    stripHtmlToText(removecaptionShortcodes(description_en_raw))
+  );
   const oneLineInfo_en = acf.one_line_info_en ? decode(acf.one_line_info_en) : oneLineInfo_ko;
 
   // JP: ACF fields, fallback to KO
   const title_jp = acf['제목_jp'] ? decode(acf['제목_jp']) : title_ko;
-  const description_jp = acf['작품_설명_jp'] ? decode(acf['작품_설명_jp']) : description_ko;
+  const description_jp_raw = acf['작품_설명_jp'] || description_cleaned;
+  const description_jp = removeMultilingualCaptionPatterns(
+    stripHtmlToText(removecaptionShortcodes(description_jp_raw))
+  );
   const oneLineInfo_jp = acf.one_line_info_jp ? decode(acf.one_line_info_jp) : oneLineInfo_ko;
 
   // Year Caption: ACF multilingual
@@ -319,6 +520,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
     credits_jp: credits_jp || undefined,
 
     galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
+    imageCredits: imageCredits.length > 0 ? imageCredits : undefined,
     category: workCategory || undefined,
     youtubeUrl,
     vimeoUrl,
@@ -341,15 +543,57 @@ const transformText = (post: WPPost): TextItem => {
   // ACF multilingual fields
   const acf = post.acf || {};
   
-  // EN: ACF fields, fallback to KO
-  const title_en = acf.title_en ? decode(acf.title_en) : title_ko;
+  // 🔍 DEBUG: Log ACF data to console
+  console.log('🔍 [transformText Debug] Post ID:', post.id);
+  console.log('🔍 [transformText Debug] ACF Keys:', Object.keys(acf));
+  console.log('🔍 [transformText Debug] ACF EN fields:', {
+    'text_제목en': acf['text_제목en'],
+    'text_제목_en': acf['text_제목_en'],
+    'TEXT_작품_설명en': acf['TEXT_작품_설명en'],
+    'TEXT_작품_설명_en': acf['TEXT_작품_설명_en'],
+    'content_en': acf.content_en,
+    'summary_en': acf.summary_en
+  });
+  console.log('🔍 [transformText Debug] ACF JP fields:', {
+    'text_제목jp': acf['text_제목jp'],
+    'text_제목_jp': acf['text_제목_jp'],
+    'TEXT_작품_설명jp': acf['TEXT_작품_설명jp'],
+    'TEXT_작품_설명_jp': acf['TEXT_작품_설명_jp'],
+    'content_jp': acf.content_jp,
+    'summary_jp': acf.summary_jp
+  });
+  
+  // EN: ACF fields - Try new naming pattern first (TEXT_작품_설명en without underscore before language)
+  const title_en = acf['text_제목en'] ? decode(acf['text_제목en'])
+    : acf['text_제목_en'] ? decode(acf['text_제목_en']) 
+    : acf.title_en ? decode(acf.title_en) 
+    : title_ko;
+  // Try new pattern first: TEXT_작품_설명en (no underscore before 'en')
+  const content_en_raw = acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en'] || acf['text_작품_설명_en'] || acf.content_en || '';
   const summary_en = acf.summary_en ? decode(acf.summary_en) : summary_ko;
-  const content_en = acf.content_en ? decode(acf.content_en.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) : content_ko;
+  const content_en = content_en_raw 
+    ? decode(content_en_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) 
+    : content_ko;
 
-  // JP: ACF fields, fallback to KO
-  const title_jp = acf.title_jp ? decode(acf.title_jp) : title_ko;
+  // JP: ACF fields - Try new naming pattern first (TEXT_작품_설명jp without underscore before language)
+  const title_jp = acf['text_제목jp'] ? decode(acf['text_제목jp'])
+    : acf['text_제목_jp'] ? decode(acf['text_제목_jp']) 
+    : acf.title_jp ? decode(acf.title_jp) 
+    : title_ko;
+  // Try new pattern first: TEXT_작품_설명jp (no underscore before 'jp')
+  const content_jp_raw = acf['TEXT_작품_설명jp'] || acf['text_작품_설명_jp'] || acf['TEXT_작품_설명_jp'] || acf.content_jp || '';
   const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : summary_ko;
-  const content_jp = acf.content_jp ? decode(acf.content_jp.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) : content_ko;
+  const content_jp = content_jp_raw 
+    ? decode(content_jp_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) 
+    : content_ko;
+  
+  // 🔍 DEBUG: Log final values
+  console.log('🔍 [transformText Debug] Final values:', {
+    title_en,
+    title_jp,
+    content_en: content_en.substring(0, 100) + '...',
+    content_jp: content_jp.substring(0, 100) + '...'
+  });
   
   // Transform ACF related_works
   let relatedWorks: TextItem['relatedWorks'] = undefined;
@@ -593,10 +837,48 @@ export const fetchAboutPage = async (): Promise<AboutData | null> => {
     const acf = page.acf || {};
     const contactGroup = acf.contact_info || {};
     
+    // Assemble EN content from individual ACF section fields
+    // ACF fields: about_en_약력, about_en_개인전, about_en_단체전, about_en_수상경력_및_레지던스, about_en_프로젝트, about_en_출판
+    const enSections = [
+      { header: 'Education', content: acf['about_en_약력'] },
+      { header: 'Solo Exhibitions', content: acf['about_en_개인전'] },
+      { header: 'Group Exhibitions', content: acf['about_en_단체전'] },
+      { header: 'Awards & Residencies', content: acf['about_en_수상경력_및_레지던스'] },
+      { header: 'Projects', content: acf['about_en_프로젝트'] },
+      { header: 'Publications', content: acf['about_en_출판'] },
+    ];
+    const hasEnContent = enSections.some(s => s.content);
+    const content_en = hasEnContent
+      ? enSections
+          .filter(s => s.content)
+          .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
+          .join('\n')
+      : undefined;
+
+    // Assemble JP content from individual ACF section fields
+    // ACF fields: about_jp_약력, about_jp_개인전, about_jp_단체전, about_jp_수상경력_및_레지던스, about_jp_프로젝트, about_jp_출력
+    const jpSections = [
+      { header: '학력', content: acf['about_jp_약력'] },
+      { header: '개전', content: acf['about_jp_개인전'] },
+      { header: '그룹전', content: acf['about_jp_단체전'] },
+      { header: '수상이력・레지던스', content: acf['about_jp_수상경력_및_레지던스'] },
+      { header: '프로젝트', content: acf['about_jp_프로젝트'] },
+      { header: '출판', content: acf['about_jp_출력'] },
+    ];
+    const hasJpContent = jpSections.some(s => s.content);
+    const content_jp = hasJpContent
+      ? jpSections
+          .filter(s => s.content)
+          .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
+          .join('\n')
+      : undefined;
+
     return {
       title: decode(page.title.rendered),
       name: acf.name || '', // Fetch ACF 'name' field
       content: page.content.rendered,
+      content_en,
+      content_jp,
       image: featuredImage,
       // Check profile_info, fallback to profile_text group if nested
       profile_info: acf.profile_info || acf.profile_text?.profile_info || '',
@@ -644,4 +926,25 @@ export const fetchHistoryItems = async (): Promise<HistoryItem[]> => {
     console.error('Error fetching history items:', error);
     return [];
   }
+};
+
+// Helper to convert WordPress HTML to paragraph-separated text
+// Preserves inline formatting (strong, b, em, i, u, a) for dangerouslySetInnerHTML rendering
+// Block-level boundaries become \n\n separators for paragraph splitting
+const stripHtmlToText = (html: string): string => {
+  let text = html;
+  // Block-level closing tags → double newline (paragraph boundary)
+  text = text.replace(/<\/(?:p|div|blockquote|h[1-6]|li|figcaption|section|article)>/gi, '\n\n');
+  // <br> tags → single newline  
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  // Remove block-level opening tags (but keep inline tags intact)
+  text = text.replace(/<(?:p|div|blockquote|h[1-6]|li|figcaption|section|article|ul|ol|figure|img|iframe|video|source)(?:\s[^>]*)?\/?>/gi, '');
+  // Remove remaining closing tags for block elements we haven't handled
+  text = text.replace(/<\/(?:ul|ol|figure|iframe|video|source)>/gi, '');
+  // Keep inline formatting tags: <strong>, <b>, <em>, <i>, <u>, <mark>, <a>, <span>, <sup>, <sub>
+  // Strip any other unrecognized tags
+  text = text.replace(/<(?!\/?(?:strong|b|em|i|u|mark|a|span|sup|sub)\b)[^>]+>/gi, '');
+  // Collapse 3+ newlines into double newline
+  text = text.replace(/\n{3,}/g, '\n\n');
+  return text.trim();
 };

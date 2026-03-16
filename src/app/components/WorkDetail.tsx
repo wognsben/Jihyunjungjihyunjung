@@ -1,48 +1,21 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import gsap from 'gsap';
 import SplitType from 'split-type';
 import { motion, AnimatePresence } from 'motion/react';
 import { Resizable } from 're-resizable';
-import Draggable from 'react-draggable';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
+import { parseMultilingualCaption } from '@/services/wp-api';
 import { SeoHead } from '@/app/components/seo/SeoHead';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
 import { TextDetail } from '@/app/components/TextDetail';
 
 // Minimal Blur Reveal Component
-const BlurReveal = ({ children, className, delay = 0 }: { children: string, className?: string, delay?: number }) => {
-  const elementRef = useRef<HTMLParagraphElement>(null);
-  
-  useEffect(() => {
-    if (!elementRef.current || !children) return;
-    
-    try {
-      const split = new SplitType(elementRef.current, { types: 'words' });
-      const words = split.words;
-      if (!words || words.length === 0) return;
-
-      gsap.set(words, { opacity: 0, filter: 'blur(10px)', y: 10, willChange: 'filter, opacity, transform' });
-      const ctx = gsap.context(() => {
-        gsap.to(words, {
-          opacity: 1, filter: 'blur(0px)', y: 0, duration: 1.2,
-          stagger: 0.015, ease: 'power2.out', delay: delay
-        });
-      }, elementRef);
-
-      return () => { 
-        ctx.revert(); 
-        if (split && split.revert) split.revert(); 
-      };
-    } catch (error) {
-      console.warn('BlurReveal animation skipped:', error);
-    }
-  }, [children, delay]); 
-
-  return <p ref={elementRef} className={className}>{children}</p>;
+const BlurReveal = ({ children, className, delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => {
+  return <p className={className}>{children}</p>;
 };
 
 interface WorkDetailProps {
@@ -116,9 +89,9 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const { lang } = useLanguage();
   const { works, texts, translateWorksByIds, currentLang } = useWorks();
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const nodeRef = useRef(null);
-  const [isMaximized, setIsMaximized] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const dragState = useRef<{ startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
   
   // Simple Slider State
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -269,20 +242,20 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
         {/* Content Container */}
         <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1800px] mx-auto">
           
-          {/* Back Button */}
-          <div className="fixed top-24 md:top-32 left-6 md:left-16 z-[99999999] mix-blend-difference text-white dark:text-white pointer-events-none">
+          {/* Back Button - Fixed below header, always visible */}
+          <div className="fixed top-[72px] md:top-[88px] left-6 md:left-12 z-[99999999] pointer-events-none">
             <button
               ref={buttonRef}
               onClick={handleClose}
-              className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none cursor-pointer pointer-events-auto"
+              className="group flex items-center gap-2 py-1.5 bg-transparent focus:outline-none cursor-pointer pointer-events-auto"
             >
-              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.25em] uppercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">back</span>
+              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 text-muted-foreground/60 group-hover:text-foreground/80" />
+              <span className="text-[10px] tracking-[0.25em] lowercase font-sans text-muted-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">back</span>
             </button>
           </div>
 
           {/* 1. Header Spec Sheet */}
-          <div className="mb-16 md:mb-24 min-[1025px]:mb-32 animate-in fade-in duration-1000 slide-in-from-bottom-4">
+          <div className="mb-16 md:mb-24 min-[1025px]:mb-32">
             <div className="max-w-4xl mx-auto">
               {/* Classic Gallery Caption: Title, Year */}
               <div className="text-center pb-6 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
@@ -333,7 +306,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                         className={`${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
                         delay={0.2 + (index * 0.1)}
                       >
-                        {cleanText(paragraph)}
+                        <span dangerouslySetInnerHTML={{ __html: paragraph.trim() }} />
                       </BlurReveal>
                    ))}
                  </div>
@@ -343,19 +316,19 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
           {/* 3. Simple Image Slider */}
           {work.galleryImages && work.galleryImages.length > 0 && (
-            <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
-              <div className="flex flex-col items-center gap-6 w-full md:w-fit mx-auto">
-                <div className="relative max-h-[45svh] md:max-h-[65svh] min-[1025px]:max-h-[70svh] overflow-hidden group w-full">
+            <div className="mb-32 md:mb-48 min-[1025px]:mb-64 -mx-6 md:-mx-12">
+              <div className="flex flex-col items-center gap-5 md:gap-6 w-full mx-auto">
+                <div className="relative max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] overflow-hidden group w-full">
                   {/* Desktop: Click Areas for Navigation (Left/Right split) */}
                   <div 
-                    className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-w-resize"
+                    className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       goToPrevSlide();
                     }}
                   />
                   <div 
-                    className="hidden md:block absolute right-0 top-0 w-1/2 h-full z-20 cursor-e-resize"
+                    className="hidden md:block absolute right-0 top-0 w-1/2 h-full z-20 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       goToNextSlide();
@@ -383,7 +356,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       key={currentSlide}
                       src={work.galleryImages[currentSlide]} 
                       alt={`Gallery ${currentSlide + 1}`} 
-                      className="max-h-[45svh] md:max-h-[65svh] min-[1025px]:max-h-[70svh] w-full md:w-auto object-contain mx-auto block pointer-events-none"
+                      className="max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] w-full object-contain mx-auto block pointer-events-none"
                       draggable={false}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -412,8 +385,28 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                   
                 </div>
 
+                {/* Image Caption/Credit - Always reserve space for consistent layout */}
+                <div className="h-6 flex items-center justify-center">
+                  {work.imageCredits && work.imageCredits[currentSlide] ? (() => {
+                    const rawCaption = work.imageCredits[currentSlide];
+                    const parsedCaption = parseMultilingualCaption(rawCaption, lang);
+                    if (!parsedCaption) return null;
+                    return (
+                      <motion.p
+                        key={`caption-${currentSlide}-${lang}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.4, delay: 0.1 }}
+                        className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans"
+                      >
+                        {parsedCaption}
+                      </motion.p>
+                    );
+                  })() : null}
+                </div>
+
                 {/* Slider Controls - Single unified control */}
-                <div className="flex items-center justify-center gap-8 md:gap-10 mt-4">
+                <div className="flex items-center justify-center gap-8 md:gap-10">
                   <button 
                     type="button"
                     className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
@@ -498,14 +491,20 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
                 <div className="md:col-span-4 min-[1025px]:col-span-3">
                   <div className="sticky top-40">
-                    <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 font-mono mb-6">related</h2>
+                    <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 mb-6 font-[Sans_Serif_Collection]">related</h2>
                     <div className="hidden md:block min-h-[100px]">
                       {hoveredArticleId && (
                         <div key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500">
                            {(() => {
                                const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
                                const textItem = texts.find(t => t.id === article?.id);
-                               const summary = textItem?.summary ? (lang === 'ko' ? textItem.summary.ko : lang === 'jp' ? textItem.summary.jp : textItem.summary.en) : article?.summary;
+                               const summary = textItem?.summary 
+                                 ? (lang === 'ko' 
+                                     ? textItem.summary.ko 
+                                     : lang === 'jp' 
+                                       ? (textItem.summary.jp || textItem.summary.ko) 
+                                       : (textItem.summary.en || textItem.summary.ko)) 
+                                 : article?.summary;
                                return summary ? cleanText(summary).slice(0, 120) + "..." : "";
                            })()}
                         </div>
@@ -546,7 +545,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           )}
         </div>
 
-        <div className="mt-40 border-t border-white/5">
+        <div className="mt-16 md:mt-20 border-t border-white/5">
           <InfiniteWorkGrid works={otherWorks} onWorkClick={handleWorkClick} />
         </div>
         <ScrollToTop />
@@ -554,94 +553,75 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
 
       {/* Floating Text Window (Portal) */}
       {selectedArticleId && createPortal(
-        <Draggable 
-          handle=".window-handle" 
-          defaultPosition={{ 
-            x: isMobile ? 20 : 100, 
-            y: isMobile ? 20 : 100 
-          }} 
-          bounds="body" 
-          nodeRef={nodeRef}
-          disabled={isMaximized || isMobile}
-        >
           <div 
-            ref={nodeRef}
-            className={`fixed z-[999999999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}`}
-            style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { width: 'fit-content', height: 'fit-content', position: 'fixed' }}
+            ref={panelRef}
+            className={`fixed z-[999999999] ${isMobile ? 'top-[20px] left-[20px] w-[calc(100vw-40px)] h-[70vh]' : 'w-fit h-fit'}`}
+            style={isMobile ? { position: 'fixed' } : { position: 'fixed', left: 100, top: 100, width: 'fit-content', height: 'fit-content' }}
           >
             <motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : isMobile ? 'w-full h-full rounded-lg' : 'rounded-sm'}`}
+              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMobile ? 'w-full h-full rounded-lg' : 'rounded-sm'}`}
             >
               <Resizable
                 defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 450, height: 600 }}
-                size={isMaximized ? { width: '100%', height: '100%' } : undefined}
                 minWidth={isMobile ? 300 : 320} 
                 minHeight={isMobile ? 300 : 400} 
-                maxWidth={isMaximized ? '100%' : 1000}
-                enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
+                maxWidth={1000}
+                enable={!isMobile ? { right: true, bottom: true, bottomRight: true } : false}
                 className="flex flex-col relative"
               >
-                <div className="window-handle h-10 flex-shrink-0 bg-muted/20 flex items-center justify-between px-4 border-b border-foreground/5 transition-colors hover:bg-muted/30">
-                  {/* Left Side - macOS dots */}
-                  <div className="flex items-center gap-2">
-                    {/* macOS Dots */}
-                    <div className="flex gap-1.5 z-10">
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 hover:bg-red-500/50 transition-colors cursor-pointer" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedArticleId(null);
-                            }} 
-                        />
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 hover:bg-amber-500/50 transition-colors" />
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 hover:bg-green-500/50 transition-colors cursor-pointer" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsMaximized(!isMaximized);
-                            }} 
-                        />
-                    </div>
-                    
-                    <span className="window-handle ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40 cursor-move select-none">Archive Reader</span>
+                {/* Drag Handle - subtle top bar (desktop only) */}
+                {!isMobile && (
+                  <div 
+                    className="h-6 flex-shrink-0 flex items-center justify-center cursor-move select-none"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const panel = panelRef.current;
+                      if (!panel) return;
+                      const rect = panel.getBoundingClientRect();
+                      dragState.current = { startX: e.clientX, startY: e.clientY, startLeft: rect.left, startTop: rect.top };
+                      
+                      const onMouseMove = (ev: MouseEvent) => {
+                        if (!dragState.current || !panel) return;
+                        const dx = ev.clientX - dragState.current.startX;
+                        const dy = ev.clientY - dragState.current.startY;
+                        panel.style.left = `${dragState.current.startLeft + dx}px`;
+                        panel.style.top = `${dragState.current.startTop + dy}px`;
+                      };
+                      const onMouseUp = () => {
+                        dragState.current = null;
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                      };
+                      document.addEventListener('mousemove', onMouseMove);
+                      document.addEventListener('mouseup', onMouseUp);
+                    }}
+                  >
+                    <div className="w-10 h-[1.5px] bg-foreground/10 rounded-full" />
                   </div>
-                  
-                  {/* Right Side - Controls */}
-                  <div className="flex items-center gap-1 z-10">
-                    <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setIsMaximized(!isMaximized);
-                        }} 
-                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
-                        title={isMaximized ? "Restore" : "Maximize"}
-                    >
-                        {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                    </button>
-                    <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setSelectedArticleId(null);
-                        }} 
-                        className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
-                    >
-                        <X size={14} />
-                    </button>
-                  </div>
-                </div>
+                )}
+
+                {/* Close button - floating top right */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setSelectedArticleId(null);
+                  }} 
+                  className="absolute top-2 right-3 z-20 text-muted-foreground/30 hover:text-foreground/70 transition-colors duration-300 p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center cursor-pointer"
+                >
+                  <X size={13} />
+                </button>
+
                 <div className="w-full h-full overflow-hidden relative bg-background">
                     <TextDetail textId={selectedArticleId} />
                 </div>
               </Resizable>
             </motion.div>
-          </div>
-        </Draggable>,
+          </div>,
         document.body
       )}
     </>

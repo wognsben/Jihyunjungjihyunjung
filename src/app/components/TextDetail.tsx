@@ -215,7 +215,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
                       key={work.id} 
                       className="group block"
                     >
-                       <div className="aspect-[4/3] bg-foreground/5 mb-3 overflow-hidden rounded-sm">
+                       <div className="aspect-[4/3] bg-foreground/5 mb-3 overflow-hidden">
                           {work.thumbnail ? (
                             <img 
                               src={work.thumbnail} 

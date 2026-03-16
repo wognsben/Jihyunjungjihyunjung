@@ -24,6 +24,16 @@ export const AppContent = () => {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
 
+  // Scroll position restoration
+  const scrollPositionRef = React.useRef<number>(0);
+  const isRestoringScrollRef = React.useRef(false);
+  const currentViewRef = React.useRef<View>('index');
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    currentViewRef.current = currentView;
+  }, [currentView]);
+
   // Handle hash-based routing
   useEffect(() => {
     const handleHashChange = () => {
@@ -42,6 +52,10 @@ export const AppContent = () => {
       const workDetailMatch = hash.match(/^#\/work\/([^\/]+)$/);
       if (workDetailMatch) {
         const workId = workDetailMatch[1];
+        // Save scroll position before entering work-detail
+        if (currentViewRef.current !== 'work-detail') {
+          scrollPositionRef.current = window.scrollY;
+        }
         setSelectedWorkId(workId);
         setCurrentView('work-detail');
         return;
@@ -49,6 +63,10 @@ export const AppContent = () => {
       
       // Check for work list route: #/work
       if (hash.startsWith('#/work')) {
+        // If coming back from work-detail, mark for scroll restoration
+        if (currentViewRef.current === 'work-detail') {
+          isRestoringScrollRef.current = true;
+        }
         setCurrentView('work');
         setSelectedWorkId(null);
         return;
@@ -70,6 +88,10 @@ export const AppContent = () => {
       }
       
       // Default to index
+      // If coming back from work-detail, mark for scroll restoration
+      if (currentViewRef.current === 'work-detail') {
+        isRestoringScrollRef.current = true;
+      }
       setCurrentView('index');
       setSelectedWorkId(null);
       setSelectedTextId(null);
@@ -80,13 +102,26 @@ export const AppContent = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Scroll to top whenever view changes
+  // Scroll to top whenever view changes (unless restoring)
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const timeoutId = setTimeout(() => {
+    if (isRestoringScrollRef.current) {
+      // Restore previous scroll position
+      const savedPosition = scrollPositionRef.current;
+      isRestoringScrollRef.current = false;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
+        // Double-check after a short delay for content rendering
+        setTimeout(() => {
+          window.scrollTo(0, savedPosition);
+        }, 50);
+      });
+    } else {
       window.scrollTo(0, 0);
-    }, 10);
-    return () => clearTimeout(timeoutId);
+      const timeoutId = setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 10);
+      return () => clearTimeout(timeoutId);
+    }
   }, [currentView, selectedWorkId]);
 
   // 2. Loading check comes AFTER all hooks

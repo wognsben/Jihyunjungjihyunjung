@@ -197,10 +197,13 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   // Desktop/Tablet: GSAP Pinned Horizontal Scroll
   return (
     <div ref={sectionRef} className="relative w-full bg-background overflow-hidden">
+      {/* Background mask to prevent content bleeding through transparent header */}
+      <div className="absolute top-0 left-0 right-0 h-[88px] md:h-[104px] bg-background z-10" />
+      
       {/* Header: Fixed at top of pinned section */}
-      <div className="pt-24 md:pt-32 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
+      <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
-          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-mono">
+          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-[Sans_Serif_Collection]">
             other works
           </h2>
           <span className="font-mono text-muted-foreground/70 text-[10px]">
