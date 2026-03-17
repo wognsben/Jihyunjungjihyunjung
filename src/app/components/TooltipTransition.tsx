@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { useWorks } from '@/contexts/WorkContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Work } from '@/types/work';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { X } from 'lucide-react';
 
 interface TooltipTransitionProps {
@@ -49,10 +50,11 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
 
   const images = useMemo(() => {
     if (!activeWork) return [];
-    const allImages = [activeWork.thumbnail, ...(activeWork.galleryImages || [])]
+    const localizedThumb = getLocalizedThumbnail(activeWork as any, lang);
+    const allImages = [localizedThumb, ...(activeWork.galleryImages || [])]
       .filter(Boolean) as string[];
     return Array.from(new Set(allImages));
-  }, [activeWork]);
+  }, [activeWork, lang]);
 
   // Slideshow
   useEffect(() => {

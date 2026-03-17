@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Work } from '@/data/works';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
+import { useLanguage } from '@/contexts/LanguageContext';
 import gsap from 'gsap';
 
 interface YearPreviewProps {
@@ -11,9 +13,10 @@ interface YearPreviewProps {
 export const YearPreview = ({ works, isVisible }: YearPreviewProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const galleryTimelineRef = useRef<gsap.core.Timeline | null>(null);
+  const { lang } = useLanguage();
 
   // Get ALL preview images for slideshow
-  const previewImages = works.map(work => work.thumbnail);
+  const previewImages = works.map(work => getLocalizedThumbnail(work, lang));
 
   // Simple fade in/out
   useEffect(() => {

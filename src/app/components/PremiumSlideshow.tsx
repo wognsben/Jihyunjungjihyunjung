@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Work } from '@/data/works';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import gsap from 'gsap';
@@ -93,9 +94,9 @@ export const PremiumSlideshow = ({ works, onBrightnessChange }: PremiumSlideshow
           setTimeout(() => setImagesLoaded(true), 500);
         }
       };
-      img.src = work.thumbnail;
+      img.src = getLocalizedThumbnail(work, lang);
     });
-  }, [works]);
+  }, [works, lang]);
 
   // Initialize slide positions
   useEffect(() => {
@@ -383,7 +384,7 @@ export const PremiumSlideshow = ({ works, onBrightnessChange }: PremiumSlideshow
                   ref={(el) => (imageRefs.current[index] = el)}
                   className="slide__img absolute inset-0 w-full h-full"
                   style={{
-                    backgroundImage: `url(${work.thumbnail})`,
+                    backgroundImage: `url(${getLocalizedThumbnail(work, lang)})`,
                     backgroundSize: 'cover',
                     backgroundPosition: '50% 50%',
                     backgroundRepeat: 'no-repeat',

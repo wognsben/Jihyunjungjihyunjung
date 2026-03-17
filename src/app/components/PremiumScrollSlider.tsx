@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/data/works';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 
 interface PremiumScrollSliderProps {
   works: Work[];
@@ -246,7 +247,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-  // 모바일/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
+  // 모���일/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
   const handleImageClick = () => {
     handleUserInteraction();
     const nextIndex = (activeIndex + 1) % works.length;
@@ -263,7 +264,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
       {/* Background Images */}
       {works.map((work, index) => {
         // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
-        const imageSrc = (work.galleryImages && work.galleryImages[0]) || work.thumbnail;
+        const imageSrc = (work.galleryImages && work.galleryImages[0]) || getLocalizedThumbnail(work, lang);
         return (
         <div
           key={work.id}

@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Work } from '@/data/works';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 
 interface IndexSlideshowProps {
   works: Work[];
@@ -119,7 +120,7 @@ export const IndexSlideshow = ({ works }: IndexSlideshowProps) => {
           {/* Background Image */}
           <div className="absolute inset-0 bg-black">
             <ImageWithFallback
-              src={currentWork.thumbnail}
+              src={getLocalizedThumbnail(currentWork, lang)}
               alt={title}
               className="w-full h-full object-cover transition-all duration-1000 ease-out"
               style={{
@@ -138,7 +139,7 @@ export const IndexSlideshow = ({ works }: IndexSlideshowProps) => {
             }}
           >
             <ImageWithFallback
-              src={currentWork.thumbnail}
+              src={getLocalizedThumbnail(currentWork, lang)}
               alt={title}
               className="w-full h-full object-cover"
             />

@@ -3,6 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { fetchTextById } from '@/services/wp-api';
 import { TextItem } from '@/data/texts';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Footer } from '@/app/components/Footer';
@@ -116,7 +117,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     return {
       id: work.id,
       title: workTitle || work.title_ko,
-      thumbnail: work.thumbnail,
+      thumbnail: getLocalizedThumbnail(work, lang),
       year: String(work.year),
       medium: workMedium || work.medium_ko
     };

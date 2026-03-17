@@ -20,6 +20,8 @@ export interface Work {
   medium_en?: string;
   medium_jp?: string;
   thumbnail: string;
+  thumbnail_en?: string; // EN-specific image override (ACF field: EN_image)
+  thumbnail_jp?: string; // JP-specific image override (ACF field: JP_image)
   oneLineInfo_ko?: string;
   oneLineInfo_en?: string;
   oneLineInfo_jp?: string;

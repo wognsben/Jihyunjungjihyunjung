@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { Work } from '@/contexts/WorkContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, AnimatePresence } from 'motion/react';
@@ -171,7 +172,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 }}
               >
                 <ImageWithFallback
-                  src={works[currentSlide].thumbnail || works[currentSlide].galleryImages?.[0] || ''}
+                  src={getLocalizedThumbnail(works[currentSlide], lang) || ''}
                   alt={works[currentSlide].title_en}
                   className="w-full h-full object-cover pointer-events-none"
                 />
@@ -245,7 +246,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
             {/* Thumbnail */}
             <div className="w-[280px] md:w-[350px] aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative">
               <ImageWithFallback
-                src={work.thumbnail || work.galleryImages?.[0] || ''}
+                src={getLocalizedThumbnail(work, lang) || ''}
                 alt={work.title_en}
                 className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
               />

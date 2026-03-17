@@ -2,6 +2,7 @@ import { useRef, useLayoutEffect, useMemo, useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { PremiumImage } from '@/app/components/ui/PremiumImage';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -256,7 +257,7 @@ export const WorkGrid = () => {
                   
                   {/* Image with Dimming Effect on Hover */}
                   <PremiumImage
-                    src={work.thumbnail || work.galleryImages[0]}
+                    src={getLocalizedThumbnail(work, lang) || work.galleryImages[0]}
                     alt={getTitle(work)}
                     className={`w-full h-full transition-all duration-[1200ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.03] group-hover:brightness-[0.7] group-hover:contrast-[1.1] ${
                       isMobile ? 'object-contain' : 'object-cover'

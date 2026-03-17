@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Work } from '@/data/works';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import gsap from 'gsap';
 import { Observer } from 'gsap/Observer';
@@ -54,9 +55,9 @@ export const CardStackSlideshow = ({ works }: CardStackSlideshowProps) => {
           setTimeout(() => setImagesLoaded(true), 300);
         }
       };
-      img.src = work.thumbnail;
+      img.src = getLocalizedThumbnail(work, lang);
     });
-  }, [works]);
+  }, [works, lang]);
 
   // Calculate card position in stack
   const getCardStyle = (index: number) => {
@@ -260,7 +261,7 @@ export const CardStackSlideshow = ({ works }: CardStackSlideshowProps) => {
                 <div
                   className="w-full h-full bg-cover bg-center"
                   style={{
-                    backgroundImage: `url(${work.thumbnail})`,
+                    backgroundImage: `url(${getLocalizedThumbnail(work, lang)})`,
                     filter: isActive ? 'none' : 'grayscale(20%)',
                   }}
                 />

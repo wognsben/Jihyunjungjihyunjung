@@ -9,6 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { parseMultilingualCaption } from '@/services/wp-api';
 import { SeoHead } from '@/app/components/seo/SeoHead';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
 import { TextDetail } from '@/app/components/TextDetail';
@@ -236,7 +237,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
         <SeoHead 
           title={work.title_en} 
           description={work.description_en ? work.description_en.slice(0, 160) : undefined} 
-          image={work.thumbnail} 
+          image={getLocalizedThumbnail(work, lang)} 
         />
 
         {/* Content Container */}

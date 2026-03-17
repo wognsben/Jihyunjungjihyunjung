@@ -410,6 +410,20 @@ const transformWork = (post: WPPost, lang: string): Work => {
       ? rawCategory.join(', ') 
       : (rawCategory?.label || String(rawCategory));
 
+  // EN/JP specific image overrides (ACF fields: EN_image, JP_image)
+  // Most works share the same images across languages,
+  // but a few have language-specific images set in these fields.
+  const enImageRaw = acf.EN_image || acf.en_image || acf['EN_image'];
+  const jpImageRaw = acf.JP_image || acf.jp_image || acf['JP_image'];
+  
+  const thumbnail_en = enImageRaw
+    ? getFullSizeUrl(typeof enImageRaw === 'string' ? enImageRaw : (enImageRaw.url || enImageRaw.sizes?.large || enImageRaw.sizes?.full || ''))
+    : undefined;
+  
+  const thumbnail_jp = jpImageRaw
+    ? getFullSizeUrl(typeof jpImageRaw === 'string' ? jpImageRaw : (jpImageRaw.url || jpImageRaw.sizes?.large || jpImageRaw.sizes?.full || ''))
+    : undefined;
+
   // Extract YouTube URL from ACF, meta, or content
   let youtubeUrl: string | undefined;
   if (post.acf?.youtube_url) {
@@ -507,6 +521,8 @@ const transformWork = (post: WPPost, lang: string): Work => {
     medium_jp,
 
     thumbnail: featuredImage,
+    thumbnail_en: thumbnail_en || undefined,
+    thumbnail_jp: thumbnail_jp || undefined,
     
     oneLineInfo_ko,
     oneLineInfo_en,
