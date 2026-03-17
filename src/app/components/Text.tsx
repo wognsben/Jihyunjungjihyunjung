@@ -99,6 +99,15 @@ export const Text = () => {
   // Filter Logic
   const filteredData = useMemo(() => {
     return texts.filter((item) => {
+      // Language availability filter
+      // WP data has explicit hasEn/hasJp flags; static fallback data has undefined (shows in all)
+      if (lang === 'en' && item.hasEn !== undefined && !item.hasEn) return false;
+      if (lang === 'jp' && item.hasJp !== undefined && !item.hasJp) return false;
+      if (lang === 'ko') {
+        // KO mode: show only KO-only articles (no EN/JP translations)
+        if (item.hasEn || item.hasJp) return false;
+      }
+
       if (activeCategory !== 'All' && item.category.toLowerCase() !== activeCategory.toLowerCase()) return false;
       if (searchQuery.trim() !== '') {
         const query = searchQuery.toLowerCase();
@@ -309,7 +318,6 @@ export const Text = () => {
                     onClick={() => inputRef.current?.focus()}
                     className="text-[10px] uppercase tracking-widest font-mono text-foreground/40 hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                    <span>SEARCH ARCHIVE</span>
                     <span className="w-4 h-[1px] bg-foreground/20" />
                 </button>
             </div>

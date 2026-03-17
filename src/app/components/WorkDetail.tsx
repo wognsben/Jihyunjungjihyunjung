@@ -220,11 +220,11 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             const acfContent = lang === 'jp' ? work.content_jp : work.content_en;
             
             if (!acfContent) {
-              // ACF 번역 없으면 content_rendered fallback
+              // ACF 번역 없으면 미디어만 표시 (한국어 텍스트 노출 방지)
               if (!work.content_rendered) return null;
               return (
                 <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
-                  <BlockRenderer html={work.content_rendered} lang={lang} />
+                  <BlockRenderer html={work.content_rendered} lang={lang} mediaOnly />
                 </div>
               );
             }
@@ -305,7 +305,20 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
           })()}
 
           {/* 6. Related Texts */}
-          {work.relatedArticles && work.relatedArticles.length > 0 && (
+          {work.relatedArticles && work.relatedArticles.length > 0 && (() => {
+            // Filter related articles by language availability
+            const filteredRelatedArticles = work.relatedArticles.filter(article => {
+              const textItem = texts.find(t => t.id === article.id);
+              if (!textItem) return true; // No match in texts → show by default
+              if (lang === 'en') return textItem.hasEn !== undefined ? textItem.hasEn : true;
+              if (lang === 'jp') return textItem.hasJp !== undefined ? textItem.hasJp : true;
+              // KO: show only articles without EN/JP translations
+              return !textItem.hasEn && !textItem.hasJp;
+            });
+            
+            if (filteredRelatedArticles.length === 0) return null;
+            
+            return (
             <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
               <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
                 <div className="md:col-span-4 min-[1025px]:col-span-3">
@@ -315,7 +328,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                       {hoveredArticleId && (
                         <div key={hoveredArticleId} className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500">
                            {(() => {
-                               const article = work.relatedArticles.find(a => a.id === hoveredArticleId);
+                               const article = filteredRelatedArticles.find(a => a.id === hoveredArticleId);
                                const textItem = texts.find(t => t.id === article?.id);
                                if (!textItem) {
                                  return article?.summary ? cleanText(article.summary).slice(0, 120) + "..." : "";
@@ -344,7 +357,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                        {hoveredArticleImg && <img src={hoveredArticleImg} alt="Preview" className="w-full h-full object-cover grayscale contrast-125" />}
                     </div>
                     <div className="flex flex-col divide-y divide-black/10 dark:divide-white/10 border-t border-black/10 dark:border-white/10">
-                      {work.relatedArticles.map((article, index) => {
+                      {filteredRelatedArticles.map((article, index) => {
                          const textItem = texts.find(t => t.id === article.id);
                          const displayTitle = textItem ? (lang === 'ko' ? textItem.title.ko : lang === 'jp' ? textItem.title.jp : textItem.title.en) : article.title;
                          return (
@@ -366,7 +379,8 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {otherWorks.length > 0 && (

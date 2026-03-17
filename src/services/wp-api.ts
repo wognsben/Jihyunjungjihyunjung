@@ -757,7 +757,9 @@ const transformText = (post: WPPost): TextItem => {
       ko: content_ko,
       jp: content_jp
     },
-    relatedWorks
+    relatedWorks,
+    hasEn: !!(acf['text_제목en'] || acf['text_제목_en'] || acf.title_en),
+    hasJp: !!(acf['text_제목jp'] || acf['text_제목_jp'] || acf.title_jp),
   };
 };
 
