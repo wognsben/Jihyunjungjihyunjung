@@ -366,6 +366,8 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const description_en = removeMultilingualCaptionPatterns(
     stripHtmlToText(removecaptionShortcodes(description_en_raw))
   );
+  // ACF 원본 HTML 보존 (본문+영상 순서 그대로, BlockRenderer용)
+  const content_en = acf['작품_설명_en'] ? acf['작품_설명_en'] : undefined;
   const oneLineInfo_en = acf.one_line_info_en ? decode(acf.one_line_info_en) : oneLineInfo_ko;
 
   // JP: ACF fields, fallback to KO
@@ -374,6 +376,8 @@ const transformWork = (post: WPPost, lang: string): Work => {
   const description_jp = removeMultilingualCaptionPatterns(
     stripHtmlToText(removecaptionShortcodes(description_jp_raw))
   );
+  // ACF 원본 HTML 보존
+  const content_jp = acf['작품_설명_jp'] ? acf['작품_설명_jp'] : undefined;
   const oneLineInfo_jp = acf.one_line_info_jp ? decode(acf.one_line_info_jp) : oneLineInfo_ko;
 
   // Year Caption: ACF multilingual
@@ -549,6 +553,9 @@ const transformWork = (post: WPPost, lang: string): Work => {
     category: workCategory || undefined,
     youtubeUrl,
     vimeoUrl,
+    content_rendered: post.content.rendered || undefined,
+    content_en: content_en || undefined,
+    content_jp: content_jp || undefined,
     relatedArticles,
     selected: isSelected,
     order: 0,
@@ -862,41 +869,51 @@ export const fetchAboutPage = async (): Promise<AboutData | null> => {
     const acf = page.acf || {};
     const contactGroup = acf.contact_info || {};
     
-    // Assemble EN content from individual ACF section fields
-    // ACF fields: about_en_약력, about_en_개인전, about_en_단체전, about_en_수상경력_및_레지던스, about_en_프로젝트, about_en_출판
-    const enSections = [
-      { header: 'Education', content: acf['about_en_약력'] },
-      { header: 'Solo Exhibitions', content: acf['about_en_개인전'] },
-      { header: 'Group Exhibitions', content: acf['about_en_단체전'] },
-      { header: 'Awards & Residencies', content: acf['about_en_수상경력_및_레지던스'] },
-      { header: 'Projects', content: acf['about_en_프로젝트'] },
-      { header: 'Publications', content: acf['about_en_출판'] },
-    ];
-    const hasEnContent = enSections.some(s => s.content);
-    const content_en = hasEnContent
-      ? enSections
-          .filter(s => s.content)
-          .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
-          .join('\n')
-      : undefined;
+    // EN content: Try single WYSIWYG field first (about_en), fallback to section-based approach
+    let content_en: string | undefined;
+    if (acf['about_en']) {
+      content_en = acf['about_en'];
+    } else {
+      // Legacy: Assemble EN content from individual ACF section fields
+      const enSections = [
+        { header: 'Education', content: acf['about_en_약력'] },
+        { header: 'Solo Exhibitions', content: acf['about_en_개인전'] },
+        { header: 'Group Exhibitions', content: acf['about_en_단체전'] },
+        { header: 'Awards & Residencies', content: acf['about_en_수상경력_및_레지던스'] },
+        { header: 'Projects', content: acf['about_en_프로젝트'] },
+        { header: 'Publications', content: acf['about_en_출판'] },
+      ];
+      const hasEnContent = enSections.some(s => s.content);
+      content_en = hasEnContent
+        ? enSections
+            .filter(s => s.content)
+            .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
+            .join('\n')
+        : undefined;
+    }
 
-    // Assemble JP content from individual ACF section fields
-    // ACF fields: about_jp_약력, about_jp_개인전, about_jp_단체전, about_jp_수상경력_및_레지던스, about_jp_프로젝트, about_jp_출력
-    const jpSections = [
-      { header: '학력', content: acf['about_jp_약력'] },
-      { header: '개전', content: acf['about_jp_개인전'] },
-      { header: '그룹전', content: acf['about_jp_단체전'] },
-      { header: '수상이력・레지던스', content: acf['about_jp_수상경력_및_레지던스'] },
-      { header: '프로젝트', content: acf['about_jp_프로젝트'] },
-      { header: '출판', content: acf['about_jp_출력'] },
-    ];
-    const hasJpContent = jpSections.some(s => s.content);
-    const content_jp = hasJpContent
-      ? jpSections
-          .filter(s => s.content)
-          .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
-          .join('\n')
-      : undefined;
+    // JP content: Try single WYSIWYG field first (About_jp), fallback to section-based approach
+    let content_jp: string | undefined;
+    if (acf['About_jp']) {
+      content_jp = acf['About_jp'];
+    } else {
+      // Legacy: Assemble JP content from individual ACF section fields
+      const jpSections = [
+        { header: '학력', content: acf['about_jp_약력'] },
+        { header: '개전', content: acf['about_jp_개인전'] },
+        { header: '그룹전', content: acf['about_jp_단체전'] },
+        { header: '수상이력・레지던스', content: acf['about_jp_수상경력_및_레지던스'] },
+        { header: '프로젝트', content: acf['about_jp_프로젝트'] },
+        { header: '출판', content: acf['about_jp_출력'] },
+      ];
+      const hasJpContent = jpSections.some(s => s.content);
+      content_jp = hasJpContent
+        ? jpSections
+            .filter(s => s.content)
+            .map(s => `<h2>${s.header}</h2>\n<p>${s.content}</p>`)
+            .join('\n')
+        : undefined;
+    }
 
     return {
       title: decode(page.title.rendered),

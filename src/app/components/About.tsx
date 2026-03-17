@@ -117,30 +117,67 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
         const text = (temp.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
         
         const match = text.match(/^(\d{4}(?:[-.~]\d{2,4})?)\s+(.*)/s) || 
-                      text.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s);
+                      text.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s) ||
+                      text.match(/^(\d{4}(?:[-.~]\d{2,4})?)$/);
         
         if (match) {
           hasYearEntry = true;
           const yearStr = match[1];
-          const safeYear = yearStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
-          const removeRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}[\\s.,\\u00A0\\t]*`);
+          const restText = (match[2] || '').trim();
           
-          let contentHtml = part;
-          if (removeRegex.test(contentHtml)) {
-             contentHtml = contentHtml.replace(removeRegex, '');
+          let contentHtml: string;
+          
+          if (!restText) {
+            // Year-only line (e.g. "<strong>2014</strong>") — no content after year
+            contentHtml = '';
           } else {
-             const entityRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}(?:&nbsp;|[\\s.,\\u00A0\\t])*`);
-             contentHtml = contentHtml.replace(entityRegex, '');
+            // Year + content on same line — remove the year from HTML
+            const safeYear = yearStr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+            const removeRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}[\\s.,\\u00A0\\t]*`);
+            
+            contentHtml = part;
+            if (removeRegex.test(contentHtml)) {
+               contentHtml = contentHtml.replace(removeRegex, '');
+            } else {
+               // Try removing year wrapped in inline tags like <strong>2014</strong> or <b>2014</b>
+               const taggedYearRegex = new RegExp(
+                 `^[\\s\\u200B\\uFEFF]*(?:<(?:strong|b|em|span)[^>]*>\\s*)?${safeYear}(?:\\s*</(?:strong|b|em|span)>)?[\\s.,\\u00A0\\t]*`,
+                 'i'
+               );
+               if (taggedYearRegex.test(contentHtml)) {
+                 contentHtml = contentHtml.replace(taggedYearRegex, '');
+               } else {
+                 const entityRegex = new RegExp(`^[\\s\\u200B\\uFEFF]*${safeYear}(?:&nbsp;|[\\s.,\\u00A0\\t])*`);
+                 contentHtml = contentHtml.replace(entityRegex, '');
+               }
+            }
+            
+            // Double-check: if after removal only empty tags remain, treat as empty
+            const strippedCheck = contentHtml.replace(/<[^>]*>/g, '').trim();
+            if (!strippedCheck) {
+              contentHtml = '';
+            }
           }
           
-          // Find if this row contains a work title
-          const workId = findWorkIdInText(text);
-
-          processedRows.push({ year: yearStr, content: contentHtml, workId });
+          if (!contentHtml) {
+            // Year-only line: attach year to next content row
+            processedRows.push({ year: yearStr, content: '', workId: null });
+          } else {
+            // Find if this row contains a work title
+            const workId = findWorkIdInText(text);
+            processedRows.push({ year: yearStr, content: contentHtml, workId });
+          }
         } else {
           if (text.length > 0) {
              const workId = findWorkIdInText(text);
-             processedRows.push({ year: '', content: part, workId });
+             // If previous row has a year but empty content, merge this content into it
+             const prevRow = processedRows[processedRows.length - 1];
+             if (prevRow && prevRow.year && !prevRow.content) {
+               prevRow.content = part;
+               prevRow.workId = prevRow.workId || workId;
+             } else {
+               processedRows.push({ year: '', content: part, workId });
+             }
           }
         }
       });
@@ -189,7 +226,7 @@ const translateSectionHeaders = (html: string, lang: string): string => {
   // Longest phrases first to avoid partial matches
   const headers: [RegExp, string, string][] = [
     [/수상\s*경력\s*및\s*레지던스/g, 'Awards & Residencies', '受賞歴・レジデンス'],
-    [/수상\s*경력/g, 'Awards', '受賞歴'],
+    [/수상\s*경력/g, 'Awards', '賞歴'],
     [/레지던스/g, 'Residencies', 'レジデンス'],
     [/개인\s*전/g, 'Solo Exhibitions', '個展'],
     [/단체\s*전/g, 'Group Exhibitions', 'グループ展'],
@@ -753,7 +790,7 @@ export const About = () => {
         </div>
       </div>
       
-      {/* pointer-events 스타일 주입 제거 — 무한 루프의 원인이었음.
+      {/* pointer-events 스타 주입 제거 — 무한 루프의 원인이었음.
            tooltipWorkId가 설정되면 handleContentMouseOver에서 이미 새 툴팁 열기를 차단하므로 불필요 */}
 
       <ContactModal 

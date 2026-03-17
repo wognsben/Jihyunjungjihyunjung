@@ -42,6 +42,9 @@ export interface Work {
   category?: string; // From work_category taxonomy (e.g. "project", "exhibition", or empty for works)
   youtubeUrl?: string; // YouTube video URL
   vimeoUrl?: string; // Vimeo video URL
+  content_rendered?: string; // Raw WordPress block HTML for block-based rendering
+  content_en?: string; // ACF 작품_설명_en 원본 HTML (본문+영상 순서 포함)
+  content_jp?: string; // ACF 작품_설명_jp 원본 HTML (본문+영상 순서 포함)
   selected: boolean;
   order: number;
   relatedArticles?: RelatedArticle[];

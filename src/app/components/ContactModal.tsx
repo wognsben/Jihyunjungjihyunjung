@@ -3,9 +3,8 @@ import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { useLanguage } from '@/contexts/LanguageContext';
 import axios from 'axios';
-import { X, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import Draggable from 'react-draggable';
 import { motion, AnimatePresence } from 'motion/react';
 import { Resizable } from 're-resizable';
 
@@ -24,9 +23,9 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
   const { lang } = useLanguage();
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ContactFormData>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const draggableRef = useRef<HTMLDivElement>(null); 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   // Check if mobile
@@ -101,191 +100,147 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <Draggable 
-          handle=".window-handle" 
-          defaultPosition={{ 
-            x: typeof window !== 'undefined' ? (
-              isMobile ? 20 : Math.max(20, window.innerWidth / 2 - 250)
-            ) : 20, 
-            y: isMobile ? 20 : 100
-          }} 
-          nodeRef={draggableRef}
-          disabled={isMaximized}
+        <div 
+          ref={panelRef}
+          className={`fixed z-[99999999] ${isMobile ? 'top-[20px] left-[20px] w-[calc(100vw-40px)] h-[70vh]' : 'w-fit h-fit'}`}
+          style={isMobile ? { position: 'fixed' } : { position: 'fixed', left: typeof window !== 'undefined' ? Math.max(20, window.innerWidth / 2 - 250) : 100, top: 100, width: 'fit-content', height: 'fit-content' }}
         >
-          {/* Draggable Wrapper (Position Logic) */}
-          <div 
-             ref={draggableRef} 
-             className={`fixed z-[99999999] ${isMaximized ? 'inset-0 !transform-none !w-full !h-full' : isMobile ? 'top-0 left-0 w-[calc(100vw-40px)] h-[70vh]' : 'top-0 left-0 w-fit h-fit'}${lang === 'ko' ? ' notranslate' : ''}`}
-             translate={lang === 'ko' ? 'no' : undefined}
-             style={isMaximized ? { transform: 'none', width: '100%', height: '100%', top: 0, left: 0 } : isMobile ? { position: 'fixed' } : { position: 'fixed' }}
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMobile ? 'w-full h-full rounded-sm' : 'rounded-sm'}`}
           >
-            {/* Animation Wrapper */}
-            <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMaximized ? 'w-full h-full rounded-none' : isMobile ? 'w-full h-full rounded-lg' : 'rounded-lg'}`}
+            <Resizable
+              defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 500, height: 600 }}
+              minWidth={isMobile ? 300 : 350}
+              minHeight={isMobile ? 300 : 400}
+              maxWidth={1000}
+              enable={!isMobile ? { right: true, bottom: true, bottomRight: true } : false}
+              className="flex flex-col h-full relative"
             >
-                <Resizable
-                  defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 500, height: 600 }}
-                  size={isMaximized ? { width: '100%', height: '100%' } : undefined}
-                  minWidth={isMobile ? 300 : 350}
-                  minHeight={isMobile ? 300 : 400}
-                  maxWidth={isMaximized ? '100%' : 1000}
-                  enable={!isMaximized ? { right: true, bottom: true, bottomRight: true } : false}
-                  className="flex flex-col h-full relative"
-                >
-                    {/* macOS/Apple Style Header (Handle) */}
-                    <div className="window-handle h-10 bg-muted/20 flex items-center justify-between px-4 cursor-move select-none border-b border-foreground/5 transition-colors hover:bg-muted/30 flex-shrink-0">
-                    {/* Left Side - macOS dots */}
-                    <div className="flex items-center gap-2">
-                        {/* macOS Dots */}
-                        <div className="flex gap-1.5 group">
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full bg-red-500/20 group-hover:bg-red-500/80 transition-colors cursor-pointer flex items-center justify-center relative z-50 pointer-events-auto before:content-[''] before:absolute before:-inset-2" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onClose();
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onClose();
-                            }}
-                        >
-                            <X size={8} className="text-black/50 opacity-0 group-hover:opacity-100" />
-                        </div>
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/20 group-hover:bg-amber-500/80 transition-colors" />
-                        <div 
-                            className="w-2.5 h-2.5 rounded-full bg-green-500/20 group-hover:bg-green-500/80 transition-colors cursor-pointer relative z-50 pointer-events-auto before:content-[''] before:absolute before:-inset-2" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsMaximized(!isMaximized);
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setIsMaximized(prev => !prev);
-                            }}
-                        />
-                        </div>
-                        
-                        <span className="ml-3 text-[9px] uppercase tracking-[0.2em] font-mono opacity-40">New Message</span>
-                    </div>
+              {/* Drag Handle - subtle top bar (desktop only) */}
+              {!isMobile && (
+                <div 
+                  className="h-6 flex-shrink-0 flex items-center justify-center cursor-move select-none"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const panel = panelRef.current;
+                    if (!panel) return;
+                    const rect = panel.getBoundingClientRect();
+                    dragState.current = { startX: e.clientX, startY: e.clientY, startLeft: rect.left, startTop: rect.top };
                     
-                    {/* Right Side - Controls */}
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsMaximized(!isMaximized);
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setIsMaximized(prev => !prev);
-                            }}
-                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 relative z-50 pointer-events-auto"
-                            title={isMaximized ? "Restore" : "Maximize"}
-                        >
-                            {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                        </button>
-                        <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onClose();
-                            }}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onTouchEnd={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onClose();
-                            }}
-                            className="text-muted-foreground/40 hover:text-foreground transition-colors p-2 relative z-50 pointer-events-auto"
-                        >
-                            <X size={14} />
-                        </button>
+                    const onMouseMove = (ev: MouseEvent) => {
+                      if (!dragState.current || !panel) return;
+                      const dx = ev.clientX - dragState.current.startX;
+                      const dy = ev.clientY - dragState.current.startY;
+                      panel.style.left = `${dragState.current.startLeft + dx}px`;
+                      panel.style.top = `${dragState.current.startTop + dy}px`;
+                    };
+                    const onMouseUp = () => {
+                      dragState.current = null;
+                      document.removeEventListener('mousemove', onMouseMove);
+                      document.removeEventListener('mouseup', onMouseUp);
+                    };
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                  }}
+                >
+                  <div className="w-10 h-[1.5px] bg-foreground/10 rounded-full" />
+                </div>
+              )}
+
+              {/* Close button - floating top right */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onClose();
+                }}
+                className="absolute top-2 right-3 z-20 text-muted-foreground/30 hover:text-foreground/70 transition-colors duration-300 p-2 md:p-1 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center cursor-pointer"
+              >
+                <X size={13} />
+              </button>
+
+              {/* Content */}
+              <div className="flex-grow flex flex-col overflow-hidden">
+                <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+                    
+                  {/* Header Fields (To, From, Subject) */}
+                  <div className="px-6 py-2 border-b border-foreground/5 space-y-1 flex-shrink-0">
+                    
+                    {/* Title */}
+                    <div className="pt-2 pb-3">
+                      <span className="text-[9px] uppercase tracking-[0.2em] font-mono text-muted-foreground/50">New Message</span>
                     </div>
+
+                    {/* To Field - Static */}
+                    <div className="flex items-center py-2 border-b border-foreground/5">
+                      <span className="w-16 text-xs font-medium text-muted-foreground">To:</span>
+                      <span className="text-sm font-light text-foreground/80">astradiog@gmail.com</span>
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-grow flex flex-col overflow-hidden">
-                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
-                        
-                        {/* Header Fields (To, From, Subject) */}
-                        <div className="px-6 py-2 border-b border-foreground/5 space-y-1 flex-shrink-0">
-                        
-                        {/* To Field - Static */}
-                        <div className="flex items-center py-2 border-b border-foreground/5">
-                            <span className="w-16 text-xs font-medium text-muted-foreground">To:</span>
-                            <span className="text-sm font-light text-foreground/80">astradiog@gmail.com</span>
-                        </div>
-
-                        {/* From Field - Email Input */}
-                        <div className="flex items-center py-2 border-b border-foreground/5">
-                            <span className="w-16 text-xs font-medium text-muted-foreground">From:</span>
-                            <div className="flex-1 relative">
-                                <input
-                                    {...register("yourEmail", { 
-                                    required: true,
-                                    pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
-                                    })}
-                                    placeholder="name@example.com"
-                                    type="email"
-                                    className="w-full bg-transparent text-sm font-light focus:outline-none focus:text-foreground transition-colors placeholder:text-muted-foreground/30"
-                                />
-                                {errors.yourEmail && <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-red-500">Invalid email</span>}
-                            </div>
-                        </div>
-
-                        {/* Subject Field */}
-                        <div className="flex items-center py-2">
-                            <span className="w-16 text-xs font-medium text-muted-foreground">Subject:</span>
-                            <input
-                                {...register("yourSubject")}
-                                placeholder="Project Inquiry"
-                                className="flex-1 bg-transparent text-sm font-light focus:outline-none focus:text-foreground transition-colors placeholder:text-muted-foreground/30"
-                            />
-                        </div>
-                        </div>
-
-                        {/* Message Body */}
-                        <div className="px-6 py-4 flex-grow bg-background/50 flex flex-col">
-                        <textarea
-                            {...register("yourMessage", { required: true })}
-                            placeholder="Write your message..."
-                            className="w-full h-full bg-transparent text-sm font-light leading-relaxed focus:outline-none resize-none placeholder:text-muted-foreground/30"
+                    {/* From Field - Email Input */}
+                    <div className="flex items-center py-2 border-b border-foreground/5">
+                      <span className="w-16 text-xs font-medium text-muted-foreground">From:</span>
+                      <div className="flex-1 relative">
+                        <input
+                          {...register("yourEmail", { 
+                            required: true,
+                            pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i
+                          })}
+                          placeholder="name@example.com"
+                          type="email"
+                          className="w-full bg-transparent text-sm font-light focus:outline-none focus:text-foreground transition-colors placeholder:text-muted-foreground/30"
                         />
-                        {errors.yourMessage && <span className="text-[9px] text-red-500 mt-1 block">Message is required</span>}
-                        </div>
-
-                        {/* Footer / Send Button */}
-                        <div className="px-6 py-4 bg-muted/5 border-t border-foreground/5 flex justify-end flex-shrink-0">
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="text-[10px] tracking-[0.2em] uppercase hover:text-foreground/60 transition-colors disabled:opacity-50 flex items-center gap-2 bg-foreground text-background px-6 py-2 rounded-full hover:bg-foreground/90"
-                        >
-                            {isSubmitting ? (
-                            <>
-                                <Loader2 size={10} className="animate-spin" />
-                                SENDING...
-                            </>
-                            ) : (
-                            "SEND MESSAGE"
-                            )}
-                        </button>
-                        </div>
-                    </form>
+                        {errors.yourEmail && <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] text-red-500">Invalid email</span>}
+                      </div>
                     </div>
-                </Resizable>
-            </motion.div>
-          </div>
-        </Draggable>
+
+                    {/* Subject Field */}
+                    <div className="flex items-center py-2">
+                      <span className="w-16 text-xs font-medium text-muted-foreground">Subject:</span>
+                      <input
+                        {...register("yourSubject")}
+                        placeholder="Project Inquiry"
+                        className="flex-1 bg-transparent text-sm font-light focus:outline-none focus:text-foreground transition-colors placeholder:text-muted-foreground/30"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Message Body */}
+                  <div className="px-6 py-4 flex-grow bg-background/50 flex flex-col">
+                    <textarea
+                      {...register("yourMessage", { required: true })}
+                      placeholder="Write your message..."
+                      className="w-full h-full bg-transparent text-sm font-light leading-relaxed focus:outline-none resize-none placeholder:text-muted-foreground/30"
+                    />
+                    {errors.yourMessage && <span className="text-[9px] text-red-500 mt-1 block">Message is required</span>}
+                  </div>
+
+                  {/* Footer / Send Button */}
+                  <div className="px-6 py-4 bg-muted/5 border-t border-foreground/5 flex justify-end flex-shrink-0">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="text-[10px] tracking-[0.2em] uppercase hover:text-foreground/60 transition-colors disabled:opacity-50 flex items-center gap-2 bg-foreground text-background px-6 py-2"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 size={10} className="animate-spin" />
+                          SENDING...
+                        </>
+                      ) : (
+                        "SEND MESSAGE"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </Resizable>
+          </motion.div>
+        </div>
       )}
     </AnimatePresence>,
     document.body

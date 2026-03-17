@@ -1,70 +1,20 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
-import gsap from 'gsap';
-import SplitType from 'split-type';
-import { motion, AnimatePresence } from 'motion/react';
+import { X, ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Resizable } from 're-resizable';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
-import { parseMultilingualCaption } from '@/services/wp-api';
 import { SeoHead } from '@/app/components/seo/SeoHead';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
 import { TextDetail } from '@/app/components/TextDetail';
-
-// Minimal Blur Reveal Component
-const BlurReveal = ({ children, className, delay = 0 }: { children: React.ReactNode, className?: string, delay?: number }) => {
-  return <p className={className}>{children}</p>;
-};
+import { BlockRenderer } from '@/app/components/BlockRenderer';
 
 interface WorkDetailProps {
   workId: string | null;
 }
-
-// Helper: Video Player Component
-const VideoPlayer = ({ url }: { url: string }) => {
-  const getVimeoId = (link: string) => {
-    const match = link.match(/(?:vimeo.com\/|video\/)(\d+)/);
-    return match ? match[1] : null;
-  };
-
-  const isYoutube = url.includes('youtube') || url.includes('youtu.be');
-  const isVimeo = url.includes('vimeo');
-
-  if (isYoutube) {
-    return (
-      <div className="relative w-full aspect-video bg-black/5 rounded-sm overflow-hidden">
-        <iframe
-          src={url.replace('watch?v=', 'embed/')}
-          title="Video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
-        />
-      </div>
-    );
-  }
-
-  if (isVimeo) {
-    const vimeoId = getVimeoId(url);
-    if (!vimeoId) return null;
-    return (
-      <div className="relative w-full aspect-video bg-black/5 rounded-sm overflow-hidden">
-        <iframe
-          src={`https://player.vimeo.com/video/${vimeoId}?color=ffffff&title=0&byline=0&portrait=0`}
-          title="Vimeo"
-          allow="autoplay; fullscreen; picture-in-picture"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full opacity-90 hover:opacity-100 transition-opacity duration-500"
-        />
-      </div>
-    );
-  }
-
-  return null;
-};
 
 const cleanText = (text: string) => {
   if (!text) return "";
@@ -93,9 +43,6 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const dragState = useRef<{ startX: number; startY: number; startLeft: number; startTop: number } | null>(null);
-  
-  // Simple Slider State
-  const [currentSlide, setCurrentSlide] = useState(0);
   
   // Floating Text Window State
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
@@ -167,29 +114,6 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   
   const work = works.find(w => w.id === workId);
 
-  // Reset slide when work changes
-  useEffect(() => {
-    setCurrentSlide(0);
-  }, [workId]);
-
-  // Keyboard Navigation for Slider
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!work || !work.galleryImages) return;
-      
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        goToPrevSlide();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        goToNextSlide();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlide, work]);
-
   // ESC Key
   useEffect(() => {
     const handleEscKey = (e: KeyboardEvent) => {
@@ -212,21 +136,6 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
   };
 
   const title = lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
-  const description = lang === 'ko' ? work.description_ko : (lang === 'jp' ? work.description_jp : work.description_en);
-  const yearCaption = lang === 'ko' ? work.yearCaption_ko : (lang === 'jp' ? work.yearCaption_jp : work.yearCaption_en);
-  
-  const videoUrl = work.youtubeUrl || work.vimeoUrl;
-
-  // Slider Functions
-  const goToNextSlide = () => {
-    if (!work.galleryImages) return;
-    setCurrentSlide((prev) => (prev + 1) % work.galleryImages.length);
-  };
-
-  const goToPrevSlide = () => {
-    if (!work.galleryImages) return;
-    setCurrentSlide((prev) => (prev - 1 + work.galleryImages.length) % work.galleryImages.length);
-  };
 
   // Filter out current work from "Other Works"
   const otherWorks = works.filter(w => w.id !== workId);
@@ -292,172 +201,48 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             </div>
           </div>
 
-          {/* 2. Description Text (Video moved to bottom) */}
-          {description && (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 mb-32 md:mb-40">
-            {/* Left: Empty for whitespace or future content */}
-            <div className="hidden md:block md:col-span-5 min-[1025px]:col-span-5"></div>
-
-            {/* Right: Description Text */}
-            <div className="md:col-span-6 md:col-start-7 min-[1025px]:col-span-6 min-[1025px]:col-start-7">
-                 <div className="space-y-6 md:space-y-8">
-                   {description.split('\n\n').map((paragraph, index) => (
-                      <BlurReveal 
-                        key={`${lang}-${index}`} 
-                        className={`${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
-                        delay={0.2 + (index * 0.1)}
-                      >
-                        <span dangerouslySetInnerHTML={{ __html: paragraph.trim() }} />
-                      </BlurReveal>
-                   ))}
-                 </div>
-            </div>
-          </div>
-          )}
-
-          {/* 3. Simple Image Slider */}
-          {work.galleryImages && work.galleryImages.length > 0 && (
-            <div className="mb-32 md:mb-48 min-[1025px]:mb-64 -mx-6 md:-mx-12">
-              <div className="flex flex-col items-center gap-5 md:gap-6 w-full mx-auto">
-                <div className="relative max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] overflow-hidden group w-full">
-                  {/* Desktop: Click Areas for Navigation (Left/Right split) */}
-                  <div 
-                    className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToPrevSlide();
-                    }}
-                  />
-                  <div 
-                    className="hidden md:block absolute right-0 top-0 w-1/2 h-full z-20 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToNextSlide();
-                    }}
-                  />
-                  
-                  {/* Mobile: Full area click goes to next */}
-                  <div 
-                    className="md:hidden absolute inset-0 z-20 cursor-pointer active:bg-black/5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      goToNextSlide();
-                    }}
-                  />
-                  
-                  {/* Hover indicators - Desktop only */}
-                  <div className="hidden md:block absolute inset-0 z-10 pointer-events-none">
-                    <div className="absolute left-0 top-0 w-1/2 h-full bg-gradient-to-r from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-                    <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-                  </div>
-                  
-                  {/* Current Image */}
-                  <AnimatePresence mode="wait">
-                    <motion.img 
-                      key={currentSlide}
-                      src={work.galleryImages[currentSlide]} 
-                      alt={`Gallery ${currentSlide + 1}`} 
-                      className="max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] w-full object-contain mx-auto block pointer-events-none"
-                      draggable={false}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      drag="x"
-                      dragConstraints={{ left: 0, right: 0 }}
-                      dragElastic={0.2}
-                      onDragEnd={(e, { offset, velocity }) => {
-                        const swipe = offset.x;
-                        const swipeVelocity = velocity.x;
-                        
-                        // Mobile: swipe to change slides
-                        if (window.innerWidth < 768) {
-                          if (Math.abs(swipe) > 50 || Math.abs(swipeVelocity) > 500) {
-                            if (swipe > 0) {
-                              goToPrevSlide();
-                            } else {
-                              goToNextSlide();
-                            }
-                          }
-                        }
-                      }}
-                    />
-                  </AnimatePresence>
-                  
+          {/* Block Content: 언어별 렌더링 */}
+          {/* KO: content_rendered 블록 전체 */}
+          {/* EN/JP: content_rendered에서 이미지/갤러리 추출 + ACF content_en/jp 텍스트+동영상 */}
+          {/*        [embed]URL[/embed] 숏코드는 sanitizeHtml에서 자동 변환됨 */}
+          {(() => {
+            if (lang === 'ko') {
+              // KO: 원본 블록 에디터 콘텐츠 그대로
+              if (!work.content_rendered) return null;
+              return (
+                <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
+                  <BlockRenderer html={work.content_rendered} lang={lang} />
                 </div>
+              );
+            }
 
-                {/* Image Caption/Credit - Always reserve space for consistent layout */}
-                <div className="h-6 flex items-center justify-center">
-                  {work.imageCredits && work.imageCredits[currentSlide] ? (() => {
-                    const rawCaption = work.imageCredits[currentSlide];
-                    const parsedCaption = parseMultilingualCaption(rawCaption, lang);
-                    if (!parsedCaption) return null;
-                    return (
-                      <motion.p
-                        key={`caption-${currentSlide}-${lang}`}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.4, delay: 0.1 }}
-                        className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans"
-                      >
-                        {parsedCaption}
-                      </motion.p>
-                    );
-                  })() : null}
+            // EN/JP: 하이브리드 렌더링
+            const acfContent = lang === 'jp' ? work.content_jp : work.content_en;
+            
+            if (!acfContent) {
+              // ACF 번역 없으면 content_rendered fallback
+              if (!work.content_rendered) return null;
+              return (
+                <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
+                  <BlockRenderer html={work.content_rendered} lang={lang} />
                 </div>
+              );
+            }
 
-                {/* Slider Controls - Single unified control */}
-                <div className="flex items-center justify-center gap-8 md:gap-10">
-                  <button 
-                    type="button"
-                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
-                    aria-label="Previous"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      goToPrevSlide();
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
-                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                    </svg>
-                  </button>
-                  <span className="min-[1025px]:text-[14px] font-mono min-[1025px]:font-['Ojuju'] text-foreground/50 tracking-[0.1em] whitespace-nowrap text-[11px]">
-                    {String(currentSlide + 1).padStart(2, '0')} / {String(work.galleryImages.length).padStart(2, '0')}
-                  </span>
-                  <button 
-                    type="button"
-                    className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
-                    aria-label="Next"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      goToNextSlide();
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
-                      <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square"/>
-                    </svg>
-                  </button>
-                </div>
+            // ACF 번역 있음:
+            // 1) content_rendered에서 이미지/갤러리만 추출 (동영상 제외 — ACF에 [embed]로 있으므로)
+            // 2) ACF content를 BlockRenderer로 렌더 (텍스트 + [embed]→iframe 동영상)
+            return (
+              <div className="mb-32 md:mb-48 min-[1025px]:mb-64 space-y-8 md:space-y-12 min-[1025px]:space-y-16">
+                {/* 이미지/갤러리: content_rendered에서 추출 */}
+                {work.content_rendered && (
+                  <BlockRenderer html={work.content_rendered} lang={lang} mediaOnly imageOnly />
+                )}
+                {/* 텍스트 + 동영상: ACF content */}
+                <BlockRenderer html={acfContent} lang={lang} />
               </div>
-            </div>
-          )}
-
-          {/* 4. Video Section (Moved from top) */}
-          {videoUrl && (
-            <div className="mb-40 md:mb-64">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
-                 <div className="md:col-span-8 md:col-start-3">
-                    <VideoPlayer url={videoUrl} />
-                    <div className="mt-4 flex items-center justify-between opacity-50">
-                       <span className="text-[14px] uppercase tracking-widest font-mono">Featured Film</span>
-                       <div className="h-px bg-current flex-grow ml-4"></div>
-                    </div>
-                 </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* 4.5 Additional Text (Artist Notes / Supplementary Description) */}
           {(() => {
@@ -604,7 +389,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMobile ? 'w-full h-full rounded-lg' : 'rounded-sm'}`}
+              className={`shadow-2xl bg-background/95 backdrop-blur-md border border-foreground/10 overflow-hidden ${isMobile ? 'w-full h-full rounded-sm' : 'rounded-sm'}`}
             >
               <Resizable
                 defaultSize={isMobile ? { width: '100%', height: '100%' } : { width: 450, height: 600 }}

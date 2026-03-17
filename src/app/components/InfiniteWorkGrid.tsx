@@ -235,7 +235,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       {/* Horizontal Track */}
       <div 
         ref={trackRef}
-        className="flex gap-8 md:gap-12 px-6 md:px-12 pb-12 md:pb-16 will-change-transform"
+        className="flex gap-4 md:gap-6 px-6 md:px-12 pb-12 md:pb-16 will-change-transform"
       >
         {works.map((work) => (
           <div
