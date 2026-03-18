@@ -124,7 +124,18 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     ? (text.content[lang] || text.content['ko']) 
     : (text.summary ? (text.summary[lang] || text.summary['ko']) : '');
 
-  const paragraphs = content ? content.split('\n\n').filter(p => p.trim()) : [];
+  const paragraphs = content ? (() => {
+    // Try double newline split first (WordPress native content)
+    const doubleNewlineSplit = content.split('\n\n').filter(p => p.trim());
+    if (doubleNewlineSplit.length > 1) return doubleNewlineSplit;
+    
+    // Fallback: try single newline split (ACF fields often use \n)
+    const singleNewlineSplit = content.split('\n').filter(p => p.trim());
+    if (singleNewlineSplit.length > 1) return singleNewlineSplit;
+    
+    // Last resort: return as single paragraph
+    return doubleNewlineSplit;
+  })() : [];
 
   // Compute related works (Reverse Lookup + Explicit)
   const reverseRelatedWorks = works.filter(work => 

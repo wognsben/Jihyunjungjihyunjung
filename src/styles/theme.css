@@ -239,6 +239,15 @@
     background-color: rgba(255, 255, 255, 0.3);
   }
 
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Smooth scrolling for all pages */
   html {
     scroll-behavior: auto;
