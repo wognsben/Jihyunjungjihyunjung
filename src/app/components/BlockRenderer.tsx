@@ -433,6 +433,25 @@ const getBestImageUrl = (html: string): string | null => {
   return srcMatch ? stripWpResolutionSuffix(srcMatch[1]) : null;
 };
 
+const decodeHtmlEntities = (text: string): string => {
+  return text
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&rsquo;/g, "'")
+    .replace(/&lsquo;/g, "'")
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&ldquo;/g, '"')
+    .replace(/&rdquo;/g, '"')
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#038;/g, '&');
+};
+
 const extractImagesFromBlocks = (blocks: ParsedBlock[]): { src: string; caption: string }[] => {
   const images: { src: string; caption: string }[] = [];
 
@@ -445,7 +464,7 @@ const extractImagesFromBlocks = (blocks: ParsedBlock[]): { src: string; caption:
         const src = getBestImageUrl(m[0]) || getBestImageUrl(figureHtml);
         const captionMatch = figureHtml.match(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/);
         if (src) {
-          images.push({ src, caption: captionMatch ? captionMatch[1].replace(/<[^>]+>/g, '').trim() : '' });
+          images.push({ src, caption: captionMatch ? decodeHtmlEntities(captionMatch[1].replace(/<[^>]+>/g, '').trim()) : '' });
         }
       }
       if (images.length === 0) {
@@ -462,7 +481,7 @@ const extractImagesFromBlocks = (blocks: ParsedBlock[]): { src: string; caption:
       if (src) {
         images.push({
           src,
-          caption: captionMatch ? captionMatch[1].replace(/<[^>]+>/g, '').trim() : ''
+          caption: captionMatch ? decodeHtmlEntities(captionMatch[1].replace(/<[^>]+>/g, '').trim()) : ''
         });
       }
     }
@@ -536,7 +555,7 @@ const AlignedSingleImage = ({ block, lang }: { block: ParsedBlock; lang: string 
 // ============================================================
 // Image Slider: center/wide/full 또는 정렬 없는 연속 이미지
 // ============================================================
-const ImageSliderBlock = ({ blocks, lang }: { blocks: ParsedBlock[]; lang: string }) => {
+const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; lang: string; compact?: boolean }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const images = extractImagesFromBlocks(blocks);
 
@@ -560,7 +579,7 @@ const ImageSliderBlock = ({ blocks, lang }: { blocks: ParsedBlock[]; lang: strin
   // Single image — no slider controls
   if (images.length === 1) {
     return (
-      <div className="mb-32 md:mb-48 min-[1025px]:mb-64 -mx-6 md:-mx-12">
+      <div className={`${compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'} -mx-6 md:-mx-12`}>
         <div className="max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] overflow-hidden w-full">
           <img 
             src={images[0].src} 
@@ -579,7 +598,7 @@ const ImageSliderBlock = ({ blocks, lang }: { blocks: ParsedBlock[]; lang: strin
   }
 
   return (
-    <div className="mb-32 md:mb-48 min-[1025px]:mb-64 -mx-6 md:-mx-12">
+    <div className={`${compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'} -mx-6 md:-mx-12`}>
       <div className="flex flex-col items-center gap-5 md:gap-6 w-full mx-auto">
         <div className="relative max-h-[70svh] md:max-h-[85svh] min-[1025px]:max-h-[90svh] overflow-hidden group w-full">
           <div className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer" onClick={goToPrev} />
@@ -788,6 +807,8 @@ interface BlockRendererProps {
   mediaOnly?: boolean;
   /** mediaOnly와 함께 사용: true이면 이미지/갤러리만 (비디오/embed 제외) */
   imageOnly?: boolean;
+  /** TEXT 상세페이지 등 컴팩트 레이아웃용 — 갤러리/이미지 마진 축소 */
+  compact?: boolean;
 }
 
 // 미디어 블록 타입
@@ -798,7 +819,7 @@ const IMAGE_ONLY_TYPES = new Set(['image', 'gallery']);
 export { parseBlocks, MEDIA_TYPES, groupBlocksForRendering };
 export type { ParsedBlock, RenderGroup };
 
-export const BlockRenderer = ({ html, lang, mediaOnly = false, imageOnly = false }: BlockRendererProps) => {
+export const BlockRenderer = ({ html, lang, mediaOnly = false, imageOnly = false, compact = false }: BlockRendererProps) => {
   const rawBlocks = parseBlocks(html);
   if (rawBlocks.length === 0) return null;
 
@@ -821,7 +842,7 @@ export const BlockRenderer = ({ html, lang, mediaOnly = false, imageOnly = false
         const key = `group-${index}`;
         
         if (group.type === 'image-slider') {
-          return <ImageSliderBlock key={key} blocks={group.blocks} lang={lang} />;
+          return <ImageSliderBlock key={key} blocks={group.blocks} lang={lang} compact={compact} />;
         }
         
         const block = group.blocks[0];

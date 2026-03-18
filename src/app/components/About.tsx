@@ -357,7 +357,7 @@ export const About = () => {
     
     if (lang === 'en') {
       let result = text;
-      result = result.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
+      result = result.replace(/지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
       result = result.replace(/수원\s*생/g, 'Born in Suwon');
       result = result.replace(/서울\s*기반로\s*활동\s*중/g, 'Based in Seoul');
       result = result.replace(/\(1986\s*[–\-]\s*\)/g, '(1986 – )');
@@ -387,61 +387,24 @@ export const About = () => {
         e.preventDefault();
         e.stopPropagation();
         
-        // 터치 디바이스(모바일+태블릿): 툴팁 토글, 데스크탑: Work 상세 페이지로 이동
-        if (isTouch) {
-          if (tooltipWorkId === id) {
-            setTooltipWorkId(null); // 같은 작품 재클릭 시 툴팁 닫기
-          } else {
-            setTooltipWorkId(id); // 툴팁 열기
-          }
+        // 모든 디바이스: 클릭 시 툴팁 토글 (open 버튼/썸네일 클릭으로만 상세 이동)
+        if (tooltipWorkId === id) {
+          setTooltipWorkId(null); // 같은 작품 재클릭 시 툴팁 닫기
         } else {
-          setTooltipWorkId(null);
-          window.location.hash = `#/work/${id}`;
+          setTooltipWorkId(id); // 툴팁 열기
         }
       }
     }
   };
 
   const handleContentMouseOver = (e: any) => {
-    if (isTouch) return;
-    if (isInTooltip.current) return;
-
-    const target = e.target as HTMLElement;
-    const link = target.closest('.hover-line') as HTMLElement;
-
-    if (link) {
-      // 행 위에 있으면 닫기 타이머는 항상 취소
-      if (tooltipTimeoutRef.current) {
-        clearTimeout(tooltipTimeoutRef.current);
-        tooltipTimeoutRef.current = null;
-      }
-
-      const id = link.getAttribute('data-work-id');
-      if (id && id !== tooltipWorkId) {
-        // 항상 새로운 work ID로 덮어쓰기 (즉시 전환)
-        setIsManualHover(true);
-        setTooltipWorkId(id);
-      }
-    }
+    // 호버로 툴팁 열기 비활성화 — 클릭으로만 툴팁 토글
+    return;
   };
 
   const handleContentMouseOut = (e: any) => {
-    // 데스크탑에서만 호버 작동
-    if (isTouch) return;
-    
-    // 툴팁 안에 있으면 닫기 타이머 무시
-    if (isInTooltip.current) return;
-    
-     const target = e.target as HTMLElement;
-     if (target.closest('.hover-line')) {
-        setIsManualHover(false);
-        // 짧은 딜레이 — 다른 행이나 툴팁으로 이동할 여유
-        tooltipTimeoutRef.current = setTimeout(() => {
-          if (!isInTooltip.current) {
-            setTooltipWorkId(null);
-          }
-        }, 200);
-     }
+    // 호버로 툴팁 닫기 비활성화 — 클릭으로만 툴팁 토글
+    return;
   };
 
   const handleTooltipMouseEnter = () => {
@@ -463,31 +426,36 @@ export const About = () => {
     }, 300);
   };
   
-  // 터치 디바이스(모바일+태블릿): 스크롤 시 툴팁 닫기
+  // 모든 디바이스: 스크롤 시 툴팁 닫기
   useEffect(() => {
-    if (!isTouch || !tooltipWorkId) return;
+    if (!tooltipWorkId) return;
     
-    // About 페이지는 containerRef(fixed + overflow-y-auto)에서 스크롤이 발생하므로
-    // window가 아닌 container 요소에 리스너를 걸어야 함
+    // 모바일/태블릿: 네이티브 scroll 이벤트
     const scrollTarget = containerRef.current || window;
     
     const handleScroll = () => {
       setTooltipWorkId(null);
     };
     
+    // 데스크탑(1025px+): 커스텀 스크롤이므로 wheel 이벤트로 감지
+    const handleWheel = () => {
+      setTooltipWorkId(null);
+    };
+    
     scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
-    // window에도 fallback으로 등록
     if (scrollTarget !== window) {
       window.addEventListener('scroll', handleScroll, { passive: true });
     }
+    window.addEventListener('wheel', handleWheel, { passive: true });
     
     return () => {
       scrollTarget.removeEventListener('scroll', handleScroll);
       if (scrollTarget !== window) {
         window.removeEventListener('scroll', handleScroll);
       }
+      window.removeEventListener('wheel', handleWheel);
     };
-  }, [isTouch, tooltipWorkId]);
+  }, [tooltipWorkId]);
 
   // Intersection Observer for auto-showing work thumbnails on scroll (Tablet+)
   // DISABLED for now - manual hover only

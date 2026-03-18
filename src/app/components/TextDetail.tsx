@@ -240,7 +240,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Content Body */}
           <div className="space-y-6">
             {useBlockRenderer ? (
-              <BlockRenderer html={rawHtml!} lang={lang} />
+              <BlockRenderer html={rawHtml!} lang={lang} compact />
             ) : (
               paragraphs.map((paragraph, index) => (
                 <motion.p

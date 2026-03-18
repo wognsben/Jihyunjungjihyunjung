@@ -34,24 +34,10 @@ tr.hover-line {
     cursor: pointer;
 }
 tr.hover-line td:last-child {
-    text-decoration: underline;
-    text-decoration-color: rgba(0, 0, 0, 0.15);
-    text-underline-offset: 3px;
-    text-decoration-thickness: 1px;
-    transition: text-decoration-color 0.3s ease;
-}
-@media (prefers-color-scheme: dark) {
-    tr.hover-line td:last-child {
-        text-decoration-color: rgba(255, 255, 255, 0.15);
-    }
+    text-decoration: none;
 }
 tr.hover-line:hover td:last-child {
-    text-decoration-color: rgba(0, 0, 0, 0.4);
-}
-@media (prefers-color-scheme: dark) {
-    tr.hover-line:hover td:last-child {
-        text-decoration-color: rgba(255, 255, 255, 0.4);
-    }
+    text-decoration: none;
 }
 
 /* Tooltip Sidebar */
