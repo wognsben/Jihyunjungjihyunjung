@@ -354,7 +354,7 @@ export const About = () => {
       let result = text;
       result = result.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
       result = result.replace(/수원\s*생/g, 'Born in Suwon');
-      result = result.replace(/서울\s*기반으로\s*활동\s*중/g, 'Based in Seoul');
+      result = result.replace(/서울\s*기반로\s*활동\s*중/g, 'Based in Seoul');
       result = result.replace(/\(1986\s*[–\-]\s*\)/g, '(1986 – )');
       return result;
     }
@@ -440,7 +440,7 @@ export const About = () => {
   };
 
   const handleTooltipMouseEnter = () => {
-    // 툴팁 진입 즉시 lock — 닫기 타이머 취소
+    // 툴팁 진입 즉시 lock — 기 타이머 취소
     isInTooltip.current = true;
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
@@ -544,14 +544,15 @@ export const About = () => {
     if (typeof window === 'undefined' || loading) return;
     
     // 모바일에서는 커스텀 스크롤 로직 완전 비활성화
-    if (window.innerWidth < 768) return;
+    // 태블릿(768~1024)도 네이티브 스크롤 사용 → 1025px 이상만 커스텀 스크롤
+    if (window.innerWidth < 1025) return;
 
     const s = state.current;
     
     const onResize = () => {
       s.winH = window.innerHeight;
       if (contentRef.current) {
-        s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH + 100);
+        s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
       }
     };
     
@@ -560,6 +561,9 @@ export const About = () => {
 
     window.addEventListener('resize', onResize);
     setTimeout(onResize, 100);
+    // 3차: processedContent 변경 후 DOM 안정화 시점에 maxScroll 재계산
+    setTimeout(onResize, 500);
+    setTimeout(onResize, 1500);
 
     const onWheel = (e: WheelEvent) => {
       let delta = e.deltaY;
@@ -624,7 +628,7 @@ export const About = () => {
       cancelAnimationFrame(s.rafId);
       resizeObserver.disconnect();
     };
-  }, [loading]);
+  }, [loading, processedContent]);
 
   const groupedHistory = historyItems.reduce((acc, item) => {
     const year = item.year;
@@ -646,13 +650,13 @@ export const About = () => {
   return (
     <div 
       ref={containerRef} 
-      className="fixed inset-0 md:fixed md:inset-0 w-full h-full bg-background text-foreground md:overflow-hidden font-sans selection:bg-foreground selection:text-background overflow-y-auto"
+      className="fixed inset-0 min-[1025px]:fixed min-[1025px]:inset-0 w-full h-full bg-background text-foreground min-[1025px]:overflow-hidden font-sans selection:bg-foreground selection:text-background overflow-y-auto"
       style={{ fontFamily: 'Pretendard, "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }}
     >
-      <div className="w-full min-h-full md:h-full px-6 md:px-12 relative flex">
+      <div className="w-full min-h-full min-[1025px]:h-full px-6 md:px-12 relative flex">
         
         {/* Left Column */}
-        <div className="hidden md:flex flex-col w-[20%] h-full pt-28 md:pt-32 relative z-20">
+        <div className="hidden md:flex flex-col w-[20%] md:sticky md:top-0 md:h-screen md:overflow-hidden min-[1025px]:static min-[1025px]:h-full pt-28 md:pt-32 relative z-20 md:justify-between min-[1025px]:justify-start">
            <div className="flex flex-col gap-6 max-w-full">
              <RevealText delay={0.2}>
                <div className="flex flex-col gap-1">
@@ -681,7 +685,7 @@ export const About = () => {
              </RevealText>
            </div>
 
-           <div className="absolute bottom-12 left-0 flex flex-col gap-4 pointer-events-auto">
+           <div className="mt-12 md:mt-8 min-[1025px]:mt-0 min-[1025px]:absolute min-[1025px]:bottom-12 min-[1025px]:left-0 flex flex-col gap-4 pointer-events-auto md:pb-8 min-[1025px]:pb-0">
               {contactLinks.map((item, idx) => (
                 <div key={item.label} className="flex flex-col gap-0.5">
                   <RevealText delay={0.5 + (idx * 0.1)}>
@@ -702,12 +706,12 @@ export const About = () => {
 
         {/* Right Column (Content) */}
         <div 
-          className="flex-1 min-h-full md:h-full relative"
+          className="flex-1 min-h-full min-[1025px]:h-full relative"
           style={{ perspective: '1000px' }} 
         >
           <div 
             ref={scrollbarRef}
-            className="absolute right-[-10px] md:right-0 top-32 bottom-12 w-[1px] bg-border z-50 hidden md:block"
+            className="absolute right-[-10px] min-[1025px]:right-0 top-32 bottom-12 w-[1px] bg-border z-50 hidden min-[1025px]:block"
           >
             <div 
               ref={thumbRef}
@@ -720,7 +724,7 @@ export const About = () => {
             onClick={handleContentClick}
             onMouseOver={handleContentMouseOver}
             onMouseOut={handleContentMouseOut}
-            className="relative md:absolute top-0 right-0 w-full md:w-[80%] pt-28 md:pt-32 pb-32 flex flex-col gap-20 md:will-change-transform"
+            className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-28 md:pt-32 pb-8 flex flex-col gap-20 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0"
           >
             {/* Mobile Header */}
             <div className="md:hidden flex flex-col gap-6 mb-12">
@@ -783,7 +787,7 @@ export const About = () => {
               </div>
             )}
             
-            <div className="pt-24 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
+            <div className="pt-16 pb-4 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
                <Footer />
             </div>
           </div>
