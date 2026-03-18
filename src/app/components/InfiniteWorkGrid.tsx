@@ -129,22 +129,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
         {/* Slider */}
         <div className="relative w-full px-6">
           <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
-            {/* Click Areas for Navigation */}
-            <div 
-              className="absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer active:bg-black/5"
-              onClick={(e) => {
-                e.stopPropagation();
-                goToPrevSlide();
-              }}
-            />
-            <div 
-              className="absolute right-0 top-0 w-1/2 h-full z-20 cursor-pointer active:bg-black/5"
-              onClick={(e) => {
-                e.stopPropagation();
-                goToNextSlide();
-              }}
-            />
-            
             {/* Current Image */}
             <AnimatePresence mode="wait">
               <motion.div
@@ -153,8 +137,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="absolute inset-0 cursor-pointer"
-                onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
+                className="absolute inset-0"
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.2}
@@ -175,13 +158,22 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                   src={getLocalizedThumbnail(works[currentSlide], lang) || ''}
                   alt={works[currentSlide].title_en}
                   className="w-full h-full object-cover pointer-events-none"
+                  onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
+                />
+                {/* Tap overlay — navigates to work detail */}
+                <div 
+                  className="absolute inset-0 z-10"
+                  onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
                 />
               </motion.div>
             </AnimatePresence>
           </div>
 
           {/* Caption */}
-          <div className="mt-4">
+          <div 
+            className="mt-4 cursor-pointer"
+            onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
+          >
             <h3 className="text-sm font-serif font-light text-foreground/90 leading-tight mb-1">
               {lang === 'ko' ? works[currentSlide].title_ko : lang === 'jp' ? works[currentSlide].title_jp : works[currentSlide].title_en}
             </h3>

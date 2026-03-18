@@ -18,6 +18,11 @@ const RevealText = ({ children, delay = 0 }: { children: React.ReactNode; delay?
 
   useEffect(() => {
     if (el.current) {
+      // 모바일(768px 미만)에서는 애니메이션 없이 즉시 표시
+      if (window.innerWidth < 768) {
+        gsap.set(el.current, { y: '0%', opacity: 1 });
+        return;
+      }
       gsap.fromTo(el.current,
         { y: '100%', opacity: 0 },
         { y: '0%', opacity: 1, duration: 1, ease: 'power3.out', delay: delay }
@@ -462,14 +467,25 @@ export const About = () => {
   useEffect(() => {
     if (!isTouch || !tooltipWorkId) return;
     
+    // About 페이지는 containerRef(fixed + overflow-y-auto)에서 스크롤이 발생하므로
+    // window가 아닌 container 요소에 리스너를 걸어야 함
+    const scrollTarget = containerRef.current || window;
+    
     const handleScroll = () => {
       setTooltipWorkId(null);
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
+    // window에도 fallback으로 등록
+    if (scrollTarget !== window) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    }
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      scrollTarget.removeEventListener('scroll', handleScroll);
+      if (scrollTarget !== window) {
+        window.removeEventListener('scroll', handleScroll);
+      }
     };
   }, [isTouch, tooltipWorkId]);
 

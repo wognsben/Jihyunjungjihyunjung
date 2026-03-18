@@ -30,11 +30,21 @@ export const AppContent = () => {
   const pendingScrollRef = React.useRef<number | null>(null);
   const scrollSpacerRef = React.useRef<HTMLDivElement | null>(null);
   const currentViewRef = React.useRef<View>('index');
+  // Stack for work-detail → work-detail scroll positions
+  const detailScrollStackRef = React.useRef<{ view: View; id: string; scrollY: number }[]>([]);
+  const selectedWorkIdRef = React.useRef<string | null>(null);
+  const selectedTextIdRef = React.useRef<string | null>(null);
 
-  // Keep ref in sync with state
+  // Keep refs in sync with state
   useEffect(() => {
     currentViewRef.current = currentView;
   }, [currentView]);
+  useEffect(() => {
+    selectedWorkIdRef.current = selectedWorkId;
+  }, [selectedWorkId]);
+  useEffect(() => {
+    selectedTextIdRef.current = selectedTextId;
+  }, [selectedTextId]);
 
   // Handle hash-based routing
   useEffect(() => {
@@ -62,7 +72,15 @@ export const AppContent = () => {
       if (workDetailMatch) {
         const workId = workDetailMatch[1];
         // Save scroll position before entering work-detail
-        if (currentViewRef.current !== 'work-detail') {
+        if (currentViewRef.current === 'work-detail' && selectedWorkIdRef.current) {
+          // work-detail → work-detail: push current scroll to stack
+          detailScrollStackRef.current.push({
+            view: 'work-detail',
+            id: selectedWorkIdRef.current,
+            scrollY: window.scrollY,
+          });
+        } else if (currentViewRef.current !== 'work-detail') {
+          // Other view → work-detail: save list scroll position
           scrollPositionRef.current = window.scrollY;
         }
         setSelectedWorkId(workId);
@@ -74,6 +92,8 @@ export const AppContent = () => {
       if (hash.startsWith('#/work')) {
         // If coming back from work-detail, mark for scroll restoration
         if (currentViewRef.current === 'work-detail') {
+          // Clear detail stack when returning to list
+          detailScrollStackRef.current = [];
           isRestoringScrollRef.current = true;
         }
         setCurrentView('work');
@@ -161,6 +181,49 @@ export const AppContent = () => {
         clearTimeout(cleanupId);
       };
     } else {
+      // Check if returning to a previous detail page via back button (stack pop)
+      const stack = detailScrollStackRef.current;
+      const currentId = currentView === 'work-detail' ? selectedWorkId : 
+                        currentView === 'text-detail' ? selectedTextId : null;
+      
+      if (stack.length > 0 && currentId) {
+        const lastEntry = stack[stack.length - 1];
+        if (lastEntry.id === currentId && lastEntry.view === currentView) {
+          // Pop from stack and restore scroll position
+          stack.pop();
+          const savedPosition = lastEntry.scrollY;
+          pendingScrollRef.current = savedPosition;
+          
+          if (scrollSpacerRef.current) {
+            scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+          }
+          
+          requestAnimationFrame(() => {
+            window.scrollTo(0, savedPosition);
+          });
+          
+          const EXIT_MS = 850;
+          const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+          const timeoutIds = delays.map(delay =>
+            setTimeout(() => {
+              window.scrollTo(0, savedPosition);
+              if (scrollSpacerRef.current && document.documentElement.scrollHeight - parseInt(scrollSpacerRef.current.style.height || '0') >= savedPosition) {
+                scrollSpacerRef.current.style.height = '0px';
+              }
+            }, delay)
+          );
+          
+          const cleanupId = setTimeout(() => {
+            if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
+          }, 3000);
+          
+          return () => {
+            timeoutIds.forEach(id => clearTimeout(id));
+            clearTimeout(cleanupId);
+          };
+        }
+      }
+      
       // Scroll to top for new page entry
       // Let ScrollRestorer handle it via useLayoutEffect (before paint)
       // so the scroll happens AFTER exit animation, at opacity:0

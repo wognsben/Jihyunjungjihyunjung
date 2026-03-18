@@ -241,14 +241,12 @@
 
   /* Smooth scrolling for all pages */
   html {
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
+    scroll-behavior: auto;
   }
 
   /* Touch scroll optimization for mobile */
   @media (max-width: 767px) {
     body {
-      -webkit-overflow-scrolling: touch;
       overflow-y: auto;
     }
   }
