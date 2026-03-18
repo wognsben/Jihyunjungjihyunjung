@@ -100,10 +100,10 @@ export const Text = () => {
   const filteredData = useMemo(() => {
     return texts.filter((item) => {
       // Language availability filter
-      // WP data has explicit hasEn/hasJp flags; static fallback data has undefined (shows in all)
+      // WP data has explicit hasEn/hasJp/hasKo flags; static fallback data has undefined (shows in all)
+      if (lang === 'ko' && item.hasKo !== undefined && !item.hasKo) return false;
       if (lang === 'en' && item.hasEn !== undefined && !item.hasEn) return false;
       if (lang === 'jp' && item.hasJp !== undefined && !item.hasJp) return false;
-      // KO: show all texts (originals are all in Korean)
 
       if (activeCategory !== 'All' && item.category.toLowerCase() !== activeCategory.toLowerCase()) return false;
       if (searchQuery.trim() !== '') {

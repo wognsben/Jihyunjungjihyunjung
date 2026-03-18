@@ -829,6 +829,7 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
     relatedWorks,
     hasEn: !!(acf['text_제목en'] || acf['text_제목_en'] || acf.title_en || acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en']),
     hasJp: !!(acf['text_제목jp'] || acf['text_제목_jp'] || acf.title_jp || acf['text_작품_설명jp'] || acf['TEXT_작품_설명jp']),
+    hasKo: !!(title_ko.trim() && content_ko.trim()),
   };
 };
 

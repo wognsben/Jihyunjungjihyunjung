@@ -310,10 +310,10 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
             const filteredRelatedArticles = work.relatedArticles.filter(article => {
               const textItem = texts.find(t => t.id === article.id);
               if (!textItem) return true; // No match in texts → show by default
+              if (lang === 'ko') return textItem.hasKo !== undefined ? textItem.hasKo : true;
               if (lang === 'en') return textItem.hasEn !== undefined ? textItem.hasEn : true;
               if (lang === 'jp') return textItem.hasJp !== undefined ? textItem.hasJp : true;
-              // KO: show only articles without EN/JP translations
-              return !textItem.hasEn && !textItem.hasJp;
+              return true;
             });
             
             if (filteredRelatedArticles.length === 0) return null;

@@ -40,6 +40,7 @@ export interface TextItem {
   }[];
   hasEn?: boolean;
   hasJp?: boolean;
+  hasKo?: boolean;
 }
 
 export const textData: TextItem[] = [
@@ -51,7 +52,7 @@ export const textData: TextItem[] = [
     image: 'https://raw.githubusercontent.com/wognsben/gallery/main/14.jpg',
     summary: {
       en: "Pondering the age-old question his young daughter will inevitably ask—Where did the Moon come from?—biologist Brian Isett uncovers the story of how the Earth got Her seasonal song.",
-      ko: "생물학자 브라이언 아이셋이 딸아이가 언젠가 물어볼 오래된 질문, '��은 어디서 왔을까?'를 고민하며 지구가 어떻게 계절의 노래를 갖게 되었는지에 대한 이야기를 들려줍니다.",
+      ko: "생물학자 브라이언 아이셋이 딸아이가 언젠가 물어볼 오래된 질문, '달은 어디서 왔을까?'를 고민하며 지구가 어떻게 계절의 노래를 갖게 되었는지에 대한 이야기를 들려줍니다.",
       jp: "生物学者のブライアン・アイセットが、幼い娘がいずれ尋ねるであろう「月はどこから来たのか？」という古くからの問いに思いを馳せながら、地球がどのようにして季節の歌を持つようになったのかという物語を紐해킵니다。"
     }
   },
@@ -88,7 +89,7 @@ export const textData: TextItem[] = [
     summary: {
       en: "Biologist Brian Isett uncovers the story of how the Earth got Her seasonal song, pondering the age-old question his young daughter will inevitably ask—Where did the Moon come from?",
       ko: "생물학자 브라이언 아이셋이 딸아이가 언젠가 물어볼 오래된 질문, '달은 어디서 왔을까?'를 고민하며 지구가 어떻게 계절의 노래를 갖게 되었는지에 대한 이야기를 들려줍니다.",
-      jp: "生物学者のブライ언・アイセットが、幼い娘がいずれ尋ねるであろう「月はどこから来たのか？」という古くからの問いに思い를馳せながら、地球がどのようにして季節の歌を持つようになったのかという物語を紐해킵니다。"
+      jp: "生物学者のブライ언・アイ셋が、幼い娘がいずれ尋ねるであろう「月はどこから来たのか？」という古くからの問いに思い를馳せながら、地球がどのようにして季節の歌を持つようになったのかという物語を紐해킵니다。"
     }
   },
   { 
@@ -124,7 +125,7 @@ export const textData: TextItem[] = [
   },
   { 
     id: 'post-1220', year: '2021', category: 'Article', 
-    author: { en: 'Hanbum Lee', ko: '이한��', jp: 'Hanbum Lee' },
+    author: { en: 'Hanbum Lee', ko: '이한범', jp: 'Hanbum Lee' },
     title: { en: 'Unapproachable Land & Person with a Bag', ko: '갈 수 없는 땅 & 가방을 든 사람', jp: '行けない土地 & 鞄を持った人' }, 
     link: '#/text',
     image: 'https://raw.githubusercontent.com/wognsben/gallery/main/13.jpg'
@@ -208,7 +209,7 @@ export const textData: TextItem[] = [
   },
   { 
     id: 'post-608', year: '2016', category: 'Review', 
-    author: { en: 'Bbyabbya Kim', ko: '김paRepository', jp: 'Bbyabbya Kim' },
+    author: { en: 'Bbyabbya Kim', ko: '김.jpaRepository', jp: 'Bbyabbya Kim' },
     title: { en: 'Thinking of ◼︎◼︎◼︎ Repeatedly', ko: '◼︎◼︎◼︎을 자꾸 생각하기', jp: '◼︎◼︎◼︎を何度も考える' }, 
     link: '#/text',
     image: 'https://raw.githubusercontent.com/wognsben/gallery/main/24.jpg'
