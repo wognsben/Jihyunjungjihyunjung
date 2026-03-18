@@ -25,7 +25,23 @@ interface RenderGroup {
 const sanitizeHtml = (html: string): string => {
   let cleaned = html;
 
-  // 0. [embed]URL[/embed] WordPress 숏코드 → iframe 변환
+  // 0a. [caption] WordPress 숏코드 → <figure><img><figcaption> 변환
+  cleaned = cleaned.replace(
+    /\[caption[^\]]*\]([\s\S]*?)\[\/caption\]/gi,
+    (_, inner) => {
+      // Extract <img> tag
+      const imgMatch = inner.match(/<img[^>]+>/i);
+      const imgTag = imgMatch ? imgMatch[0] : '';
+      // Caption text is everything after the <img> tag (and optional </a>)
+      const captionText = inner
+        .replace(/<img[^>]+>/i, '')
+        .replace(/<\/?a[^>]*>/gi, '')
+        .trim();
+      return `<figure class="wp-block-image">${imgTag}${captionText ? `<figcaption>${captionText}</figcaption>` : ''}</figure>`;
+    }
+  );
+
+  // 0b. [embed]URL[/embed] WordPress 숏코드 → iframe 변환
   cleaned = cleaned.replace(/\[embed\](.*?)\[\/embed\]/gi, (_, url) => {
     const trimmedUrl = url.trim();
     // Vimeo
@@ -384,6 +400,10 @@ const groupBlocksForRendering = (blocks: ParsedBlock[]): RenderGroup[] => {
 // ============================================================
 // Helper: Extract images from block(s)
 // ============================================================
+const stripWpResolutionSuffix = (url: string): string => {
+  return url.replace(/-\d+x\d+\.(jpe?g|png|webp|gif|avif)$/i, '.$1');
+};
+
 const getBestImageUrl = (html: string): string | null => {
   const aHrefMatch = html.match(/<a[^>]+href="([^"]+\.(?:jpe?g|png|webp|gif|avif)(?:\?[^"]*)?)"/i);
   if (aHrefMatch) return aHrefMatch[1];
@@ -403,14 +423,14 @@ const getBestImageUrl = (html: string): string | null => {
         }
       }
     }
-    if (bestUrl) return bestUrl;
+    if (bestUrl) return stripWpResolutionSuffix(bestUrl);
   }
 
   const dataFullMatch = html.match(/data-(?:full-url|orig-file)="([^"]+)"/i);
   if (dataFullMatch) return dataFullMatch[1];
 
   const srcMatch = html.match(/<img[^>]+src="([^"]+)"/i);
-  return srcMatch ? srcMatch[1] : null;
+  return srcMatch ? stripWpResolutionSuffix(srcMatch[1]) : null;
 };
 
 const extractImagesFromBlocks = (blocks: ParsedBlock[]): { src: string; caption: string }[] => {

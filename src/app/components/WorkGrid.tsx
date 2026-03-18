@@ -268,28 +268,7 @@ export const WorkGrid = () => {
                   {/* Overlay Gradient for Bottom Text Readability */}
                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-out pointer-events-none" />
 
-                  {/* 1. OPEN WORK Indicator - Center */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none mix-blend-difference">
-                    <div className="
-                      flex flex-col items-center justify-center gap-4
-                      opacity-0 translate-y-4 scale-95 blur-sm
-                      group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 group-hover:blur-0
-                      transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-                    ">
-                      {/* Minimal Square Outline Icon */}
-                      <div className="w-12 h-12 border-[1.5px] border-white flex items-center justify-center">
-                        <div className="w-0.5 h-3 bg-white" />
-                        <div className="absolute w-3 h-0.5 bg-white" />
-                      </div>
-                      
-                      {/* Text */}
-                      <span className="text-white font-bold tracking-[0.3em] text-xs uppercase">
-                        Open Work
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 2. Work Info - Bottom Center */}
+                  {/* Work Info - Bottom Center */}
                   <div className="absolute bottom-8 left-0 right-0 flex items-end justify-center pointer-events-none z-30 px-6 text-center">
                      <div 
                        className="

@@ -7,6 +7,7 @@ import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Footer } from '@/app/components/Footer';
+import { BlockRenderer } from '@/app/components/BlockRenderer';
 
 interface TextDetailProps {
   textId: string | null;
@@ -124,7 +125,15 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     ? (text.content[lang] || text.content['ko']) 
     : (text.summary ? (text.summary[lang] || text.summary['ko']) : '');
 
-  const paragraphs = content ? (() => {
+  // Check if raw HTML is available (for proper rendering of images, captions, paragraphs)
+  const rawHtml = text.contentHtml 
+    ? (text.contentHtml[lang] || text.contentHtml['ko'])
+    : undefined;
+  // Use raw HTML for non-KO languages when available (ACF WYSIWYG content with images/formatting)
+  // For KO, content_rendered (contentHtml.ko) is WordPress block editor output
+  const useBlockRenderer = !!rawHtml;
+
+  const paragraphs = (!useBlockRenderer && content) ? (() => {
     // Try double newline split first (WordPress native content)
     const doubleNewlineSplit = content.split('\n\n').filter(p => p.trim());
     if (doubleNewlineSplit.length > 1) return doubleNewlineSplit;
@@ -166,7 +175,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Mobile: flow 기반 BACK (겹침 방지) */}
           <div className="block md:hidden px-6 pt-24 mb-2">
             <button
-              onClick={() => window.location.hash = '#/text'}
+              onClick={() => window.history.back()}
               className="group flex items-center gap-3 px-0 py-2 bg-transparent focus:outline-none"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-50 group-hover:opacity-80" />
@@ -176,7 +185,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Tablet/Desktop: 기존 fixed floating BACK */}
           <div className="hidden md:block fixed top-32 left-16 z-40 mix-blend-difference text-white dark:text-white">
             <button
-              onClick={() => window.location.hash = '#/text'}
+              onClick={() => window.history.back()}
               className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
@@ -191,7 +200,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           {/* Header */}
           <header className="mb-8 md:mb-12 space-y-6">
             {/* Meta Info */}
-            <div className="flex items-center justify-between text-[10px] tracking-[0.15em] lowercase text-muted-foreground/60 font-mono">
+            <div className="flex items-center justify-between text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-mono">
               <div className="flex gap-3">
                 <span>{text.category.toLowerCase()}</span>
                 <span className="opacity-30">/</span>
@@ -230,20 +239,24 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
 
           {/* Content Body */}
           <div className="space-y-6">
-            {paragraphs.map((paragraph, index) => (
-              <motion.p
-                key={index}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  duration: 0.8, 
-                  delay: 0.3 + (index * 0.1), // Staggered delay for reading flow
-                  ease: "easeOut" 
-                }}
-                className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify [&_a]:text-foreground/60 [&_a]:underline [&_a]:underline-offset-4 [&_a]:decoration-foreground/20 [&_a]:transition-all [&_a]:duration-300 hover:[&_a]:text-foreground/90 hover:[&_a]:decoration-foreground/40 ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(paragraph) }}
-              />
-            ))}
+            {useBlockRenderer ? (
+              <BlockRenderer html={rawHtml!} lang={lang} />
+            ) : (
+              paragraphs.map((paragraph, index) => (
+                <motion.p
+                  key={index}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.8, 
+                    delay: 0.3 + (index * 0.1), // Staggered delay for reading flow
+                    ease: "easeOut" 
+                  }}
+                  className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify [&_a]:text-foreground/60 [&_a]:underline [&_a]:underline-offset-4 [&_a]:decoration-foreground/20 [&_a]:transition-all [&_a]:duration-300 hover:[&_a]:text-foreground/90 hover:[&_a]:decoration-foreground/40 ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(paragraph) }}
+                />
+              ))
+            )}
           </div>
 
           {/* Related Works */}

@@ -136,7 +136,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   return createPortal(
     <aside 
       ref={tooltipRef}
-      className={`tooltip fixed right-[5vw] bottom-[10vh] w-[280px] md:w-[320px] z-[9999999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+      className={`tooltip fixed right-[3vw] bottom-[5vh] w-[220px] md:w-[320px] z-[9999999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
       translate={lang === 'ko' ? 'no' : undefined}
       style={{ 
         opacity: 0,
@@ -230,9 +230,6 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                       : (activeWork.title_ko || activeWork.title)
                   }
                 </h3>
-                <span className="text-[9px] font-mono text-muted-foreground/50 tracking-wider whitespace-nowrap">
-                  · selected work
-                </span>
               </div>
               <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
                 {activeWork.year}

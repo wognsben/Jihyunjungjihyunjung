@@ -119,7 +119,7 @@ export const WorkDetail = ({ workId }: WorkDetailProps) => {
     const handleEscKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (selectedArticleId) setSelectedArticleId(null);
-        else window.location.hash = '#/work';
+        else window.history.back();
       }
     };
     window.addEventListener('keydown', handleEscKey);

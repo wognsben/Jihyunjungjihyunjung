@@ -82,6 +82,65 @@ const getFullSizeUrl = (url: string): string => {
   return url.replace(/-\d+x\d+(\.[a-zA-Z]+)$/, '$1');
 };
 
+// ============================================================
+// Resolve [gallery ids="..."] shortcodes → HTML with full-size image URLs
+// ACF Free WYSIWYG에서 사용하는 classic gallery shortcode 지원
+// ============================================================
+const resolveGalleryShortcodes = async (html: string): Promise<string> => {
+  if (!html) return html;
+  
+  const galleryRegex = /\[gallery\s+[^\]]*ids="([^"]+)"[^\]]*\]/gi;
+  const matches = [...html.matchAll(galleryRegex)];
+  
+  if (matches.length === 0) return html;
+  
+  // Collect all unique attachment IDs across all gallery shortcodes
+  const allIds = new Set<string>();
+  for (const m of matches) {
+    m[1].split(',').forEach(id => allIds.add(id.trim()));
+  }
+  
+  // Batch fetch all media items in one API call
+  let mediaMap = new Map<string, { url: string; caption: string }>();
+  try {
+    const response = await api.get('/media', {
+      params: {
+        include: [...allIds].join(','),
+        per_page: 100,
+      },
+    });
+    for (const item of response.data) {
+      // Use full-size source_url, strip WP resolution suffix for maximum quality
+      const fullUrl = getFullSizeUrl(
+        item.media_details?.sizes?.full?.source_url || item.source_url || ''
+      );
+      const caption = item.caption?.rendered?.replace(/<[^>]+>/g, '').trim() || '';
+      mediaMap.set(String(item.id), { url: fullUrl, caption });
+    }
+  } catch (error) {
+    console.error('Error fetching gallery media:', error);
+    return html; // Return original if API fails
+  }
+  
+  // Replace each [gallery] shortcode with proper HTML
+  let result = html;
+  for (const m of matches) {
+    const ids = m[1].split(',').map(id => id.trim());
+    const figures = ids
+      .filter(id => mediaMap.has(id))
+      .map(id => {
+        const { url, caption } = mediaMap.get(id)!;
+        return `<figure class="wp-block-image"><img src="${url}" alt="${caption}" />${caption ? `<figcaption>${caption}</figcaption>` : ''}</figure>`;
+      })
+      .join('\n');
+    
+    const galleryHtml = `<figure class="wp-block-gallery">${figures}</figure>`;
+    result = result.replace(m[0], galleryHtml);
+  }
+  
+  return result;
+};
+
 // Extract images from HTML content
 const extractImagesFromContent = (html: string): string[] => {
   const regex = /<img[^>]+src="([^\">]+)"/g;
@@ -325,7 +384,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
     }
     
     console.log('🖼️ [transformWork Debug] Extracted from content:', galleryImages.length, 'images');
-    console.log('🖼�� [transformWork Debug] Raw captions:', rawCaptions);
+    console.log('🖼 [transformWork Debug] Raw captions:', rawCaptions);
     console.log('🖼️ [transformWork Debug] Parsed captions (lang=' + lang + '):', imageCredits);
   }
 
@@ -564,12 +623,13 @@ const transformWork = (post: WPPost, lang: string): Work => {
   return work;
 };
 
-const transformText = (post: WPPost): TextItem => {
+const transformText = async (post: WPPost): Promise<TextItem> => {
   const title_ko = decode(post.title.rendered);
   const summary_ko = decode(post.excerpt.rendered.replace(/<[^>]+>/g, '').trim());
   const featuredImage = getFullSizeUrl(post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '');
   
-  const contentHtml = post.content.rendered || '';
+  // Resolve [gallery] shortcodes in all content HTML fields
+  const contentHtml = await resolveGalleryShortcodes(post.content.rendered || '');
   const content_ko = decode(stripHtmlToText(contentHtml));
   
   // ACF multilingual fields
@@ -601,7 +661,9 @@ const transformText = (post: WPPost): TextItem => {
     : acf.title_en ? decode(acf.title_en) 
     : title_ko;
   // Try new pattern first: TEXT_작품_설명en (no underscore before 'en')
-  const content_en_raw = acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en'] || acf['text_작품_설명_en'] || acf.content_en || '';
+  const content_en_raw = await resolveGalleryShortcodes(
+    acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en'] || acf['text_작품_설명_en'] || acf.content_en || ''
+  );
   const summary_en = acf.summary_en ? decode(acf.summary_en) : summary_ko;
   const content_en = content_en_raw 
     ? decode(stripHtmlToText(content_en_raw)) 
@@ -613,7 +675,9 @@ const transformText = (post: WPPost): TextItem => {
     : acf.title_jp ? decode(acf.title_jp) 
     : title_ko;
   // Try new pattern first: TEXT_작품_설명jp (no underscore before 'jp')
-  const content_jp_raw = acf['TEXT_작품_설명jp'] || acf['text_작품_설명jp'] || acf['TEXT_작품_설명_jp'] || acf['text_작품_설명_jp'] || acf.content_jp || '';
+  const content_jp_raw = await resolveGalleryShortcodes(
+    acf['TEXT_작품_설명jp'] || acf['text_작품_설명jp'] || acf['TEXT_작품_설명_jp'] || acf['text_작품_설명_jp'] || acf.content_jp || ''
+  );
   const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : summary_ko;
   const content_jp = content_jp_raw 
     ? decode(stripHtmlToText(content_jp_raw)) 
@@ -757,6 +821,11 @@ const transformText = (post: WPPost): TextItem => {
       ko: content_ko,
       jp: content_jp
     },
+    contentHtml: {
+      ko: contentHtml || undefined,
+      en: content_en_raw || undefined,
+      jp: content_jp_raw || undefined,
+    },
     relatedWorks,
     hasEn: !!(acf['text_제목en'] || acf['text_제목_en'] || acf.title_en || acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en']),
     hasJp: !!(acf['text_제목jp'] || acf['text_제목_jp'] || acf.title_jp || acf['text_작품_설명jp'] || acf['TEXT_작품_설명jp']),
@@ -831,7 +900,7 @@ export const fetchTexts = async (lang: string = 'ko'): Promise<TextItem[]> => {
       },
     });
 
-    return response.data.map(transformText);
+    return await Promise.all(response.data.map(transformText));
   } catch (error) {
     console.error(`Error fetching texts:`, error);
     return [];
@@ -845,7 +914,7 @@ export const fetchTextById = async (id: string): Promise<TextItem | null> => {
         _embed: 1,
       },
     });
-    return transformText(response.data);
+    return await transformText(response.data);
   } catch (error) {
     console.error(`Error fetching text by id ${id}:`, error);
     return null;

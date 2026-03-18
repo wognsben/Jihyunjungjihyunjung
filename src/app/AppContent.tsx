@@ -25,7 +25,7 @@ export const AppContent = () => {
   const [isDarkBackground, setIsDarkBackground] = useState(true);
 
   // Scroll position restoration
-  const scrollPositionRef = React.useRef<number>(0);
+  const scrollPositionsRef = React.useRef<Record<string, number>>({});
   const isRestoringScrollRef = React.useRef(false);
   const pendingScrollRef = React.useRef<number | null>(null);
   const scrollSpacerRef = React.useRef<HTMLDivElement | null>(null);
@@ -50,17 +50,30 @@ export const AppContent = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
+      const prevView = currentViewRef.current;
+      
+      // Always save current view's scroll position before switching
+      scrollPositionsRef.current[prevView] = window.scrollY;
       
       // Check for text detail route: #/text/:id
       const textDetailMatch = hash.match(/^#\/text\/([^\\/]+)$/);
       if (textDetailMatch) {
         const textId = textDetailMatch[1];
-        // Save scroll position before entering text-detail
-        if (currentViewRef.current !== 'text-detail' && currentViewRef.current !== 'work-detail') {
-          scrollPositionRef.current = window.scrollY;
+        // work-detail → text-detail: push to stack so we can restore work-detail scroll on back
+        if (prevView === 'work-detail' && selectedWorkIdRef.current) {
+          detailScrollStackRef.current.push({
+            view: 'work-detail',
+            id: selectedWorkIdRef.current,
+            scrollY: window.scrollY,
+          });
         }
-        if (currentViewRef.current === 'work-detail') {
-          isRestoringScrollRef.current = true;
+        // text-detail → text-detail: push to stack
+        if (prevView === 'text-detail' && selectedTextIdRef.current) {
+          detailScrollStackRef.current.push({
+            view: 'text-detail',
+            id: selectedTextIdRef.current,
+            scrollY: window.scrollY,
+          });
         }
         setSelectedTextId(textId);
         setCurrentView('text-detail');
@@ -71,17 +84,21 @@ export const AppContent = () => {
       const workDetailMatch = hash.match(/^#\/work\/([^\/]+)$/);
       if (workDetailMatch) {
         const workId = workDetailMatch[1];
-        // Save scroll position before entering work-detail
-        if (currentViewRef.current === 'work-detail' && selectedWorkIdRef.current) {
-          // work-detail → work-detail: push current scroll to stack
+        // work-detail → work-detail: push current scroll to stack
+        if (prevView === 'work-detail' && selectedWorkIdRef.current) {
           detailScrollStackRef.current.push({
             view: 'work-detail',
             id: selectedWorkIdRef.current,
             scrollY: window.scrollY,
           });
-        } else if (currentViewRef.current !== 'work-detail') {
-          // Other view → work-detail: save list scroll position
-          scrollPositionRef.current = window.scrollY;
+        }
+        // text-detail → work-detail: push to stack
+        if (prevView === 'text-detail' && selectedTextIdRef.current) {
+          detailScrollStackRef.current.push({
+            view: 'text-detail',
+            id: selectedTextIdRef.current,
+            scrollY: window.scrollY,
+          });
         }
         setSelectedWorkId(workId);
         setCurrentView('work-detail');
@@ -90,9 +107,8 @@ export const AppContent = () => {
       
       // Check for work list route: #/work
       if (hash.startsWith('#/work')) {
-        // If coming back from work-detail, mark for scroll restoration
-        if (currentViewRef.current === 'work-detail') {
-          // Clear detail stack when returning to list
+        // If coming back from any detail view, mark for scroll restoration
+        if (prevView === 'work-detail' || prevView === 'text-detail') {
           detailScrollStackRef.current = [];
           isRestoringScrollRef.current = true;
         }
@@ -103,6 +119,11 @@ export const AppContent = () => {
 
       // Check for about route: #/about
       if (hash.startsWith('#/about')) {
+        // If coming back from any detail view, mark for scroll restoration
+        if (prevView === 'work-detail' || prevView === 'text-detail') {
+          detailScrollStackRef.current = [];
+          isRestoringScrollRef.current = true;
+        }
         setCurrentView('about');
         setSelectedWorkId(null);
         return;
@@ -110,8 +131,9 @@ export const AppContent = () => {
 
       // Check for text route: #/text
       if (hash.startsWith('#/text')) {
-        // If coming back from text-detail, mark for scroll restoration
-        if (currentViewRef.current === 'text-detail') {
+        // If coming back from any detail view, mark for scroll restoration
+        if (prevView === 'text-detail' || prevView === 'work-detail') {
+          detailScrollStackRef.current = [];
           isRestoringScrollRef.current = true;
         }
         setCurrentView('text');
@@ -121,8 +143,9 @@ export const AppContent = () => {
       }
       
       // Default to index
-      // If coming back from work-detail, mark for scroll restoration
-      if (currentViewRef.current === 'work-detail') {
+      // If coming back from any detail view, mark for scroll restoration
+      if (prevView === 'work-detail' || prevView === 'text-detail') {
+        detailScrollStackRef.current = [];
         isRestoringScrollRef.current = true;
       }
       setCurrentView('index');
@@ -143,7 +166,7 @@ export const AppContent = () => {
 
   useEffect(() => {
     if (isRestoringScrollRef.current) {
-      const savedPosition = scrollPositionRef.current;
+      const savedPosition = scrollPositionsRef.current[currentView] || 0;
       isRestoringScrollRef.current = false;
       pendingScrollRef.current = savedPosition;
 

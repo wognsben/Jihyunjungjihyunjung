@@ -227,10 +227,10 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
         {/* Header: Fixed at top of pinned section */}
         <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-4">
-            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-[Sans_Serif_Collection]">
+            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif_Collection]">
               other works
             </h2>
-            <span className="font-mono text-muted-foreground/70 text-[10px]">
+            <span className="font-mono text-muted-foreground/80 text-[10px]">
               {works.length} {works.length === 1 ? 'work' : 'works'}
             </span>
           </div>
@@ -243,7 +243,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 style={{ width: `${scrollProgress * 100}%` }}
               />
             </div>
-            <span className="text-[9px] font-mono text-muted-foreground/70 tabular-nums">
+            <span className="text-[9px] font-mono text-muted-foreground/80 tabular-nums">
               {Math.round(scrollProgress * 100)}%
             </span>
           </div>
@@ -460,10 +460,10 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       {/* Header: Fixed at top of pinned section */}
       <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
-          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-[Sans_Serif_Collection]">
+          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif_Collection]">
             other works
           </h2>
-          <span className="font-mono text-muted-foreground/70 text-[10px]">
+          <span className="font-mono text-muted-foreground/80 text-[10px]">
             {works.length} {works.length === 1 ? 'work' : 'works'}
           </span>
         </div>
@@ -476,7 +476,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               style={{ width: `${scrollProgress * 100}%` }}
             />
           </div>
-          <span className="text-[9px] font-mono text-muted-foreground/70 tabular-nums">
+          <span className="text-[9px] font-mono text-muted-foreground/80 tabular-nums">
             {Math.round(scrollProgress * 100)}%
           </span>
         </div>
