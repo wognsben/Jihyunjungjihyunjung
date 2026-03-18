@@ -405,19 +405,17 @@ export const About = () => {
     const link = target.closest('.hover-line') as HTMLElement;
 
     if (link) {
-      // ★ 행 위에 있는 한 닫기 타이머는 항상 취소 (tooltipWorkId 여부 무관)
+      // 행 위에 있으면 닫기 타이머는 항상 취소
       if (tooltipTimeoutRef.current) {
         clearTimeout(tooltipTimeoutRef.current);
         tooltipTimeoutRef.current = null;
       }
 
-      // 툴팁이 없을 때만 새로 열기
-      if (tooltipWorkId === null) {
-        const id = link.getAttribute('data-work-id');
-        if (id) {
-          setIsManualHover(true);
-          setTooltipWorkId(id);
-        }
+      const id = link.getAttribute('data-work-id');
+      if (id && id !== tooltipWorkId) {
+        // 항상 새로운 work ID로 덮어쓰기 (즉시 전환)
+        setIsManualHover(true);
+        setTooltipWorkId(id);
       }
     }
   };
@@ -426,21 +424,23 @@ export const About = () => {
     // 데스크탑에서만 호버 작동
     if (isTouch) return;
     
-    // ★ 툴팁 안에 있으면 닫기 타이머 무시
+    // 툴팁 안에 있으면 닫기 타이머 무시
     if (isInTooltip.current) return;
     
      const target = e.target as HTMLElement;
      if (target.closest('.hover-line')) {
         setIsManualHover(false);
-        // ★ 600ms로 늘려 툴팁까지 이동할 여유 시간 확보
+        // 짧은 딜레이 — 다른 행이나 툴팁으로 이동할 여유
         tooltipTimeoutRef.current = setTimeout(() => {
-          setTooltipWorkId(null);
-        }, 600);
+          if (!isInTooltip.current) {
+            setTooltipWorkId(null);
+          }
+        }, 200);
      }
   };
 
   const handleTooltipMouseEnter = () => {
-    // ★ 툴팁 진입 즉시 lock — 이후 행 hover 이벤트를 차단
+    // 툴팁 진입 즉시 lock — 닫기 타이머 취소
     isInTooltip.current = true;
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current);
@@ -450,12 +450,12 @@ export const About = () => {
   };
 
   const handleTooltipMouseLeave = () => {
-    // ★ 툴팁 이탈 시 lock 해제
+    // 툴팁 이탈 시 lock 해제, 짧은 딜레이 후 닫기
     isInTooltip.current = false;
+    setIsManualHover(false);
     tooltipTimeoutRef.current = setTimeout(() => {
       setTooltipWorkId(null);
-    }, 1200);
-    setIsManualHover(false);
+    }, 300);
   };
   
   // 터치 디바이스(모바일+태블릿): 스크롤 시 툴팁 닫기

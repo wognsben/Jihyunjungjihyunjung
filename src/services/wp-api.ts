@@ -325,7 +325,7 @@ const transformWork = (post: WPPost, lang: string): Work => {
     }
     
     console.log('🖼️ [transformWork Debug] Extracted from content:', galleryImages.length, 'images');
-    console.log('🖼️ [transformWork Debug] Raw captions:', rawCaptions);
+    console.log('🖼�� [transformWork Debug] Raw captions:', rawCaptions);
     console.log('🖼️ [transformWork Debug] Parsed captions (lang=' + lang + '):', imageCredits);
   }
 
@@ -570,8 +570,8 @@ const transformText = (post: WPPost): TextItem => {
   const featuredImage = getFullSizeUrl(post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '');
   
   const contentHtml = post.content.rendered || '';
-  const content_ko = decode(contentHtml.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim());
-
+  const content_ko = decode(stripHtmlToText(contentHtml));
+  
   // ACF multilingual fields
   const acf = post.acf || {};
   
@@ -604,7 +604,7 @@ const transformText = (post: WPPost): TextItem => {
   const content_en_raw = acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en'] || acf['text_작품_설명_en'] || acf.content_en || '';
   const summary_en = acf.summary_en ? decode(acf.summary_en) : summary_ko;
   const content_en = content_en_raw 
-    ? decode(content_en_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) 
+    ? decode(stripHtmlToText(content_en_raw)) 
     : content_ko;
 
   // JP: ACF fields - Try new naming pattern first (TEXT_작품_설명jp without underscore before language)
@@ -613,10 +613,10 @@ const transformText = (post: WPPost): TextItem => {
     : acf.title_jp ? decode(acf.title_jp) 
     : title_ko;
   // Try new pattern first: TEXT_작품_설명jp (no underscore before 'jp')
-  const content_jp_raw = acf['TEXT_작품_설명jp'] || acf['text_작품_설명_jp'] || acf['TEXT_작품_설명_jp'] || acf.content_jp || '';
+  const content_jp_raw = acf['TEXT_작품_설명jp'] || acf['text_작품_설명jp'] || acf['TEXT_작품_설명_jp'] || acf['text_작품_설명_jp'] || acf.content_jp || '';
   const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : summary_ko;
   const content_jp = content_jp_raw 
-    ? decode(content_jp_raw.replace(/<[^>]+>/g, '\n').replace(/\n\s*\n/g, '\n\n').trim()) 
+    ? decode(stripHtmlToText(content_jp_raw)) 
     : content_ko;
   
   // 🔍 DEBUG: Log final values
@@ -758,8 +758,8 @@ const transformText = (post: WPPost): TextItem => {
       jp: content_jp
     },
     relatedWorks,
-    hasEn: !!(acf['text_제목en'] || acf['text_제목_en'] || acf.title_en),
-    hasJp: !!(acf['text_제목jp'] || acf['text_제목_jp'] || acf.title_jp),
+    hasEn: !!(acf['text_제목en'] || acf['text_제목_en'] || acf.title_en || acf['TEXT_작품_설명en'] || acf['TEXT_작품_설명_en']),
+    hasJp: !!(acf['text_제목jp'] || acf['text_제목_jp'] || acf.title_jp || acf['text_작품_설명jp'] || acf['TEXT_작품_설명jp']),
   };
 };
 

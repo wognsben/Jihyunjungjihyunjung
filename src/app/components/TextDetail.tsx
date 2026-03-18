@@ -28,6 +28,24 @@ const cleanText = (text: string) => {
     .replace(/&rdquo;/g, '"');
 };
 
+// Sanitize HTML: only allow safe inline tags (<a>, <strong>, <b>, <em>, <i>, <u>, <span>, <mark>, <sup>, <sub>)
+// Add target="_blank" and rel="noopener noreferrer" to all <a> tags for security
+const sanitizeHtml = (html: string): string => {
+  if (!html) return '';
+  // Process <a> tags: ensure external links open safely
+  let sanitized = html.replace(
+    /<a\s+([^>]*)>([\s\S]*?)<\/a>/gi,
+    (_match, attrs, content) => {
+      const hrefMatch = attrs.match(/href=["']([^"']*)["']/);
+      const href = hrefMatch ? hrefMatch[1] : '#';
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer">${content}</a>`;
+    }
+  );
+  // Strip any remaining unsafe tags (keep only allowed inline tags)
+  sanitized = sanitized.replace(/<(?!\/?(?:a|strong|b|em|i|u|mark|span|sup|sub)\b)[^>]+>/gi, '');
+  return sanitized;
+};
+
 export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
   const { lang } = useLanguage();
   const { texts, works, translateTextsByIds, currentLang } = useWorks();
@@ -198,10 +216,9 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
                   delay: 0.3 + (index * 0.1), // Staggered delay for reading flow
                   ease: "easeOut" 
                 }}
-                className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
-              >
-                {cleanText(paragraph)}
-              </motion.p>
+                className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify [&_a]:text-foreground/60 [&_a]:underline [&_a]:underline-offset-4 [&_a]:decoration-foreground/20 [&_a]:transition-all [&_a]:duration-300 hover:[&_a]:text-foreground/90 hover:[&_a]:decoration-foreground/40 ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}`}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(paragraph) }}
+              />
             ))}
           </div>
 

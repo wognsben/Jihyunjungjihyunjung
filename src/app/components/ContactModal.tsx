@@ -64,32 +64,34 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
-    
-    const formData = new FormData();
-    const derivedName = data.yourEmail.split('@')[0];
-    formData.append('your-name', derivedName);
-    formData.append('your-email', data.yourEmail);
-    formData.append('your-subject', data.yourSubject || 'Portfolio Inquiry');
-    formData.append('your-message', data.yourMessage);
-
-    const FORM_ID = "6300008"; 
-    const URL = `https://wognsben97.mycafe24.com/wp-json/contact-form-7/v1/contact-forms/${FORM_ID}/feedback`;
 
     try {
-      const response = await axios.post(URL, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // Formspree 엔드포인트 — https://formspree.io 에서 폼 생성 후 아래 ID를 교체하세요
+      const FORMSPREE_ID = 'xjgaprpj';
+      const response = await axios.post(
+        `https://formspree.io/f/${FORMSPREE_ID}`,
+        {
+          email: data.yourEmail,
+          subject: data.yourSubject || 'Portfolio Inquiry',
+          message: data.yourMessage,
+          _replyto: data.yourEmail,
+        },
+        {
+          headers: { 'Accept': 'application/json' }
+        }
+      );
 
-      if (response.data.status === 'mail_sent') {
+      if (response.status === 200) {
         toast.success("Message sent successfully.");
         reset();
         onClose();
       } else {
-        toast.error(response.data.message || "Failed to send message.");
+        toast.error("Failed to send message.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submission Error:", error);
-      toast.error("An error occurred. Please try again.");
+      const msg = error?.response?.data?.error || "An error occurred. Please try again.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -178,7 +180,7 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                     {/* To Field - Static */}
                     <div className="flex items-center py-2 border-b border-foreground/5">
                       <span className="w-16 text-xs font-medium text-muted-foreground">To:</span>
-                      <span className="text-sm font-light text-foreground/80">astradiog@gmail.com</span>
+                      <span className="text-sm font-light text-foreground/80">wognsben1997@gmail.com</span>
                     </div>
 
                     {/* From Field - Email Input */}

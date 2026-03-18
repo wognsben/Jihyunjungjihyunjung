@@ -2,7 +2,7 @@ export const Footer = () => {
   return (
     <footer className="py-16 md:py-20">
       <p 
-        className="text-[10px] md:text-[11px] text-center font-mono tracking-wider"
+        className="text-[10px] md:text-[11px] text-left md:text-center font-mono tracking-wider"
         style={{
           color: 'var(--premium-black)',
           opacity: 0.25,

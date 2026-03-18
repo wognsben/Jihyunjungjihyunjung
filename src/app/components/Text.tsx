@@ -103,10 +103,7 @@ export const Text = () => {
       // WP data has explicit hasEn/hasJp flags; static fallback data has undefined (shows in all)
       if (lang === 'en' && item.hasEn !== undefined && !item.hasEn) return false;
       if (lang === 'jp' && item.hasJp !== undefined && !item.hasJp) return false;
-      if (lang === 'ko') {
-        // KO mode: show only KO-only articles (no EN/JP translations)
-        if (item.hasEn || item.hasJp) return false;
-      }
+      // KO: show all texts (originals are all in Korean)
 
       if (activeCategory !== 'All' && item.category.toLowerCase() !== activeCategory.toLowerCase()) return false;
       if (searchQuery.trim() !== '') {
