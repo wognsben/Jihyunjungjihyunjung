@@ -151,7 +151,19 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
   return (
     <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
       {isPage && (
-          <div className="fixed top-24 md:top-32 left-6 md:left-16 z-40 mix-blend-difference text-white dark:text-white">
+        <>
+          {/* Mobile: flow 기반 BACK (겹침 방지) */}
+          <div className="block md:hidden px-6 pt-24 mb-2">
+            <button
+              onClick={() => window.location.hash = '#/text'}
+              className="group flex items-center gap-3 px-0 py-2 bg-transparent focus:outline-none"
+            >
+              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-50 group-hover:opacity-80" />
+              <span className="text-[10px] tracking-[0.25em] lowercase font-light opacity-50 group-hover:opacity-80 transition-opacity duration-300">back</span>
+            </button>
+          </div>
+          {/* Tablet/Desktop: 기존 fixed floating BACK */}
+          <div className="hidden md:block fixed top-32 left-16 z-40 mix-blend-difference text-white dark:text-white">
             <button
               onClick={() => window.location.hash = '#/text'}
               className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
@@ -160,8 +172,9 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
               <span className="text-[10px] tracking-[0.25em] lowercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">back</span>
             </button>
           </div>
+        </>
       )}
-      <div className={`px-6 md:px-8 max-w-2xl mx-auto ${isPage ? 'pt-32 md:pt-40 pb-32' : 'py-8 md:py-10'}`}>
+      <div className={`px-6 md:px-8 max-w-2xl mx-auto ${isPage ? 'pt-4 md:pt-40 pb-32' : 'py-8 md:py-10'}`}>
         
         <article>
           {/* Header */}

@@ -42,9 +42,16 @@ export const AppContent = () => {
       const hash = window.location.hash;
       
       // Check for text detail route: #/text/:id
-      const textDetailMatch = hash.match(/^#\/text\/([^\/]+)$/);
+      const textDetailMatch = hash.match(/^#\/text\/([^\\/]+)$/);
       if (textDetailMatch) {
         const textId = textDetailMatch[1];
+        // Save scroll position before entering text-detail
+        if (currentViewRef.current !== 'text-detail' && currentViewRef.current !== 'work-detail') {
+          scrollPositionRef.current = window.scrollY;
+        }
+        if (currentViewRef.current === 'work-detail') {
+          isRestoringScrollRef.current = true;
+        }
         setSelectedTextId(textId);
         setCurrentView('text-detail');
         return;
@@ -83,6 +90,10 @@ export const AppContent = () => {
 
       // Check for text route: #/text
       if (hash.startsWith('#/text')) {
+        // If coming back from text-detail, mark for scroll restoration
+        if (currentViewRef.current === 'text-detail') {
+          isRestoringScrollRef.current = true;
+        }
         setCurrentView('text');
         setSelectedWorkId(null);
         setSelectedTextId(null);
@@ -151,21 +162,12 @@ export const AppContent = () => {
       };
     } else {
       // Scroll to top for new page entry
+      // Let ScrollRestorer handle it via useLayoutEffect (before paint)
+      // so the scroll happens AFTER exit animation, at opacity:0
       pendingScrollRef.current = 0;
       if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
-      window.scrollTo(0, 0);
-
-      const EXIT_MS = 850;
-      const delays = [10, EXIT_MS, EXIT_MS + 100];
-      const timeoutIds = delays.map(delay =>
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-        }, delay)
-      );
-
-      return () => timeoutIds.forEach(id => clearTimeout(id));
     }
-  }, [currentView, selectedWorkId]);
+  }, [currentView, selectedWorkId, selectedTextId]);
 
   // ScrollRestorer: mounts inside PageTransition at opacity:0,
   // fires useLayoutEffect to scroll BEFORE browser paint → invisible scroll

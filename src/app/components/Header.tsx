@@ -27,7 +27,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
-      // 최상단이거나 스크롤을 올릴 때 보임
+      // 상단이거나 스크롤을 올릴 때 보임
       if (currentScrollY < 10) {
         setIsVisible(true);
       } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
@@ -66,7 +66,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   // [Architect's Solution] Smart Contrast System
   // Mix-blend-mode: difference를 사용하여 배경색에 관계없이 항상 최적의 대비를 확보합니다.
   // 흰 배경 -> 텍스트가 검정으로 반전
-  // 검정 배경 -> 텍스트가 흰색으로 반전
+  // 정 배경 -> 텍스트가 흰색으로 반전
   // --------------------------------------------------------------------------------
   
   // 항상 밝은 색상(White)을 기본으로 설정합니다.
@@ -109,7 +109,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
           return (
             <span className="flex items-baseline gap-2">
-              <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[220px] leading-tight break-words block">
+              <span className="font-['Italiana'] text-[10px] min-[1025px]:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[100px] min-[1025px]:max-w-[220px] leading-tight break-words block">
                 {hasAuthor ? (
                   <>
                     {titlePart}
@@ -246,16 +246,36 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 mix-blend-difference pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-          ${currentView === 'text-detail' ? 'hidden min-[1025px]:block' : ''}
         `}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-[3px] h-[3px] bg-white rounded-none" />
-          
-          <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
-            {renderContextLabel()}
-          </span>
-        </div>
+        {currentView === 'text-detail' ? (
+          <>
+            {/* Mobile: ← back 버튼 */}
+            <button
+              onClick={() => { window.location.hash = '#/text'; }}
+              className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+            >
+              <svg className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              <span className="text-white font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+                back
+              </span>
+            </button>
+            {/* Tablet/Desktop: 기존 context label (제목) */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="w-[3px] h-[3px] bg-white rounded-none" />
+              <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
+                {renderContextLabel()}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-[3px] h-[3px] bg-white rounded-none" />
+            <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
+              {renderContextLabel()}
+            </span>
+          </div>
+        )}
       </div>
     </>
   );
