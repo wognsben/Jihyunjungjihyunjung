@@ -620,7 +620,7 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
             <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
           </div>
           
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false}>
             <motion.img
               key={currentSlide}
               src={images[currentSlide].src}

@@ -350,9 +350,9 @@ export const About = () => {
     
     if (lang === 'en') {
       let result = text;
-      result = result.replace(/지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
+      result = result.replace(/정지현/g, '<span class="notranslate" translate="no">Jihyun Jung</span>');
       result = result.replace(/수원\s*생/g, 'Born in Suwon');
-      result = result.replace(/서울\s*기반로\s*활동\s*중/g, 'Based in Seoul');
+      result = result.replace(/서울\s*기반으로\s*활동\s*중/g, 'Based in Seoul');
       result = result.replace(/\(1986\s*[–\-]\s*\)/g, '(1986 – )');
       return result;
     }
@@ -367,6 +367,21 @@ export const About = () => {
     }
     
     return text;
+  };
+
+  // Get language-specific profile info based on current language
+  const getProfileInfo = () => {
+    if (lang === 'ko' && aboutData?.profile_info_ko) {
+      return aboutData.profile_info_ko;
+    }
+    if (lang === 'en' && aboutData?.profile_info_en) {
+      return aboutData.profile_info_en;
+    }
+    if (lang === 'jp' && aboutData?.profile_info_jp) {
+      return aboutData.profile_info_jp;
+    }
+    // Fallback to default profile_info
+    return aboutData?.profile_info || '';
   };
 
   // Event Handlers for Dynamic Content (React Synthetic Events)
@@ -644,11 +659,11 @@ export const About = () => {
                  >
                    {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
                  </h1>
-                 {aboutData?.profile_info && (
+                 {getProfileInfo() && (
                    <div 
                      className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
                      translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
+                     dangerouslySetInnerHTML={{ __html: processProfileText(getProfileInfo()) }}
                    />
                  )}
                  {aboutData?.profile_info2 && (
@@ -701,11 +716,11 @@ export const About = () => {
                       >
                          {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
                       </h1>
-                      {aboutData.profile_info && (
+                      {getProfileInfo() && (
                          <div 
                            className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
                            translate={lang === 'ko' ? 'no' : undefined}
-                           dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
+                           dangerouslySetInnerHTML={{ __html: processProfileText(getProfileInfo()) }}
                          />
                       )}
                       {aboutData.profile_info2 && (

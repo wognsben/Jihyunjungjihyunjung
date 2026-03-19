@@ -19,6 +19,9 @@ export interface AboutData {
   content_jp?: string; // Assembled from ACF JP fields
   image: string;
   profile_info?: string;
+  profile_info_ko?: string; // Korean profile info
+  profile_info_en?: string; // English profile info
+  profile_info_jp?: string; // Japanese profile info
   profile_info2?: string; // Add profile_info2 field
   contact: {
     email: string;
@@ -996,6 +999,9 @@ export const fetchAboutPage = async (): Promise<AboutData | null> => {
       image: featuredImage,
       // Check profile_info, fallback to profile_text group if nested
       profile_info: acf.profile_info || acf.profile_text?.profile_info || '',
+      profile_info_ko: acf.profile_info_ko || '',
+      profile_info_en: acf.profile_info_en || '',
+      profile_info_jp: acf.profile_info_jp || '',
       profile_info2: acf.profile_info2 || '', // Explicitly fetch profile_info2
       contact: {
         email: acf.email || contactGroup.email || '',
