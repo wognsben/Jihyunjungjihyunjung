@@ -691,10 +691,10 @@ export const About = () => {
         {/* Right Column (Single Scroll Column for Desktop, Main Column for Mobile/Tablet) */}
         <div 
           ref={contentRef}
-          className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-32 md:pt-32 pb-8 flex flex-col gap-20 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0"
           onClick={handleContentClick}
           onMouseOver={handleContentMouseOver}
           onMouseOut={handleContentMouseOut}
+          className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-32 md:pt-32 pb-8 flex flex-col gap-20 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0 min-[1025px]:pl-22"
         >
           {/* Mobile Header */}
           <div className="md:hidden flex flex-col gap-6 mb-12">

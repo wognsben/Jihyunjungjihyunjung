@@ -2,6 +2,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { SplitTextLink } from '@/app/components/SplitTextLink';
 import { useState, useEffect } from 'react';
+import { useIsMobile } from '@/app/components/ui/use-mobile';
 
 interface HeaderProps {
   currentView: 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
@@ -16,9 +17,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   const { lang, setLang } = useLanguage();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-
-  // Check if current view is About page (for mobile header styling)
-  const isAboutPage = currentView === 'about';
+  
+  // Mobile About 전용 조건
+  const isMobile = useIsMobile();
+  const isMobileAbout = currentView === 'about' && isMobile;
 
   // --------------------------------------------------------------------------------
   // [Premium UX] Smart Scroll Behavior
@@ -70,15 +72,15 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   // Mix-blend-mode: difference를 사용하여 배경색에 관계없이 항상 최적의 대비를 확보합니다.
   // 흰 배경 -> 텍스트가 검정으로 반전
   // 정 배경 -> 텍스트가 흰색으로 반전
+  // 단, 모바일 About 페이지에서는 solid background layer로 동작합니다.
   // --------------------------------------------------------------------------------
   
-  // 항상 밝은 색상(White)을 기본으로 설정합니다.
-  // mix-blend-difference가 적용되면 배경에 따라 자동으로 반전됩니다.
-  const baseColor = 'text-white'; 
-  const inactiveColor = 'text-white/60'; // 가독성을 위해 불투명도 상향 조정 (40% -> 60%)
-  const hoverColor = 'hover:text-white';
-  const borderColor = 'bg-white';
-  const separatorColor = 'text-white/30';
+  // 모바일 About일 때만 foreground 계열, 나머지는 white 계열
+  const baseColor = isMobileAbout ? 'text-foreground' : 'text-white';
+  const inactiveColor = isMobileAbout ? 'text-foreground/60' : 'text-white/60';
+  const hoverColor = isMobileAbout ? 'hover:text-foreground' : 'hover:text-white';
+  const borderColor = isMobileAbout ? 'bg-foreground' : 'bg-white';
+  const separatorColor = isMobileAbout ? 'text-foreground/30' : 'text-white/30';
 
   // --------------------------------------------------------------------------------
   // [Cynical Detail] Context Label Generator (Render Function)
@@ -138,24 +140,17 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
         className={`
           fixed top-0 left-0 right-0 z-[9999999] pointer-events-none
           transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+          ${isMobileAbout ? '' : 'mix-blend-difference'}
           ${isVisible ? 'translate-y-0' : '-translate-y-full'}
-          ${isAboutPage ? 'max-[767px]:bg-background' : 'mix-blend-difference'}
         `}
         style={{
-          backgroundColor: 'transparent',
+          backgroundColor: isMobileAbout ? 'var(--background)' : 'transparent',
           borderBottom: 'none',
         }}
       >
-        {/* Gradient fade at bottom - mobile About page only */}
-        {isAboutPage && (
-          <div className="max-[767px]:absolute max-[767px]:bottom-0 max-[767px]:left-0 max-[767px]:right-0 max-[767px]:h-[12px] max-[767px]:pointer-events-none hidden max-[767px]:block"
-            style={{
-              background: 'linear-gradient(to bottom, rgba(var(--background-rgb), 1) 0%, rgba(var(--background-rgb), 0) 100%)'
-            }}
-          />
-        )}
-        
-        <div className={`px-6 md:px-12 py-4 md:py-6 pointer-events-auto relative z-[9999999] ${isAboutPage ? 'max-[767px]:text-foreground' : 'text-white'}`}>
+        <div className={`px-6 md:px-12 py-4 md:py-6 pointer-events-auto relative z-[9999999] ${
+          isMobileAbout ? 'text-foreground' : 'text-white'
+        }`}>
           {/* Logo + Navigation */}
           <div className="flex flex-col gap-3 md:gap-4">
             {/* Top Row: Logo + Language */}
@@ -167,10 +162,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                   onClick={() => onNavigate('index')}
                   isActive={false}
                   className="text-lg md:text-xl font-extralight tracking-tight cursor-pointer"
-                  activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : baseColor}
-                  inactiveColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : baseColor}
-                  hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground/70 md:hover:text-white' : hoverColor}
-                  underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
+                  activeColor={baseColor}
+                  inactiveColor={baseColor}
+                  hoverColor={hoverColor}
+                  underlineColor={borderColor}
                   showUnderline={false}
                 />
               </div>
@@ -185,20 +180,16 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                         setLang(language.code);
                       }}
                       className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
-                        isAboutPage 
-                          ? (lang === language.code 
-                              ? 'max-[767px]:text-foreground md:text-white' 
-                              : 'max-[767px]:text-foreground/50 max-[767px]:hover:text-foreground md:text-white/50 md:hover:text-white')
-                          : (lang === language.code 
-                              ? 'text-white' 
-                              : 'text-white/50 hover:text-white')
+                        lang === language.code
+                          ? (isMobileAbout ? 'text-foreground' : 'text-white')
+                          : (isMobileAbout ? 'text-foreground/50 hover:text-foreground' : 'text-white/50 hover:text-white')
                       }`}
                       style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       {language.label}
                     </button>
                     {index < languages.length - 1 && (
-                      <span className={`text-[10px] md:text-xs ${isAboutPage ? 'max-[767px]:text-foreground/30 md:text-white/30' : separatorColor}`}>/</span>
+                      <span className={`text-[10px] md:text-xs ${separatorColor}`}>/</span>
                     )}
                   </span>
                 ))}
@@ -212,10 +203,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('work')}
                 isActive={currentView === 'work'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
-                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
-                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
-                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
               />
 
               <SplitTextLink
@@ -223,10 +214,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('text')}
                 isActive={currentView === 'text'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
-                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
-                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
-                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
               />
 
               <SplitTextLink
@@ -234,14 +225,25 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('about')}
                 isActive={currentView === 'about'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
-                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
-                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
-                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
               />
             </nav>
           </div>
         </div>
+
+        {/* Gradient Fade Overlay - Mobile About only */}
+        {isMobileAbout && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 right-0 bottom-[-12px] h-3"
+            style={{
+              background: 'linear-gradient(to bottom, var(--background) 0%, transparent 100%)',
+            }}
+          />
+        )}
 
         <style>{`
           header {
@@ -262,8 +264,8 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
         className={`
           fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
+          ${isMobileAbout ? '' : 'mix-blend-difference'}
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
-          ${isAboutPage ? 'max-[767px]:text-foreground' : 'mix-blend-difference'}
         `}
       >
         {currentView === 'text-detail' ? (
@@ -271,25 +273,25 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             {/* Mobile: ← back 버튼 */}
             <button
               onClick={() => { window.location.hash = '#/text'; }}
-              className={`flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group ${isAboutPage ? 'max-[767px]:text-foreground' : ''}`}
+              className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
             >
-              <svg className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isAboutPage ? 'max-[767px]:stroke-foreground' : ''}`} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              <span className={`font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isAboutPage ? 'max-[767px]:text-foreground' : 'text-white'}`}>
+              <svg className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'stroke-foreground' : ''}`} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              <span className={`font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
                 back
               </span>
             </button>
             {/* Tablet/Desktop: 기존 context label (제목) */}
             <div className="hidden md:flex items-center gap-3">
-              <div className={`w-[3px] h-[3px] rounded-none ${isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : 'bg-white'}`} />
-              <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}`}>
+              <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
+              <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
                 {renderContextLabel()}
               </span>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-3">
-            <div className={`w-[3px] h-[3px] rounded-none ${isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : 'bg-white'}`} />
-            <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}`}>
+            <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
+            <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
               {renderContextLabel()}
             </span>
           </div>

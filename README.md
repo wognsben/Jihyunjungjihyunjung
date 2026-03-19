@@ -32,11 +32,13 @@ cp .env.example .env
 ```
 
 `.env` 파일 편집:
+
 ```env
 VITE_DEEPL_API_KEY=your_deepl_api_key_here
 ```
 
 **DeepL API 키 발급:**
+
 - 🔗 https://www.deepl.com/signup
 - Free 플랜: 월 50만 자 무료
 
@@ -61,6 +63,7 @@ npm run dev
 ## 🎯 기술 스택
 
 ### Frontend
+
 - **React 18** - UI 프레임워크
 - **Vite** - 빌드 도구
 - **GSAP** - 애니메이션 라이브러리
@@ -68,10 +71,12 @@ npm run dev
 - **Motion (Framer Motion)** - 페이지 트랜지션
 
 ### Backend
+
 - **WordPress REST API** - Headless CMS
 - **DeepL API** - 고품질 번역 (프론트엔드 직접 호출)
 
 ### 번역 시스템
+
 - **DeepL Direct** - 프론트엔드에서 직접 API 호출
 - **localStorage 캐싱** - 번역 결과 영구 저장
 - **사용량 추적** - 월별 API 사용량 모니터링
@@ -81,14 +86,17 @@ npm run dev
 ## 🌐 다국어 시스템
 
 ### 언어 전환
+
 Header에서 **KR** / **EN** / **JP** 클릭
 
 ### 번역 방식
+
 1. **KR (한국어)** - WordPress 원본 데이터
 2. **EN (영어)** - DeepL API 번역 + localStorage 캐싱
 3. **JP (일본어)** - DeepL API 번역 + localStorage 캐싱
 
 ### 캐싱 시스템
+
 - **첫 번역**: DeepL API 호출 (~1초)
 - **이후 로드**: localStorage 캐시 (즉시)
 - **영구 저장**: 브라우저 캐시 삭제 전까지 유지
@@ -98,6 +106,7 @@ Header에서 **KR** / **EN** / **JP** 클릭
 ## 📊 사용량 모니터링
 
 ### 콘솔에서 확인
+
 브라우저 개발자 도구 (F12) → Console:
 
 ```js
@@ -111,6 +120,7 @@ console.log(getRemainingQuota());
 ```
 
 ### DeepL 대시보드
+
 🔗 https://www.deepl.com/account/usage
 
 ---
@@ -120,6 +130,7 @@ console.log(getRemainingQuota());
 **API 키가 프론트엔드에 노출됩니다.**
 
 하지만 다음 이유로 큰 문제는 아닙니다:
+
 - ✅ 작은 포트폴리오 사이트
 - ✅ DeepL Free 플랜 월 50만 자 제한
 - ✅ localStorage 캐싱으로 API 호출 최소화
@@ -162,6 +173,7 @@ console.log(getRemainingQuota());
 ## 🚨 문제 해결
 
 ### ❌ "API key not configured"
+
 ```bash
 # .env 파일 확인
 cat .env
@@ -174,11 +186,13 @@ npm run dev
 ```
 
 ### ❌ 번역이 안 됨
+
 1. 브라우저 콘솔 (F12) 열기
 2. 에러 메시지 확인
 3. [DEEPL_SETUP.md](./DEEPL_SETUP.md) 참고
 
 ### ❌ 월 한도 초과
+
 - DeepL Pro로 업그레이드
 - 또는 다음 달까지 대기
 - **대부분 캐시에서 처리되어 거의 발생하지 않음**
@@ -198,6 +212,7 @@ npm run build
 ## 🌟 WordPress 설정
 
 WordPress REST API 엔드포인트:
+
 ```
 https://wognsben97.mycafe24.com/wp-json/wp/v2/works
 https://wognsben97.mycafe24.com/wp-json/wp/v2/texts
