@@ -17,18 +17,11 @@ const RevealText = ({ children, delay = 0 }: { children: React.ReactNode; delay?
   const el = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (el.current) {
-      // 모바일(768px 미만)에서는 애니메이션 없이 즉시 표시
-      if (window.innerWidth < 768) {
-        gsap.set(el.current, { y: '0%', opacity: 1 });
-        return;
-      }
-      gsap.fromTo(el.current,
-        { y: '100%', opacity: 0 },
-        { y: '0%', opacity: 1, duration: 1, ease: 'power3.out', delay: delay }
-      );
-    }
-  }, [delay]);
+  if (!el.current) return;
+
+  // Temporarily disable reveal animation on all devices
+  gsap.set(el.current, { y: '0%', opacity: 1 });
+}, []);
 
   return (
     <div className="overflow-hidden leading-tight">

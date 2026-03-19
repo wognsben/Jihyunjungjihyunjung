@@ -502,17 +502,27 @@ const ParagraphBlock = ({ html, lang, align }: { html: string; lang: string; ali
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-12">
       <div 
-        className={`${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80 ${textAlignClass(align)} ${wpContentStyles}`}
+        className={`${lang === 'jp'
+  ? 'font-[var(--font-body-jp)]'
+  : lang === 'en'
+  ? 'font-[Space Grotesk]'
+  : 'font-[var(--font-body-ko)]'} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80 ${textAlignClass(align)} ${wpContentStyles}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
   );
 };
 
-const HeadingBlock = ({ html, align }: { html: string; align?: ParsedBlock['align'] }) => (
+const HeadingBlock = ({ html, lang, align }: { html: string; lang: string; align?: ParsedBlock['align'] }) => (
   <div className="max-w-3xl mx-auto px-6 md:px-12">
     <div 
-      className={`font-serif text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(align)} ${wpContentStyles}`}
+      className={`${
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-display-latin)]'
+    : 'font-[var(--font-body-ko)]'
+} text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(align)} ${wpContentStyles}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   </div>
