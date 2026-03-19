@@ -22,16 +22,19 @@ export const PremiumImage = ({
 
   // Preload image
   useEffect(() => {
-    if (!src) {
-      setHasError(true);
-      return;
-    }
-    
-    const img = new Image();
-    img.src = src;
-    img.onload = () => setIsLoaded(true);
-    img.onerror = () => setHasError(true);
-  }, [src]);
+  setIsLoaded(false);
+  setHasError(false);
+
+  if (!src) {
+    setHasError(true);
+    return;
+  }
+  
+  const img = new Image();
+  img.src = src;
+  img.onload = () => setIsLoaded(true);
+  img.onerror = () => setHasError(true);
+}, [src]);
 
   return (
     <div className={`relative overflow-hidden bg-background ${aspectRatio} ${containerClassName}`}>
@@ -55,10 +58,11 @@ export const PremiumImage = ({
           src={src}
         alt={alt}
         className={`
-          transition-all duration-1000 ease-[cubic-bezier(0.2,0.8,0.2,1)]
-          ${isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-md'}
-          ${className}
-        `}
+  transition-opacity duration-500 ease-out
+  md:transition-all md:duration-1000 md:ease-[cubic-bezier(0.2,0.8,0.2,1)]
+  ${isLoaded ? 'opacity-100 md:scale-100 md:blur-0' : 'opacity-0 md:scale-105 md:blur-md'}
+  ${className}
+`}
         onLoad={() => setIsLoaded(true)}
         loading="lazy"
         decoding="async"
