@@ -17,6 +17,9 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  // Check if current view is About page (for mobile header styling)
+  const isAboutPage = currentView === 'about';
+
   // --------------------------------------------------------------------------------
   // [Premium UX] Smart Scroll Behavior
   // 스크롤을 내릴 때는 작품에 집중하도록 헤더를 숨기고(Retreat),
@@ -133,16 +136,26 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       {/* 1. Main Navigation (Disappears on Scroll Down) */}
       <header 
         className={`
-          fixed top-0 left-0 right-0 z-[9999999] mix-blend-difference pointer-events-none
+          fixed top-0 left-0 right-0 z-[9999999] pointer-events-none
           transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isVisible ? 'translate-y-0' : '-translate-y-full'}
+          ${isAboutPage ? 'max-[767px]:bg-background' : 'mix-blend-difference'}
         `}
         style={{
           backgroundColor: 'transparent',
           borderBottom: 'none',
         }}
       >
-        <div className="px-6 md:px-12 py-4 md:py-6 text-white pointer-events-auto relative z-[9999999]">
+        {/* Gradient fade at bottom - mobile About page only */}
+        {isAboutPage && (
+          <div className="max-[767px]:absolute max-[767px]:bottom-0 max-[767px]:left-0 max-[767px]:right-0 max-[767px]:h-[12px] max-[767px]:pointer-events-none hidden max-[767px]:block"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(var(--background-rgb), 1) 0%, rgba(var(--background-rgb), 0) 100%)'
+            }}
+          />
+        )}
+        
+        <div className={`px-6 md:px-12 py-4 md:py-6 pointer-events-auto relative z-[9999999] ${isAboutPage ? 'max-[767px]:text-foreground' : 'text-white'}`}>
           {/* Logo + Navigation */}
           <div className="flex flex-col gap-3 md:gap-4">
             {/* Top Row: Logo + Language */}
@@ -154,10 +167,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                   onClick={() => onNavigate('index')}
                   isActive={false}
                   className="text-lg md:text-xl font-extralight tracking-tight cursor-pointer"
-                  activeColor={baseColor}
-                  inactiveColor={baseColor}
-                  hoverColor={hoverColor}
-                  underlineColor={borderColor}
+                  activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : baseColor}
+                  inactiveColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : baseColor}
+                  hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground/70 md:hover:text-white' : hoverColor}
+                  underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
                   showUnderline={false}
                 />
               </div>
@@ -172,16 +185,20 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                         setLang(language.code);
                       }}
                       className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
-                        lang === language.code 
-                          ? 'text-white' 
-                          : 'text-white/50 hover:text-white'
+                        isAboutPage 
+                          ? (lang === language.code 
+                              ? 'max-[767px]:text-foreground md:text-white' 
+                              : 'max-[767px]:text-foreground/50 max-[767px]:hover:text-foreground md:text-white/50 md:hover:text-white')
+                          : (lang === language.code 
+                              ? 'text-white' 
+                              : 'text-white/50 hover:text-white')
                       }`}
                       style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       {language.label}
                     </button>
                     {index < languages.length - 1 && (
-                      <span className={`text-[10px] md:text-xs ${separatorColor}`}>/</span>
+                      <span className={`text-[10px] md:text-xs ${isAboutPage ? 'max-[767px]:text-foreground/30 md:text-white/30' : separatorColor}`}>/</span>
                     )}
                   </span>
                 ))}
@@ -195,10 +212,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('work')}
                 isActive={currentView === 'work'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor="text-white"
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
+                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
+                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
+                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
+                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
               />
 
               <SplitTextLink
@@ -206,10 +223,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('text')}
                 isActive={currentView === 'text'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor="text-white"
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
+                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
+                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
+                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
+                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
               />
 
               <SplitTextLink
@@ -217,10 +234,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 onClick={() => handleNavClick('about')}
                 isActive={currentView === 'about'}
                 className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor="text-white"
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
+                activeColor={isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}
+                inactiveColor={isAboutPage ? 'max-[767px]:text-foreground/60 md:text-white/60' : inactiveColor}
+                hoverColor={isAboutPage ? 'max-[767px]:hover:text-foreground md:hover:text-white' : hoverColor}
+                underlineColor={isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : borderColor}
               />
             </nav>
           </div>
@@ -243,9 +260,10 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       {/* 2. Context Indicator (Appears when Main Nav is gone) */}
       <div 
         className={`
-          fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 mix-blend-difference pointer-events-none
+          fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
+          ${isAboutPage ? 'max-[767px]:text-foreground' : 'mix-blend-difference'}
         `}
       >
         {currentView === 'text-detail' ? (
@@ -253,25 +271,25 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
             {/* Mobile: ← back 버튼 */}
             <button
               onClick={() => { window.location.hash = '#/text'; }}
-              className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+              className={`flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group ${isAboutPage ? 'max-[767px]:text-foreground' : ''}`}
             >
-              <svg className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              <span className="text-white font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+              <svg className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isAboutPage ? 'max-[767px]:stroke-foreground' : ''}`} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+              <span className={`font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isAboutPage ? 'max-[767px]:text-foreground' : 'text-white'}`}>
                 back
               </span>
             </button>
             {/* Tablet/Desktop: 기존 context label (제목) */}
             <div className="hidden md:flex items-center gap-3">
-              <div className="w-[3px] h-[3px] bg-white rounded-none" />
-              <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
+              <div className={`w-[3px] h-[3px] rounded-none ${isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : 'bg-white'}`} />
+              <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}`}>
                 {renderContextLabel()}
               </span>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-3">
-            <div className="w-[3px] h-[3px] bg-white rounded-none" />
-            <span className="text-white font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80">
+            <div className={`w-[3px] h-[3px] rounded-none ${isAboutPage ? 'max-[767px]:bg-foreground md:bg-white' : 'bg-white'}`} />
+            <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isAboutPage ? 'max-[767px]:text-foreground md:text-white' : 'text-white'}`}>
               {renderContextLabel()}
             </span>
           </div>

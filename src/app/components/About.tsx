@@ -688,92 +688,77 @@ export const About = () => {
            </div>
         </div>
 
-        {/* Right Column (Content) */}
+        {/* Right Column (Single Scroll Column for Desktop, Main Column for Mobile/Tablet) */}
         <div 
-          className="flex-1 min-h-full min-[1025px]:h-full relative"
-          style={{ perspective: '1000px' }} 
+          ref={contentRef}
+          className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-32 md:pt-32 pb-8 flex flex-col gap-20 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0"
+          onClick={handleContentClick}
+          onMouseOver={handleContentMouseOver}
+          onMouseOut={handleContentMouseOut}
         >
-          <div 
-            ref={scrollbarRef}
-            className="absolute right-[-10px] min-[1025px]:right-0 top-32 bottom-12 w-[1px] bg-border z-50 hidden min-[1025px]:block"
-          >
-            <div 
-              ref={thumbRef}
-              className="w-[3px] h-[60px] bg-foreground/30 -ml-[1px]"
-            />
+          {/* Mobile Header */}
+          <div className="md:hidden flex flex-col gap-6 mb-12">
+             {aboutData && (
+               <>
+                  <RevealText delay={0.2}>
+                    <div className="flex flex-col gap-1">
+                      <h1 
+                        className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
+                        translate={lang === 'en' ? 'no' : undefined}
+                      >
+                         {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
+                      </h1>
+                      {aboutData.profile_info && (
+                         <div 
+                           className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
+                           translate={lang === 'ko' ? 'no' : undefined}
+                           dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
+                         />
+                      )}
+                      {aboutData.profile_info2 && (
+                         <div 
+                           className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
+                           translate={lang === 'ko' ? 'no' : undefined}
+                           dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
+                         />
+                      )}
+                    </div>
+                  </RevealText>
+                  
+                  <div className="flex flex-col gap-4 mt-8 mb-8">
+                     {contactLinks.map((item, idx) => (
+                       <div key={item.label} className="flex flex-col gap-0.5">
+                           <span className="text-[10px] font-mono text-muted-foreground/50 tracking-widest mb-1 block">
+                               {item.label}
+                           </span>
+                           <ContactLink 
+                             label={item.label}
+                             value={item.value}
+                             link={item.link}
+                             onContactClick={item.label === 'email' ? () => setIsContactModalOpen(true) : undefined} 
+                           />
+                       </div>
+                     ))}
+                  </div>
+               </>
+             )}
           </div>
 
-          <div 
-            ref={contentRef}
-            onClick={handleContentClick}
-            onMouseOver={handleContentMouseOver}
-            onMouseOut={handleContentMouseOut}
-            className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-28 md:pt-32 pb-8 flex flex-col gap-20 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0"
-          >
-            {/* Mobile Header */}
-            <div className="md:hidden flex flex-col gap-6 mb-12">
-               {aboutData && (
-                 <>
-                    <RevealText delay={0.2}>
-                      <div className="flex flex-col gap-1">
-                        <h1 
-                          className={`text-xl font-medium tracking-tight mb-4${lang === 'en' ? ' notranslate' : ''}`}
-                          translate={lang === 'en' ? 'no' : undefined}
-                        >
-                           {lang === 'en' ? 'Jihyun Jung' : lang === 'jp' ? 'チョン・ジヒョン' : (aboutData?.name || aboutData?.title || 'About')}
-                        </h1>
-                        {aboutData.profile_info && (
-                           <div 
-                             className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line mb-4${lang === 'ko' ? ' notranslate' : ''}`}
-                             translate={lang === 'ko' ? 'no' : undefined}
-                             dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info) }}
-                           />
-                        )}
-                        {aboutData.profile_info2 && (
-                           <div 
-                             className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${lang === 'ko' ? ' notranslate' : ''}`}
-                             translate={lang === 'ko' ? 'no' : undefined}
-                             dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
-                           />
-                        )}
-                      </div>
-                    </RevealText>
-                    
-                    <div className="flex flex-col gap-4 mt-8 mb-8">
-                       {contactLinks.map((item, idx) => (
-                         <div key={item.label} className="flex flex-col gap-0.5">
-                             <span className="text-[10px] font-mono text-muted-foreground/50 tracking-widest mb-1 block">
-                                 {item.label}
-                             </span>
-                             <ContactLink 
-                               label={item.label}
-                               value={item.value}
-                               link={item.link}
-                               onContactClick={item.label === 'email' ? () => setIsContactModalOpen(true) : undefined} 
-                             />
-                         </div>
-                       ))}
-                    </div>
-                 </>
-               )}
+          {/* Bio Content */}
+          {aboutData && aboutData.content && (
+            <div className="flex flex-col gap-6 max-w-3xl">
+              <RevealText delay={0.3}>
+                 <div 
+                   className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-2 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[40px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[40px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug max-[1025px]:[&_tr>*:last-child]:truncate [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line]:before:content-['→'] md:[&_tr.hover-line]:before:absolute md:[&_tr.hover-line]:before:left-2 md:[&_tr.hover-line]:before:top-1/2 md:[&_tr.hover-line]:before:-translate-y-1/2 md:[&_tr.hover-line]:before:text-foreground md:[&_tr.hover-line]:before:opacity-0 md:[&_tr.hover-line:hover]:before:opacity-100 md:[&_tr.hover-line]:before:-translate-x-2 md:[&_tr.hover-line:hover]:before:translate-x-0 md:[&_tr.hover-line]:before:transition-all md:[&_tr.hover-line]:before:duration-300 md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
+                   translate={lang === 'ko' ? 'no' : undefined}
+                   dangerouslySetInnerHTML={{ __html: processedContent }}
+                 />
+              </RevealText>
             </div>
-
-            {/* Bio Content */}
-            {aboutData && aboutData.content && (
-              <div className="flex flex-col gap-6 max-w-3xl">
-                <RevealText delay={0.3}>
-                   <div 
-                     className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-serif [&_h2]:uppercase [&_h2]:tracking-[0.2em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-12 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-2 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[40px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[40px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug max-[1025px]:[&_tr>*:last-child]:truncate [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line]:before:content-['→'] md:[&_tr.hover-line]:before:absolute md:[&_tr.hover-line]:before:left-2 md:[&_tr.hover-line]:before:top-1/2 md:[&_tr.hover-line]:before:-translate-y-1/2 md:[&_tr.hover-line]:before:text-foreground md:[&_tr.hover-line]:before:opacity-0 md:[&_tr.hover-line:hover]:before:opacity-100 md:[&_tr.hover-line]:before:-translate-x-2 md:[&_tr.hover-line:hover]:before:translate-x-0 md:[&_tr.hover-line]:before:transition-all md:[&_tr.hover-line]:before:duration-300 md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${lang === 'ko' ? ' notranslate' : ''}`}
-                     translate={lang === 'ko' ? 'no' : undefined}
-                     dangerouslySetInnerHTML={{ __html: processedContent }}
-                   />
-                </RevealText>
-              </div>
-            )}
-            
-            <div className="pt-16 pb-4 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
-               <Footer />
-            </div>
+          )}
+          
+          <div className="pt-16 pb-4 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
+             <Footer />
           </div>
         </div>
       </div>
