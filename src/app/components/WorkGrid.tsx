@@ -22,22 +22,22 @@ export const WorkGrid = () => {
   // Filter labels by language
   const filterLabels = {
     ko: {
-      all: 'All',
-      works: 'Works',
-      proj: 'Projects',
-      exhib: 'Exhibitions'
+      all: '전체',
+      works: '작업',
+      proj: '프로젝트',
+      exhib: ' 전시'
     },
     en: {
       all: 'All',
       works: 'Works',
       proj: 'Projects',
-      exhib: 'Exhibitions'
+      exhib: 'Exhibition'
     },
     jp: {
       all: 'すべて',
       works: '作品',
       proj: 'プロジェクト',
-      exhib: '展覧会'
+      exhib: '展示'
     }
   };
 
