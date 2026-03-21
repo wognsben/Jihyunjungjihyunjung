@@ -533,7 +533,7 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
 
   useEffect(() => {
     const updateDeviceType = () => {
-      setIsTouchDevice(window.innerWidth < 1024);
+      setIsTouchDevice(window.innerWidth <= 1024);
     };
 
     updateDeviceType();
@@ -567,54 +567,54 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
   if (images.length === 1) {
     return (
       <div className={`${compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'} -mx-6 md:-mx-12`}>
-        <div className="max-h-[70vh] md:max-h-[85vh] min-[1025px]:max-h-[90vh] overflow-hidden w-full">
-          <img
-            src={images[0].src}
-            alt={images[0].caption || 'Image'}
-            className="max-h-[70vh] md:max-h-[85vh] min-[1025px]:max-h-[90vh] w-full object-contain mx-auto block"
-            loading="lazy"
-            draggable={false}
-          />
+        <div className="w-full overflow-hidden">
+          <div className="flex min-h-[240px] max-h-[70vh] items-center justify-center md:min-h-[320px] md:max-h-[85vh] min-[1025px]:max-h-[90vh]">
+            <img
+              src={images[0].src}
+              alt={images[0].caption || 'Image'}
+              className="block max-h-[70vh] w-full object-contain md:max-h-[85vh] min-[1025px]:max-h-[90vh]"
+              loading="lazy"
+              draggable={false}
+            />
+          </div>
         </div>
-        {parsedCaption && (
-          <p className="text-center text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans mt-5">
-            {parsedCaption}
-          </p>
-        )}
+
+        <div className="mt-5 h-6 flex items-center justify-center">
+          {parsedCaption && (
+            <p className="text-center text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
+              {parsedCaption}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className={`${compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'} -mx-6 md:-mx-12`}>
-      <div className="flex flex-col items-center gap-5 md:gap-6 w-full mx-auto">
-        <div className="relative max-h-[70vh] md:max-h-[85vh] min-[1025px]:max-h-[90vh] overflow-hidden group w-full">
-          <div
-            className="hidden md:block absolute left-0 top-0 w-1/2 h-full z-20 cursor-pointer"
-            onClick={goToPrev}
-          />
-          <div
-            className="hidden md:block absolute right-0 top-0 w-1/2 h-full z-20 cursor-pointer"
-            onClick={goToNext}
-          />
-          <div
-            className="md:hidden absolute inset-0 z-20 cursor-pointer active:bg-black/5"
-            onClick={goToNext}
-          />
+      <div className="flex w-full flex-col items-center gap-5 md:gap-6">
+        <div className="group relative w-full overflow-hidden">
+          <div className="flex min-h-[240px] max-h-[70vh] items-center justify-center md:min-h-[320px] md:max-h-[85vh] min-[1025px]:max-h-[90vh]">
+            <div
+              className="hidden md:block absolute left-0 top-0 z-20 h-full w-1/2 cursor-pointer"
+              onClick={goToPrev}
+            />
+            <div
+              className="hidden md:block absolute right-0 top-0 z-20 h-full w-1/2 cursor-pointer"
+              onClick={goToNext}
+            />
+            <div
+              className="md:hidden absolute inset-0 z-20 cursor-pointer active:bg-black/5"
+              onClick={goToNext}
+            />
 
-          <div className="hidden md:block absolute inset-0 z-10 pointer-events-none">
-            <div className="absolute left-0 top-0 w-1/2 h-full bg-gradient-to-r from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-            <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-black/0 via-black/0 to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-          </div>
-
-          <AnimatePresence initial={false} mode="wait">
             {isTouchDevice ? (
               <motion.div
                 key={currentSlide}
                 className="w-full"
                 drag="x"
                 dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.2}
+                dragElastic={0.15}
                 onDragEnd={(e, { offset, velocity }) => {
                   if (Math.abs(offset.x) > 50 || Math.abs(velocity.x) > 500) {
                     if (offset.x > 0) goToPrev();
@@ -625,45 +625,35 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
                 <img
                   src={images[currentSlide].src}
                   alt={`Gallery ${currentSlide + 1}`}
-                  className="max-h-[70vh] md:max-h-[85vh] min-[1025px]:max-h-[90vh] w-full object-contain mx-auto block pointer-events-none"
+                  className="block max-h-[70vh] w-full object-contain pointer-events-none md:max-h-[85vh] min-[1025px]:max-h-[90vh]"
                   draggable={false}
                   loading="lazy"
                 />
               </motion.div>
             ) : (
-              <motion.img
-                key={currentSlide}
+              <img
                 src={images[currentSlide].src}
                 alt={`Gallery ${currentSlide + 1}`}
-                className="max-h-[70vh] md:max-h-[85vh] min-[1025px]:max-h-[90vh] w-full object-contain mx-auto block pointer-events-none"
+                className="block max-h-[70vh] w-full object-contain pointer-events-none md:max-h-[85vh] min-[1025px]:max-h-[90vh]"
                 draggable={false}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                loading="lazy"
               />
             )}
-          </AnimatePresence>
+          </div>
         </div>
 
         <div className="h-6 flex items-center justify-center">
           {parsedCaption && (
-            <motion.p
-              key={`caption-${currentSlide}-${lang}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans"
-            >
+            <p className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
               {parsedCaption}
-            </motion.p>
+            </p>
           )}
         </div>
 
         <div className="flex items-center justify-center gap-8 md:gap-10">
           <button
             type="button"
-            className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
+            className="relative z-10 flex min-h-[44px] min-w-[44px] items-center justify-center cursor-pointer text-foreground/50 transition-colors active:scale-95 hover:text-foreground min-[1025px]:min-h-0 min-[1025px]:min-w-0"
             aria-label="Previous"
             onClick={(e) => {
               e.preventDefault();
@@ -671,18 +661,18 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
               goToPrev();
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
+            <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="rotate-180 pointer-events-none min-[1025px]:h-5 min-[1025px]:w-5">
               <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square" />
             </svg>
           </button>
 
-          <span className="min-[1025px]:text-[14px] font-mono min-[1025px]:font-['Ojuju'] text-foreground/50 tracking-[0.1em] whitespace-nowrap text-[11px]">
+          <span className="whitespace-nowrap text-[11px] tracking-[0.1em] text-foreground/50 min-[1025px]:font-['Ojuju'] min-[1025px]:text-[14px] font-mono">
             {String(currentSlide + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}
           </span>
 
           <button
             type="button"
-            className="relative z-10 cursor-pointer text-foreground/50 hover:text-foreground transition-colors active:scale-95 min-w-[44px] min-h-[44px] min-[1025px]:min-w-0 min-[1025px]:min-h-0 flex items-center justify-center"
+            className="relative z-10 flex min-h-[44px] min-w-[44px] items-center justify-center cursor-pointer text-foreground/50 transition-colors active:scale-95 hover:text-foreground min-[1025px]:min-h-0 min-[1025px]:min-w-0"
             aria-label="Next"
             onClick={(e) => {
               e.preventDefault();
@@ -690,7 +680,7 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
               goToNext();
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="min-[1025px]:w-5 min-[1025px]:h-5 pointer-events-none">
+            <svg width="16" height="16" viewBox="0 0 12 12" fill="none" className="pointer-events-none min-[1025px]:h-5 min-[1025px]:w-5">
               <path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="0.8" strokeLinecap="square" />
             </svg>
           </button>

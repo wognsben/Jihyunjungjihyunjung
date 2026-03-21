@@ -8,15 +8,21 @@ interface GalleryItemProps {
   containerClass: string;
 }
 
-export const GalleryItem = ({ image, title, index, layoutClass, containerClass }: GalleryItemProps) => {
+export const GalleryItem = ({
+  image,
+  title,
+  index,
+  layoutClass,
+  containerClass,
+}: GalleryItemProps) => {
   return (
     <div className={containerClass}>
       <div className={`relative overflow-hidden ${layoutClass}`}>
         <PremiumImage
           src={image}
           alt={`${title} - View ${index + 1}`}
-          className="w-full h-auto object-contain"
-          containerClassName="w-full"
+          className="block w-full h-full object-cover"
+          containerClassName="w-full h-full"
         />
       </div>
     </div>
