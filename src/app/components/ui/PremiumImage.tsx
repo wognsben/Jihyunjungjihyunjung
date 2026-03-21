@@ -19,13 +19,15 @@ export const PremiumImage = ({
   priority = false,
   ...props
 }: PremiumImageProps) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(priority); // priority면 즉시 로드된 것으로 간주
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setIsLoaded(false);
+    if (!priority) {
+      setIsLoaded(false);
+    }
     setHasError(!src);
-  }, [src]);
+  }, [src, priority]);
 
   return (
     <div
@@ -49,14 +51,15 @@ export const PremiumImage = ({
           alt={alt}
           className={`
             block w-full h-full object-cover
-            transition-opacity duration-300 ease-out
+            ${priority ? '' : 'transition-opacity duration-300 ease-out'}
             ${isLoaded ? 'opacity-100' : 'opacity-0'}
             ${className}
           `}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
+          decoding={priority ? 'sync' : 'async'}
+          fetchpriority={priority ? 'high' : 'auto'}
           {...props}
         />
       )}

@@ -247,7 +247,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-  // 모���/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
+  // 모/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
   const handleImageClick = () => {
     handleUserInteraction();
     const nextIndex = (activeIndex + 1) % works.length;
@@ -263,8 +263,8 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     <div className="fixed inset-0 overflow-hidden select-none touch-none bg-background">
       {/* Background Images */}
       {works.map((work, index) => {
-        // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
-        const imageSrc = (work.galleryImages && work.galleryImages[0]) || getLocalizedThumbnail(work, lang);
+        // 화질 개선: 갤러리 이미지를 우선 사용 (더 큰 원본 이미지)
+        const imageSrc = work.galleryImages?.[0] || getLocalizedThumbnail(work, lang) || work.thumbnail;
         return (
         <div
           key={work.id}
