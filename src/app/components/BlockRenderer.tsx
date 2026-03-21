@@ -573,7 +573,7 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
   <img
     src={images[0].src}
     alt={images[0].caption || 'Image'}
-    className="block w-full h-full object-contain"
+    className="block w-auto h-auto max-w-full max-h-full object-contain"
     loading="lazy"
     draggable={false}
   />
