@@ -6,7 +6,8 @@ interface PremiumImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt: string;
   className?: string;
   containerClassName?: string;
-  aspectRatio?: string; // e.g. "aspect-[4/3]"
+  aspectRatio?: string;
+  priority?: boolean;
 }
 
 export const PremiumImage = ({
@@ -15,6 +16,7 @@ export const PremiumImage = ({
   className = '',
   containerClassName = '',
   aspectRatio = 'aspect-[4/3]',
+  priority = false,
   ...props
 }: PremiumImageProps) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -53,7 +55,7 @@ export const PremiumImage = ({
           `}
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           {...props}
         />

@@ -247,7 +247,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-  // 모���일/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
+  // 모���/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
   const handleImageClick = () => {
     handleUserInteraction();
     const nextIndex = (activeIndex + 1) % works.length;
@@ -282,6 +282,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
             containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}
+            priority={index <= 1}
           />
           {/* 미세한 딤 처리 (선택 사항 - 텍스트 가독성용) */}
           <div className="absolute inset-0 bg-black/10 pointer-events-none bg-[#ffffff1a]" />

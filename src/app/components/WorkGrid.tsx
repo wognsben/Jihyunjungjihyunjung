@@ -241,7 +241,13 @@ export const WorkGrid = () => {
             ref={el => { columnRefs.current[colIndex] = el; }}
             className={`flex flex-col gap-1 flex-1 w-full ${isTablet ? 'md:w-1/2' : 'md:w-1/4'} will-change-transform`}
           >
-            {colWorks.map((work) => (
+            {colWorks.map((work, workIndex) => {
+              // Calculate global index for priority loading
+              // First row in each column should have priority
+              const globalIndex = colIndex + (workIndex * columns.length);
+              const shouldPrioritize = globalIndex < 8; // First 8 images get priority
+              
+              return (
               <div 
                 key={work.id}
                 className="relative group cursor-pointer w-full select-none"
@@ -263,6 +269,7 @@ export const WorkGrid = () => {
                       isMobile ? 'object-contain' : 'object-cover'
                     }`}
                     containerClassName="w-full h-full"
+                    priority={shouldPrioritize}
                   />
                   
                   {/* Overlay Gradient for Bottom Text Readability */}
@@ -290,7 +297,7 @@ export const WorkGrid = () => {
 
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         ))}
       </div>
