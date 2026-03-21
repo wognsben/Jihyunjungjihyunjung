@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/data/works';
+import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 
 interface PremiumScrollSliderProps {
   works: Work[];
@@ -95,13 +96,13 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     if (works && works.length > 0 && works[activeIndex]) {
       // Run analysis in background, don't block rendering
       const currentWork = works[activeIndex];
-      // 원본 갤러리 이미지만 사용
-      const imageSrc = currentWork.galleryImages?.[0];
+      // WorkGrid와 동일한 이미지 선택 로직
+      const imageSrc = getLocalizedThumbnail(currentWork, lang) || currentWork.galleryImages?.[0];
       if (imageSrc) {
         analyzeImageBrightness(imageSrc);
       }
     }
-  }, [activeIndex, works]);
+  }, [activeIndex, works, lang]);
 
   // 슬라이드 이동 함수
   const navigateToSlide = (targetIndex: number) => {
@@ -148,7 +149,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     const handleWheel = (e: WheelEvent) => {
       // 모바일에서는 기본 스크롤 허용 (768px 미만)
       if (window.innerWidth < 768) {
-        return; // preventDefault 하지 않음
+        return; // preventDefault 하지 않���
       }
       
       // 데스크탑: 슬라이더가 전체 화면이므로 기본 스크롤 동작 방지
@@ -263,12 +264,11 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     <div className="fixed inset-0 overflow-hidden select-none touch-none bg-background">
       {/* Background Images */}
       {works.map((work, index) => {
-        // 원본 이미지만 사용 - 썸네일 절대 사용 금지
-        const imageSrc = work.galleryImages?.[0];
+        // WorkGrid와 동일한 로직: WordPress의 thumbnail 필드는 원본 이미지
+        const imageSrc = getLocalizedThumbnail(work, lang) || work.galleryImages[0];
         
-        // galleryImages가 없는 경우 렌더링하지 않음
         if (!imageSrc) {
-          console.warn(`Work ${work.id} has no gallery images for hero display`);
+          console.warn(`Work ${work.id} has no images for hero display`);
           return null;
         }
         
@@ -281,7 +281,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           }`}
           aria-hidden={index !== activeIndex}
         >
-          {/* 원본 이미지 직접 사용 - 최고 화질 보장 */}
+          {/* 원본 이미지 직접 사용 - WorkGrid와 동일 */}
           <img
             src={imageSrc}
             alt={getTitle(work)}
