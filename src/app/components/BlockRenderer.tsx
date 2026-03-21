@@ -569,13 +569,15 @@ const ImageSliderBlock = ({ blocks, lang, compact }: { blocks: ParsedBlock[]; la
       <div className={`${compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'} -mx-6 md:-mx-12`}>
         <div className="w-full overflow-hidden">
           <div className="flex min-h-[240px] max-h-[70vh] items-center justify-center md:min-h-[320px] md:max-h-[85vh] min-[1025px]:max-h-[90vh]">
-            <img
-              src={images[0].src}
-              alt={images[0].caption || 'Image'}
-              className="block max-h-[70vh] w-full object-contain md:max-h-[85vh] min-[1025px]:max-h-[90vh]"
-              loading="lazy"
-              draggable={false}
-            />
+            <div className="flex items-center justify-center min-h-[240px] max-h-[520px] md:min-h-[320px] md:max-h-[620px] min-[1025px]:max-h-[90vh]">
+  <img
+    src={images[0].src}
+    alt={images[0].caption || 'Image'}
+    className="block w-full h-full object-contain"
+    loading="lazy"
+    draggable={false}
+  />
+</div>
           </div>
         </div>
 
