@@ -5,7 +5,7 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useMotionValue, animate } from 'motion/react';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -18,53 +18,79 @@ interface InfiniteWorkGridProps {
 
 export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) => {
   const { lang } = useLanguage();
-  
+
   // Refs
   const sectionRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollTriggerRef = useRef<ScrollTrigger | null>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
-  
+
+  // Tablet refs
+  const tabletViewportRef = useRef<HTMLDivElement>(null);
+  const tabletTrackRef = useRef<HTMLDivElement>(null);
+
   // State
+  const [isReady, setIsReady] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
-  
-  // Ref for tablet scroll container
-  const tabletScrollRef = useRef<HTMLDivElement>(null);
 
-  // Detect mobile (<768px) and tablet (768-1024px)
+  // Tablet drag state
+  const tabletX = useMotionValue(0);
+  const [tabletBounds, setTabletBounds] = useState({ left: 0, right: 0 });
+
+  // Detect mobile / tablet / desktop
   useEffect(() => {
     const checkScreenSize = () => {
       const w = window.innerWidth;
+
       setIsMobile(w < 768);
-      setIsTablet(w >= 768 && w < 1025);
+      setIsTablet(w >= 768 && w <= 1024);
+      setIsReady(true);
     };
+
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  const getLocalizedTitle = (work: Work) => {
+    return lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en;
+  };
+
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
   // GSAP ScrollTrigger Horizontal Scroll Pinning
   useLayoutEffect(() => {
-    if (isMobile || isTablet || !sectionRef.current || !trackRef.current || works.length === 0) return;
+    if (!isReady || isMobile || isTablet || !sectionRef.current || !trackRef.current || works.length === 0) {
+      if (scrollTriggerRef.current) {
+        scrollTriggerRef.current.kill();
+        scrollTriggerRef.current = null;
+      }
+      return;
+    }
 
-    // Wait for images to start loading and DOM to settle
     const timer = setTimeout(() => {
       if (!sectionRef.current || !trackRef.current) return;
 
       const track = trackRef.current;
       const totalScrollWidth = track.scrollWidth - window.innerWidth;
 
-      // Guard: if not enough content to scroll, skip pinning
-      if (totalScrollWidth <= 0) return;
+      if (totalScrollWidth <= 0) {
+        if (scrollTriggerRef.current) {
+          scrollTriggerRef.current.kill();
+          scrollTriggerRef.current = null;
+        }
+        setScrollProgress(0);
+        return;
+      }
 
-      // Kill previous instance
       if (scrollTriggerRef.current) {
         scrollTriggerRef.current.kill();
+        scrollTriggerRef.current = null;
       }
 
       const tween = gsap.to(track, {
@@ -85,6 +111,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       });
 
       scrollTriggerRef.current = tween.scrollTrigger || null;
+      ScrollTrigger.refresh();
     }, 300);
 
     return () => {
@@ -94,36 +121,80 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
         scrollTriggerRef.current = null;
       }
     };
-  }, [isMobile, isTablet, works]);
+  }, [isReady, isMobile, isTablet, works]);
 
-  // Tablet: Track horizontal scroll progress from native scroll
+  // Tablet drag bounds calculation
+  useLayoutEffect(() => {
+    if (!isReady || !isTablet || !tabletViewportRef.current || !tabletTrackRef.current) {
+      setTabletBounds({ left: 0, right: 0 });
+      tabletX.set(0);
+      if (isReady && isTablet) {
+        setScrollProgress(0);
+      }
+      return;
+    }
+
+    const updateTabletBounds = () => {
+      if (!tabletViewportRef.current || !tabletTrackRef.current) return;
+
+      const viewportWidth = tabletViewportRef.current.clientWidth;
+      const trackWidth = tabletTrackRef.current.scrollWidth;
+      const maxDrag = Math.max(0, trackWidth - viewportWidth);
+
+      setTabletBounds({
+        left: -maxDrag,
+        right: 0,
+      });
+
+      const currentX = tabletX.get();
+      const clampedX = clamp(currentX, -maxDrag, 0);
+      tabletX.set(clampedX);
+
+      if (maxDrag <= 0) {
+        setScrollProgress(0);
+      } else {
+        setScrollProgress(Math.abs(clampedX) / maxDrag);
+      }
+    };
+
+    const timer = setTimeout(updateTabletBounds, 50);
+    window.addEventListener('resize', updateTabletBounds);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateTabletBounds);
+    };
+  }, [isReady, isTablet, works, tabletX]);
+
+  // Tablet progress tracking from motion value
   useEffect(() => {
-    if (!isTablet || !tabletScrollRef.current) return;
-    const el = tabletScrollRef.current;
-    
-    const handleScroll = () => {
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      if (maxScroll <= 0) {
+    if (!isReady || !isTablet) return;
+
+    const unsubscribe = tabletX.on('change', (latest) => {
+      const maxDrag = Math.abs(tabletBounds.left);
+      if (maxDrag <= 0) {
         setScrollProgress(0);
         return;
       }
-      setScrollProgress(el.scrollLeft / maxScroll);
-    };
-    
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [isTablet, works]);
+      setScrollProgress(clamp(Math.abs(latest) / maxDrag, 0, 1));
+    });
+
+    return unsubscribe;
+  }, [isReady, isTablet, tabletBounds.left, tabletX]);
 
   // Refresh ScrollTrigger on resize
   useEffect(() => {
     const handleResize = () => {
-      ScrollTrigger.refresh();
+      if (isReady && !isMobile && !isTablet) {
+        ScrollTrigger.refresh();
+      }
     };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [isReady, isMobile, isTablet]);
 
-  if (works.length === 0) return null;
+  if (!isReady || works.length === 0) return null;
 
   // Mobile Slider Functions
   const goToNextSlide = () => {
@@ -153,7 +224,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
         {/* Slider */}
         <div className="relative w-full px-6 md:px-12">
           <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
-            {/* Current Image */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSlide}
@@ -168,7 +238,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 onDragEnd={(e, { offset, velocity }) => {
                   const swipe = offset.x;
                   const swipeVelocity = velocity.x;
-                  
+
                   if (Math.abs(swipe) > 50 || Math.abs(swipeVelocity) > 500) {
                     if (swipe > 0) {
                       goToPrevSlide();
@@ -184,8 +254,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                   className="w-full h-full object-cover pointer-events-none"
                   onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
                 />
-                {/* Tap overlay — navigates to work detail */}
-                <div 
+                <div
                   className="absolute inset-0 z-10"
                   onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
                 />
@@ -194,12 +263,16 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
           </div>
 
           {/* Caption */}
-          <div 
+          <div
             className="mt-4 cursor-pointer"
             onClick={() => onWorkClick?.(Number(works[currentSlide].id))}
           >
             <h3 className="text-sm font-serif font-light text-foreground/90 leading-tight mb-1">
-              {lang === 'ko' ? works[currentSlide].title_ko : lang === 'jp' ? works[currentSlide].title_jp : works[currentSlide].title_en}
+              {lang === 'ko'
+                ? works[currentSlide].title_ko
+                : lang === 'jp'
+                  ? works[currentSlide].title_jp
+                  : works[currentSlide].title_en}
             </h3>
             <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.1em]">
               {works[currentSlide].year}
@@ -217,14 +290,13 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
     );
   }
 
-  // Tablet: Horizontal Scroll Container
+  // Tablet: drag carousel
   if (isTablet) {
     return (
       <div className="relative w-full bg-background overflow-hidden">
-        {/* Background mask to prevent content bleeding through transparent header */}
         <div className="absolute top-0 left-0 right-0 h-[88px] md:h-[104px] bg-background z-10" />
-        
-        {/* Header: Fixed at top of pinned section */}
+
+        {/* Header */}
         <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-4">
             <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif_Collection]">
@@ -234,11 +306,10 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               {works.length} {works.length === 1 ? 'work' : 'works'}
             </span>
           </div>
-          
-          {/* Progress Indicator */}
+
           <div className="flex items-center gap-3">
             <div className="w-24 h-[1px] bg-muted-foreground/20 relative overflow-hidden">
-              <div 
+              <div
                 className="absolute left-0 top-0 h-full bg-foreground/60 transition-none"
                 style={{ width: `${scrollProgress * 100}%` }}
               />
@@ -249,57 +320,72 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
           </div>
         </div>
 
-        {/* Horizontal Track — native touch scroll with snap */}
-        <div 
-          ref={tabletScrollRef}
-          className="flex gap-6 px-12 pb-16 overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-          style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {works.map((work) => (
-            <div
-              key={work.id}
-              onClick={() => onWorkClick?.(Number(work.id))}
-              className="group flex-shrink-0 cursor-pointer snap-start"
-            >
-              {/* Thumbnail */}
-              <div className="w-[calc((100vw-72px)/2)] aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative">
-                <ImageWithFallback
-                  src={getLocalizedThumbnail(work, lang) || ''}
-                  alt={work.title_en}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
-                />
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
-              </div>
+        {/* Drag Viewport */}
+        <div ref={tabletViewportRef} className="px-12 overflow-hidden">
+          <motion.div
+            ref={tabletTrackRef}
+            className="flex gap-6 pb-16 cursor-grab active:cursor-grabbing"
+            drag="x"
+            dragConstraints={tabletBounds}
+            dragElastic={0.08}
+            style={{ x: tabletX }}
+            onDragEnd={(e, info) => {
+              const maxDrag = Math.abs(tabletBounds.left);
+              if (maxDrag <= 0) return;
 
-              {/* Caption */}
-              <div className="w-[calc((100vw-72px)/2)]">
-                <h3 className="text-sm md:text-base font-serif font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300">
-                  {lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en}
-                </h3>
-                <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.1em]">
-                  {work.year}
-                </p>
+              const rawX = tabletX.get();
+              const projectedX = rawX + info.velocity.x * 24;
+              const clampedX = clamp(projectedX, tabletBounds.left, 0);
+
+              animate(tabletX, clampedX, {
+                type: 'spring',
+                stiffness: 320,
+                damping: 34,
+                mass: 0.7,
+              });
+            }}
+          >
+            {works.map((work) => (
+              <div
+                key={work.id}
+                onClick={() => onWorkClick?.(Number(work.id))}
+                className="group flex-shrink-0 cursor-pointer"
+              >
+                <div className="w-[calc((100vw-120px)/2)] aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative min-w-[320px] max-w-[520px]">
+                  <ImageWithFallback
+                    src={getLocalizedThumbnail(work, lang) || ''}
+                    alt={work.title_en}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
+                </div>
+
+                <div className="w-[calc((100vw-120px)/2)] min-w-[320px] max-w-[520px]">
+                  <h3 className="text-sm md:text-base font-serif font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300">
+                    {lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en}
+                  </h3>
+                  <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.1em]">
+                    {work.year}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </motion.div>
         </div>
 
         {/* Bottom Minimap Scroll Indicator */}
         <div className="relative z-20 px-6 md:px-12 pb-24 md:pb-32">
-          {/* Edge fade masks */}
           <div className="relative">
-            <div 
+            <div
               className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
               style={{ background: 'linear-gradient(to right, var(--background), transparent)' }}
             />
-            <div 
+            <div
               className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
               style={{ background: 'linear-gradient(to left, var(--background), transparent)' }}
             />
-            
-            {/* Interactive track */}
-            <div 
+
+            <div
               ref={indicatorRef}
               className="relative w-full cursor-pointer"
               style={{ height: '48px' }}
@@ -317,34 +403,37 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 setHoverProgress(null);
               }}
               onClick={(e) => {
-                if (!indicatorRef.current || !tabletScrollRef.current) return;
+                if (!indicatorRef.current) return;
                 const rect = indicatorRef.current.getBoundingClientRect();
                 const clickProgress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                const el = tabletScrollRef.current;
-                const maxScroll = el.scrollWidth - el.clientWidth;
-                el.scrollTo({ left: maxScroll * clickProgress, behavior: 'smooth' });
+                const maxDrag = Math.abs(tabletBounds.left);
+                const targetX = -(maxDrag * clickProgress);
+
+                animate(tabletX, targetX, {
+                  type: 'spring',
+                  stiffness: 300,
+                  damping: 32,
+                  mass: 0.7,
+                });
               }}
             >
-              {/* Hairline track */}
               <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-foreground/[0.06]" />
 
-              {/* Work waypoint dots — barely there */}
               {works.map((_, index) => {
                 const pos = works.length <= 1 ? 0 : (index / (works.length - 1)) * 100;
                 const isHovered = index === hoverIndex;
-                // Distance from hover for proximity glow
-                const hoverDist = hoverProgress !== null 
-                  ? Math.abs(hoverProgress - (works.length <= 1 ? 0 : index / (works.length - 1))) 
-                  : 1;
-                const proximityOpacity = hoverProgress !== null 
-                  ? Math.max(0.06, 0.3 - hoverDist * 2) 
-                  : 0.06;
-                
+                const hoverDist =
+                  hoverProgress !== null
+                    ? Math.abs(hoverProgress - (works.length <= 1 ? 0 : index / (works.length - 1)))
+                    : 1;
+                const proximityOpacity =
+                  hoverProgress !== null ? Math.max(0.06, 0.3 - hoverDist * 2) : 0.06;
+
                 return (
                   <div
                     key={index}
                     className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 ease-out"
-                    style={{ 
+                    style={{
                       left: `${pos}%`,
                       width: isHovered ? '4px' : '2px',
                       height: isHovered ? '4px' : '2px',
@@ -354,7 +443,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 );
               })}
 
-              {/* Smooth-moving active cursor */}
               <div
                 className="absolute top-1/2 transition-none pointer-events-none"
                 style={{
@@ -362,7 +450,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                   transform: 'translate(-50%, -50%)',
                 }}
               >
-                {/* Outer glow — square */}
                 <div
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                   style={{
@@ -371,7 +458,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                     background: 'radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%)',
                   }}
                 />
-                {/* Core square — matches header ■ */}
                 <div
                   className="bg-foreground/70"
                   style={{
@@ -382,7 +468,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 />
               </div>
 
-              {/* Hover scan line */}
               <AnimatePresence>
                 {hoverProgress !== null && (
                   <motion.div
@@ -403,7 +488,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 )}
               </AnimatePresence>
 
-              {/* Hover tooltip */}
               <AnimatePresence>
                 {hoverIndex !== null && hoverProgress !== null && (
                   <motion.div
@@ -419,16 +503,14 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                       marginBottom: '4px',
                     }}
                   >
-                    {/* Connecting stem */}
-                    <div 
+                    <div
                       className="absolute left-1/2 -translate-x-1/2 bg-foreground/10"
-                      style={{ 
-                        top: '100%', 
-                        width: '0.5px', 
+                      style={{
+                        top: '100%',
+                        width: '0.5px',
                         height: '4px',
                       }}
                     />
-                    {/* Label */}
                     <div className="px-2.5 py-1.5" style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)' }}>
                       <p className="text-[8px] font-mono text-white/85 whitespace-nowrap tracking-[0.08em] uppercase">
                         {lang === 'ko'
@@ -454,10 +536,9 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
   // Desktop: GSAP Pinned Horizontal Scroll
   return (
     <div ref={sectionRef} className="relative w-full bg-background overflow-hidden">
-      {/* Background mask to prevent content bleeding through transparent header */}
       <div className="absolute top-0 left-0 right-0 h-[88px] md:h-[104px] bg-background z-10" />
-      
-      {/* Header: Fixed at top of pinned section */}
+
+      {/* Header */}
       <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
           <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif_Collection]">
@@ -467,11 +548,10 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
             {works.length} {works.length === 1 ? 'work' : 'works'}
           </span>
         </div>
-        
-        {/* Progress Indicator */}
+
         <div className="flex items-center gap-3">
           <div className="w-24 h-[1px] bg-muted-foreground/20 relative overflow-hidden">
-            <div 
+            <div
               className="absolute left-0 top-0 h-full bg-foreground/60 transition-none"
               style={{ width: `${scrollProgress * 100}%` }}
             />
@@ -483,7 +563,7 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
       </div>
 
       {/* Horizontal Track */}
-      <div 
+      <div
         ref={trackRef}
         className="flex gap-4 md:gap-6 px-6 md:px-12 pb-12 md:pb-16 will-change-transform"
       >
@@ -493,18 +573,15 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
             onClick={() => onWorkClick?.(Number(work.id))}
             className="group flex-shrink-0 cursor-pointer"
           >
-            {/* Thumbnail */}
             <div className="w-[280px] md:w-[350px] aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative">
               <ImageWithFallback
                 src={getLocalizedThumbnail(work, lang) || ''}
                 alt={work.title_en}
                 className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
               />
-              {/* Hover Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
             </div>
 
-            {/* Caption */}
             <div className="w-[280px] md:w-[350px]">
               <h3 className="text-sm md:text-base font-serif font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300">
                 {lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en}
@@ -519,19 +596,17 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
 
       {/* Bottom Minimap Scroll Indicator */}
       <div className="relative z-20 px-6 md:px-12 pb-24 md:pb-32">
-        {/* Edge fade masks */}
         <div className="relative">
-          <div 
+          <div
             className="absolute left-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(to right, var(--background), transparent)' }}
           />
-          <div 
+          <div
             className="absolute right-0 top-0 bottom-0 w-12 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(to left, var(--background), transparent)' }}
           />
-          
-          {/* Interactive track */}
-          <div 
+
+          <div
             ref={indicatorRef}
             className="relative w-full cursor-pointer"
             style={{ height: '48px' }}
@@ -557,26 +632,23 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               window.scrollTo({ top: targetScroll, behavior: 'smooth' });
             }}
           >
-            {/* Hairline track */}
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-foreground/[0.06]" />
 
-            {/* Work waypoint dots — barely there */}
             {works.map((_, index) => {
               const pos = works.length <= 1 ? 0 : (index / (works.length - 1)) * 100;
               const isHovered = index === hoverIndex;
-              // Distance from hover for proximity glow
-              const hoverDist = hoverProgress !== null 
-                ? Math.abs(hoverProgress - (works.length <= 1 ? 0 : index / (works.length - 1))) 
-                : 1;
-              const proximityOpacity = hoverProgress !== null 
-                ? Math.max(0.06, 0.3 - hoverDist * 2) 
-                : 0.06;
-              
+              const hoverDist =
+                hoverProgress !== null
+                  ? Math.abs(hoverProgress - (works.length <= 1 ? 0 : index / (works.length - 1)))
+                  : 1;
+              const proximityOpacity =
+                hoverProgress !== null ? Math.max(0.06, 0.3 - hoverDist * 2) : 0.06;
+
               return (
                 <div
                   key={index}
                   className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-500 ease-out"
-                  style={{ 
+                  style={{
                     left: `${pos}%`,
                     width: isHovered ? '4px' : '2px',
                     height: isHovered ? '4px' : '2px',
@@ -586,7 +658,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               );
             })}
 
-            {/* Smooth-moving active cursor */}
             <div
               className="absolute top-1/2 transition-none pointer-events-none"
               style={{
@@ -594,7 +665,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                 transform: 'translate(-50%, -50%)',
               }}
             >
-              {/* Outer glow — square */}
               <div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
                 style={{
@@ -603,7 +673,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                   background: 'radial-gradient(circle, rgba(0,0,0,0.03) 0%, transparent 70%)',
                 }}
               />
-              {/* Core square — matches header ■ */}
               <div
                 className="bg-foreground/70"
                 style={{
@@ -614,7 +683,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               />
             </div>
 
-            {/* Hover scan line */}
             <AnimatePresence>
               {hoverProgress !== null && (
                 <motion.div
@@ -635,7 +703,6 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
               )}
             </AnimatePresence>
 
-            {/* Hover tooltip */}
             <AnimatePresence>
               {hoverIndex !== null && hoverProgress !== null && (
                 <motion.div
@@ -651,16 +718,14 @@ export const InfiniteWorkGrid = ({ works, onWorkClick }: InfiniteWorkGridProps) 
                     marginBottom: '4px',
                   }}
                 >
-                  {/* Connecting stem */}
-                  <div 
+                  <div
                     className="absolute left-1/2 -translate-x-1/2 bg-foreground/10"
-                    style={{ 
-                      top: '100%', 
-                      width: '0.5px', 
+                    style={{
+                      top: '100%',
+                      width: '0.5px',
                       height: '4px',
                     }}
                   />
-                  {/* Label */}
                   <div className="px-2.5 py-1.5" style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)' }}>
                     <p className="text-[8px] font-mono text-white/85 whitespace-nowrap tracking-[0.08em] uppercase">
                       {lang === 'ko'
