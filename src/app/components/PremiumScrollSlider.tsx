@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/data/works';
-import { PremiumImage } from '@/app/components/ui/PremiumImage';
-import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 
 interface PremiumScrollSliderProps {
   works: Work[];
@@ -97,9 +95,11 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     if (works && works.length > 0 && works[activeIndex]) {
       // Run analysis in background, don't block rendering
       const currentWork = works[activeIndex];
-      // 우선순위 변경: 갤러리 첫번째 이미지 > 썸네일
-      const imageSrc = (currentWork.galleryImages && currentWork.galleryImages[0]) || currentWork.thumbnail;
-      analyzeImageBrightness(imageSrc);
+      // 원본 갤러리 이미지만 사용
+      const imageSrc = currentWork.galleryImages?.[0];
+      if (imageSrc) {
+        analyzeImageBrightness(imageSrc);
+      }
     }
   }, [activeIndex, works]);
 
@@ -263,8 +263,15 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     <div className="fixed inset-0 overflow-hidden select-none touch-none bg-background">
       {/* Background Images */}
       {works.map((work, index) => {
-        // 화질 개선: 갤러리 이미지를 우선 사용 (더 큰 원본 이미지)
-        const imageSrc = work.galleryImages?.[0] || getLocalizedThumbnail(work, lang) || work.thumbnail;
+        // 원본 이미지만 사용 - 썸네일 절대 사용 금지
+        const imageSrc = work.galleryImages?.[0];
+        
+        // galleryImages가 없는 경우 렌더링하지 않음
+        if (!imageSrc) {
+          console.warn(`Work ${work.id} has no gallery images for hero display`);
+          return null;
+        }
+        
         return (
         <div
           key={work.id}
@@ -274,18 +281,19 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           }`}
           aria-hidden={index !== activeIndex}
         >
-          {/* Use PremiumImage for consistent loading behavior */}
-          <PremiumImage
+          {/* 원본 이미지 직접 사용 - 최고 화질 보장 */}
+          <img
             src={imageSrc}
             alt={getTitle(work)}
             className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
-            containerClassName="w-full h-full"
             style={{ objectPosition: 'center' }}
             draggable={false}
-            priority={index <= 1}
+            loading={index <= 1 ? 'eager' : 'lazy'}
+            decoding={index <= 1 ? 'sync' : 'async'}
+            fetchpriority={index <= 1 ? 'high' : 'auto'}
           />
-          {/* 미세한 딤 처리 (선택 사항 - 텍스트 가독성용) */}
-          <div className="absolute inset-0 bg-black/10 pointer-events-none bg-[#ffffff1a]" />
+          {/* 미세한 딤 처리 (텍스트 가독성용) */}
+          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
         </div>
       )})}
 
