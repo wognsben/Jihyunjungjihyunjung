@@ -23,7 +23,7 @@ export const GalleryItem = ({
           alt={`${title} - View ${index + 1}`}
           className="block w-full h-full object-cover"
           containerClassName="w-full h-full"
-          priority={index < 2}
+          priority={true}
         />
       </div>
     </div>

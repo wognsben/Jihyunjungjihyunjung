@@ -37,7 +37,6 @@ export const ARTWORK_IMAGES = {
   sculpture1: 'https://images.unsplash.com/photo-1701318226666-6b5b02d3df4d?w=1200&q=80',
   design1: 'https://images.unsplash.com/photo-1621111848501-8d3634f82336?w=1200&q=80',
   photography1: 'https://images.unsplash.com/photo-1617657172340-15a0fabc3605?w=1200&q=80',
-  exhibition2: 'https://images.unsplash.com/photo-1551834808-c9be9791619f?w=1200&q=80',
   installation2: 'https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=1200&q=80',
   architecture1: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&q=80',
 };

@@ -51,11 +51,13 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
-  const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
-    { code: 'ko', label: 'KO' },
-    { code: 'en', label: 'EN' },
-    { code: 'jp', label: 'JP' }
-  ];
+  const ENABLE_JP = false;
+
+const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
+  { code: 'ko', label: 'KO' },
+  { code: 'en', label: 'EN' },
+  ...(ENABLE_JP ? [{ code: 'jp', label: 'JP' as const }] : [])
+];
 
   const handleNavClick = (item: NavItem) => {
     if (item === 'work') {
@@ -97,7 +99,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           return (
             <span className="flex items-baseline gap-2">
               {/* Italiana 폰트 적용: 우아함을 강조 */}
-              <span className="font-['Italiana'] text-xs md:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[120px] md:max-w-[220px] leading-tight break-words block">
+              <span className="font-['Petrona'] text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[200px] leading-tight break-words block">
                 {detailTitle}
               </span>
             </span>
@@ -114,11 +116,11 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
           return (
             <span className="flex items-baseline gap-2">
-              <span className="font-['Italiana'] text-[10px] min-[1025px]:text-sm tracking-widest opacity-100 relative top-[1px] max-w-[100px] min-[1025px]:max-w-[220px] leading-tight break-words block">
+              <span className="font-['Petrona'] opacity-100 relative top-[1px] max-w-[100px] min-[1025px]:max-w-[200px] leading-tight break-words block text-[12px]">
                 {hasAuthor ? (
                   <>
                     {titlePart}
-                    <span className="block opacity-70 mt-1">_{authorPart}</span>
+                    <span className="block opacity-100 mt-1">_{authorPart}</span>
                   </>
                 ) : (
                   detailTitle

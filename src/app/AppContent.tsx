@@ -3,7 +3,9 @@ import { AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { Header } from '@/app/components/Header';
-import { PremiumScrollSlider } from '@/app/components/PremiumScrollSlider';
+import { IndexSlideshow } from '@/app/components/IndexSlideshow';
+import { fetchMainIndexPage } from '@/services/wp-api';
+import { MainIndexSlide } from '@/data/works';
 import { WorkGrid } from '@/app/components/WorkGrid';
 import { WorkDetail } from '@/app/components/WorkDetail';
 import { About } from '@/app/components/About';
@@ -22,6 +24,7 @@ export const AppContent = () => {
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
+  const [workDetailRestoreMap, setWorkDetailRestoreMap] = useState<Record<string, boolean>>({});
 
   // General list-page scroll restoration
   const scrollPositionsRef = React.useRef<Record<string, number>>({});
@@ -34,10 +37,16 @@ export const AppContent = () => {
   const selectedWorkIdRef = React.useRef<string | null>(null);
   const selectedTextIdRef = React.useRef<string | null>(null);
 
+  const [mainSlides, setMainSlides] = useState<MainIndexSlide[]>([]);
+  const [isMainSlidesLoading, setIsMainSlidesLoading] = useState(true);
+
   // Detail/back stack restoration
   const detailScrollStackRef = React.useRef<
     { view: View; id: string | null; scrollY: number }[]
   >([]);
+
+  // Global nav → work fresh entry 구분용
+  const isFreshNavToWorkRef = React.useRef(false);
 
   useEffect(() => {
     currentViewRef.current = currentView;
@@ -51,16 +60,47 @@ export const AppContent = () => {
     selectedTextIdRef.current = selectedTextId;
   }, [selectedTextId]);
 
+  // ✅ main index slides fetch
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMainSlides = async () => {
+      setIsMainSlidesLoading(true);
+
+      try {
+        const data = await fetchMainIndexPage(lang);
+        if (isMounted) {
+          setMainSlides(data.slides || []);
+        }
+      } catch (error) {
+        console.error('Failed to load main index slides:', error);
+        if (isMounted) {
+          setMainSlides([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsMainSlidesLoading(false);
+        }
+      }
+    };
+
+    loadMainSlides();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lang]);
+
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash;
+      const hash = window.location.hash || '#/';
       const prevView = currentViewRef.current;
 
       // Save current page scroll before switching
       scrollPositionsRef.current[prevView] = window.scrollY;
 
       // text detail: #/text/:id
-      const textDetailMatch = hash.match(/^#\/text\/([^\\/]+)$/);
+      const textDetailMatch = hash.match(/^#\/text\/([^/]+)$/);
       if (textDetailMatch) {
         const textId = textDetailMatch[1];
         const stack = detailScrollStackRef.current;
@@ -96,12 +136,13 @@ export const AppContent = () => {
         }
 
         setSelectedTextId(textId);
+        setSelectedWorkId(null);
         setCurrentView('text-detail');
         return;
       }
 
       // work detail: #/work/:id
-      const workDetailMatch = hash.match(/^#\/work\/([^\/]+)$/);
+      const workDetailMatch = hash.match(/^#\/work\/([^/]+)$/);
       if (workDetailMatch) {
         const workId = workDetailMatch[1];
         const stack = detailScrollStackRef.current;
@@ -136,15 +177,32 @@ export const AppContent = () => {
           }
         }
 
+        setWorkDetailRestoreMap((prev) => ({
+          ...prev,
+          [workId]: false,
+        }));
+
         setSelectedWorkId(workId);
+        setSelectedTextId(null);
         setCurrentView('work-detail');
         return;
       }
 
       // work list: #/work
       if (hash === '#/work') {
+        if (isFreshNavToWorkRef.current) {
+          // 글로벌 Work 클릭으로 들어온 경우는 fresh entry
+          isRestoringScrollRef.current = false;
+          pendingScrollRef.current = 0;
+          isFreshNavToWorkRef.current = false;
+        } else {
+          // back / 복원 흐름
+          isRestoringScrollRef.current = true;
+        }
+
         setCurrentView('work');
         setSelectedWorkId(null);
+        setSelectedTextId(null);
         return;
       }
 
@@ -152,11 +210,13 @@ export const AppContent = () => {
       if (hash === '#/about') {
         setCurrentView('about');
         setSelectedWorkId(null);
+        setSelectedTextId(null);
         return;
       }
 
       // text list: #/text
       if (hash === '#/text') {
+        isRestoringScrollRef.current = true;
         setCurrentView('text');
         setSelectedWorkId(null);
         setSelectedTextId(null);
@@ -190,7 +250,7 @@ export const AppContent = () => {
 
       const EXIT_MS = 850;
       const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-      const timeoutIds = delays.map(delay =>
+      const timeoutIds = delays.map((delay) =>
         setTimeout(() => {
           window.scrollTo(0, savedPosition);
           if (
@@ -209,7 +269,7 @@ export const AppContent = () => {
       }, 3000);
 
       return () => {
-        timeoutIds.forEach(id => clearTimeout(id));
+        timeoutIds.forEach((id) => clearTimeout(id));
         clearTimeout(cleanupId);
       };
     } else {
@@ -228,6 +288,14 @@ export const AppContent = () => {
 
         if (lastEntry.view === currentView && lastEntry.id === currentId) {
           stack.pop();
+
+          if (lastEntry.view === 'work-detail' && lastEntry.id) {
+            setWorkDetailRestoreMap((prev) => ({
+              ...prev,
+              [lastEntry.id as string]: true,
+            }));
+          }
+
           const savedPosition = lastEntry.scrollY;
           pendingScrollRef.current = savedPosition;
 
@@ -241,7 +309,7 @@ export const AppContent = () => {
 
           const EXIT_MS = 850;
           const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-          const timeoutIds = delays.map(delay =>
+          const timeoutIds = delays.map((delay) =>
             setTimeout(() => {
               window.scrollTo(0, savedPosition);
               if (
@@ -260,7 +328,7 @@ export const AppContent = () => {
           }, 3000);
 
           return () => {
-            timeoutIds.forEach(id => clearTimeout(id));
+            timeoutIds.forEach((id) => clearTimeout(id));
             clearTimeout(cleanupId);
           };
         }
@@ -296,11 +364,7 @@ export const AppContent = () => {
     );
   }
 
-  const selectedWorks = [...works]
-    .sort((a, b) => (b.year || 0) - (a.year || 0))
-    .slice(0, 5);
-
-  const currentWork = selectedWorkId ? works.find(w => w.id === selectedWorkId) : null;
+  const currentWork = selectedWorkId ? works.find((w) => w.id === selectedWorkId) : null;
   const currentWorkTitle = currentWork
     ? lang === 'ko'
       ? currentWork.title_ko
@@ -309,7 +373,7 @@ export const AppContent = () => {
       : currentWork.title_en
     : undefined;
 
-  const currentText = selectedTextId ? texts.find(t => t.id === selectedTextId) : null;
+  const currentText = selectedTextId ? texts.find((t) => t.id === selectedTextId) : null;
   const currentTextTitle = currentText
     ? lang === 'ko'
       ? currentText.title.ko
@@ -326,6 +390,28 @@ export const AppContent = () => {
       : undefined;
 
   const handleNavigate = (view: View) => {
+    // 글로벌 네비게이션 클릭은 "새 진입"으로 간주
+    // → BACK 복원용 상태들 초기화
+    isRestoringScrollRef.current = false;
+    pendingScrollRef.current = 0;
+    detailScrollStackRef.current = [];
+
+    // work detail 복원 플래그도 초기화
+    setWorkDetailRestoreMap({});
+
+    // global nav로 work에 들어가는 경우를 별도 표식
+    if (view === 'work') {
+      isFreshNavToWorkRef.current = true;
+    }
+
+    // 섹션 이동 시 선택 상태 정리
+    if (view !== 'work-detail') {
+      setSelectedWorkId(null);
+    }
+    if (view !== 'text-detail') {
+      setSelectedTextId(null);
+    }
+
     setCurrentView(view);
 
     let hash = '#/';
@@ -334,6 +420,14 @@ export const AppContent = () => {
     else if (view === 'text') hash = '#/text';
 
     window.location.hash = hash;
+
+    // 글로벌 네비게이션은 항상 fresh entry
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      if (scrollSpacerRef.current) {
+        scrollSpacerRef.current.style.height = '0px';
+      }
+    });
   };
 
   return (
@@ -351,15 +445,23 @@ export const AppContent = () => {
         {currentView === 'index' ? (
           <PageTransition key="index" className="fixed inset-0 z-0">
             <ScrollRestorer />
-            <PremiumScrollSlider
-              works={selectedWorks}
-              onBrightnessChange={setIsDarkBackground}
-            />
+            {isMainSlidesLoading ? (
+              <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+                <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+              </div>
+            ) : (
+              <IndexSlideshow slides={mainSlides} />
+            )}
           </PageTransition>
         ) : currentView === 'work-detail' ? (
           <PageTransition key={`work-detail-${selectedWorkId}`} className="min-h-screen">
             <ScrollRestorer />
-            <WorkDetail workId={selectedWorkId} />
+            <WorkDetail
+              workId={selectedWorkId}
+              shouldRestoreGrid={
+                selectedWorkId ? !!workDetailRestoreMap[selectedWorkId] : false
+              }
+            />
           </PageTransition>
         ) : currentView === 'about' ? (
           <PageTransition key="about" className="min-h-screen">

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useWorks } from '@/contexts/WorkContext';
 import { Work } from '@/data/works';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 
@@ -10,20 +9,24 @@ interface PremiumScrollSliderProps {
   onBrightnessChange?: (isDark: boolean) => void;
 }
 
-export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: PremiumScrollSliderProps) => {
+export const PremiumScrollSlider = ({
+  works,
+  onWorkClick,
+  onBrightnessChange,
+}: PremiumScrollSliderProps) => {
   const { lang } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [isDark, setIsDark] = useState(true); 
-  const [isAutoPlayActive, setIsAutoPlayActive] = useState(true); // 자동 재생 상태
-  const [isMobile, setIsMobile] = useState(false); // 모바일 감지
+  const [isDark, setIsDark] = useState(true);
+  const [isAutoPlayActive, setIsAutoPlayActive] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Helper functions for language-specific content
-  const getTitle = (work: Work) => lang === 'ko' ? work.title_ko : (lang === 'jp' ? work.title_jp : work.title_en);
 
-  // 모바일 감지
+  const getTitle = (work: Work) =>
+    lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en;
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -31,17 +34,13 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 이미지 밝기 감지 함수 (Canvas API 사용) - 비활성화 가능성 고려
-  // GitHub Raw 이미지는 CORS 이슈로 인해 Canvas tainting이 발생할 수 있음
-  // 이 경우 안전하게 기본값(Dark)을 반환하도록 처리
   const analyzeImageBrightness = (imageSrc: string) => {
     if (!imageSrc) return;
-    
-    // Create a detached image specifically for analysis
+
     const img = new Image();
-    img.crossOrigin = "Anonymous"; 
+    img.crossOrigin = 'Anonymous';
     img.src = imageSrc;
-    
+
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
@@ -50,8 +49,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
 
         canvas.width = 50;
         canvas.height = 50;
-        
-        // This line might throw SecurityError if CORS headers are missing
+
         ctx.drawImage(img, 0, 0, 50, 50);
 
         const imageData = ctx.getImageData(0, 0, 50, 50);
@@ -62,69 +60,63 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
-          // Standard luminance formula
+
           const brightness = Math.sqrt(
             0.299 * (r * r) +
-            0.587 * (g * g) +
-            0.114 * (b * b)
+              0.587 * (g * g) +
+              0.114 * (b * b)
           );
+
           totalBrightness += brightness;
         }
 
         const avgBrightness = totalBrightness / (data.length / 4);
         const isDarkBackground = avgBrightness < 128;
-        
-        setIsDark(isDarkBackground); 
+
+        setIsDark(isDarkBackground);
         if (onBrightnessChange) onBrightnessChange(isDarkBackground);
-        
       } catch (e) {
-        // Silent fail on CORS or other canvas errors -> Default to Dark theme
-        console.warn("Brightness analysis skipped (CORS/Canvas):", e);
-        setIsDark(true); 
+        console.warn('Brightness analysis skipped (CORS/Canvas):', e);
+        setIsDark(true);
         if (onBrightnessChange) onBrightnessChange(true);
       }
     };
 
     img.onerror = () => {
-       setIsDark(true);
-       if (onBrightnessChange) onBrightnessChange(true);
+      setIsDark(true);
+      if (onBrightnessChange) onBrightnessChange(true);
     };
   };
 
-  // 활성 슬라이드 변경 시 밝기 감지 실행
   useEffect(() => {
     if (works && works.length > 0 && works[activeIndex]) {
-      // Run analysis in background, don't block rendering
       const currentWork = works[activeIndex];
-      // WorkGrid와 동일한 이미지 선택 로직
-      const imageSrc = getLocalizedThumbnail(currentWork, lang) || currentWork.galleryImages?.[0];
+      const imageSrc =
+        getLocalizedThumbnail(currentWork, lang) || currentWork.galleryImages?.[0];
+
       if (imageSrc) {
         analyzeImageBrightness(imageSrc);
       }
     }
   }, [activeIndex, works, lang]);
 
-  // 슬라이드 이동 함수
   const navigateToSlide = (targetIndex: number) => {
-
     if (isTransitioning || targetIndex === activeIndex) return;
-    
+
     setIsTransitioning(true);
     setActiveIndex(targetIndex);
 
-    // CSS transition-duration(1000ms)과 타이밍 맞춤
     if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
     transitionTimeoutRef.current = setTimeout(() => {
       setIsTransitioning(false);
     }, 1000);
   };
 
-  // 3 자동 슬라이더
   useEffect(() => {
     if (!isAutoPlayActive || works.length === 0) return;
 
     if (autoPlayTimeoutRef.current) clearTimeout(autoPlayTimeoutRef.current);
-    
+
     autoPlayTimeoutRef.current = setTimeout(() => {
       const nextIndex = (activeIndex + 1) % works.length;
       navigateToSlide(nextIndex);
@@ -135,32 +127,25 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     };
   }, [activeIndex, isAutoPlayActive, works.length]);
 
-  // 터치/클릭으로 자동 재생 멈춤
   const handleUserInteraction = () => {
     setIsAutoPlayActive(false);
     if (autoPlayTimeoutRef.current) clearTimeout(autoPlayTimeoutRef.current);
   };
 
-  // 휠 및 터치 이벤트 핸들링
   useEffect(() => {
     let lastScrollTime = 0;
-    const scrollDelay = 1200; // 전환 시간(1000ms)보다 약간 길게 설정하여 중복 실행 방지
+    const scrollDelay = 1200;
 
     const handleWheel = (e: WheelEvent) => {
-      // 모바일에서는 기본 스크롤 허용 (768px 미만)
       if (window.innerWidth < 768) {
-        return; // preventDefault 하지 않���
+        return;
       }
-      
-      // 데스크탑: 슬라이더가 전체 화면이므로 기본 스크롤 동작 방지
+
       e.preventDefault();
-      
-      handleUserInteraction(); // 자동 재생 멈춤
-      
+      handleUserInteraction();
+
       const now = Date.now();
       if (now - lastScrollTime < scrollDelay || isTransitioning) return;
-      
-      // 임계값 설정 (너무 작은 휠 움직임 무시)
       if (Math.abs(e.deltaY) < 20) return;
 
       lastScrollTime = now;
@@ -180,7 +165,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     const handleTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0].clientY;
       touchStartX = e.touches[0].clientX;
-      handleUserInteraction(); // 터치 시작 시 자동 재생 멈춤
+      handleUserInteraction();
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -189,35 +174,33 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
       const now = Date.now();
 
       if (now - lastScrollTime < scrollDelay || isTransitioning) return;
-      
+
       const diffY = touchStartY - touchEndY;
       const diffX = touchStartX - touchEndX;
 
-      // 수평/수직 중 더 큰 움직임을 기준으로 판단 (대각선 스크롤 방지)
       if (Math.abs(diffX) > Math.abs(diffY)) {
-        // 수평 스와이프 (좌우 드래그)
-        if (Math.abs(diffX) > 50) { // 터치 스와이프 민감도
+        if (Math.abs(diffX) > 50) {
           lastScrollTime = now;
-          if (diffX > 0) { // 왼쪽으로 스와이프 (다음 슬라이드)
-             navigateToSlide((activeIndex + 1) % works.length);
-          } else { // 오른쪽으로 스와이프 (이전 슬라이드)
-             navigateToSlide((activeIndex - 1 + works.length) % works.length);
+
+          if (diffX > 0) {
+            navigateToSlide((activeIndex + 1) % works.length);
+          } else {
+            navigateToSlide((activeIndex - 1 + works.length) % works.length);
           }
         }
       } else {
-        // 수직 스와이프 (기존 로직 유지)
         if (Math.abs(diffY) > 50) {
           lastScrollTime = now;
-          if (diffY > 0) { // 아래쪽으로 스와이프 (다음 슬라이드)
-              navigateToSlide((activeIndex + 1) % works.length);
-          } else { // 위쪽으로 스와이프 (이전 슬라이드)
-              navigateToSlide((activeIndex - 1 + works.length) % works.length);
+
+          if (diffY > 0) {
+            navigateToSlide((activeIndex + 1) % works.length);
+          } else {
+            navigateToSlide((activeIndex - 1 + works.length) % works.length);
           }
         }
       }
     };
 
-    // passive: false를 주어 preventDefault()가 작동하도록 함
     window.addEventListener('wheel', handleWheel, { passive: false });
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -229,13 +212,12 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
     };
   }, [activeIndex, isTransitioning, works.length]);
 
-  // 키보드 네비게이션
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isTransitioning) return;
-      
-      handleUserInteraction(); // 키보드 조작 시 자동 재생 멈춤
-      
+
+      handleUserInteraction();
+
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
         const prevIndex = (activeIndex - 1 + works.length) % works.length;
         navigateToSlide(prevIndex);
@@ -244,63 +226,67 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
         navigateToSlide(nextIndex);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, isTransitioning, works.length]);
 
-  // 모/태블릿 및 모든 환경에서 메인 이미지 클릭 시 다음 슬라이드로 이동
   const handleImageClick = () => {
     handleUserInteraction();
     const nextIndex = (activeIndex + 1) % works.length;
     navigateToSlide(nextIndex);
   };
 
-  // 안전장치: works가 비어있으면 빈 화면 반환 (AppContent의 로딩 스피너가 없을 경우 대비)
   if (!works || works.length === 0) {
     return <div className="fixed inset-0 bg-background" />;
   }
 
+  const activeButtonClass = isMobile
+    ? 'text-black font-bold'
+    : isDark
+    ? 'text-white font-bold'
+    : 'text-black font-bold';
+
+  const inactiveButtonClass = isMobile
+    ? 'text-black/30 hover:text-black/60'
+    : isDark
+    ? 'text-white/30 hover:text-white/60'
+    : 'text-black/30 hover:text-black/60';
+
   return (
     <div className="fixed inset-0 overflow-hidden select-none touch-none bg-background">
-      {/* Background Images */}
       {works.map((work, index) => {
-        // WorkGrid와 동일한 로직: WordPress의 thumbnail 필드는 원본 이미지
         const imageSrc = getLocalizedThumbnail(work, lang) || work.galleryImages[0];
-        
+
         if (!imageSrc) {
           console.warn(`Work ${work.id} has no images for hero display`);
           return null;
         }
-        
-        return (
-        <div
-          key={work.id}
-          onClick={handleImageClick}
-          className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
-            index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-          }`}
-          aria-hidden={index !== activeIndex}
-        >
-          {/* 원본 이미지 직접 사용 - WorkGrid와 동일 */}
-          <img
-            src={imageSrc}
-            alt={getTitle(work)}
-            className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
-            style={{ objectPosition: 'center' }}
-            draggable={false}
-            loading={index <= 1 ? 'eager' : 'lazy'}
-            decoding={index <= 1 ? 'sync' : 'async'}
-            fetchpriority={index <= 1 ? 'high' : 'auto'}
-          />
-          {/* 미세한 딤 처리 (텍스트 가독성용) */}
-          <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-        </div>
-      )})}
 
-      {/* Navigation UI - Bottom Left (Smart Contrast) */}
+        return (
+          <div
+            key={work.id}
+            onClick={handleImageClick}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+              index === activeIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+            aria-hidden={index !== activeIndex}
+          >
+            <img
+  src={imageSrc}
+  alt={getTitle(work)}
+  className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
+  style={{ objectPosition: 'center' }}
+  draggable={false}
+  loading={index <= 1 ? 'eager' : 'lazy'}
+  decoding={index <= 1 ? 'sync' : 'async'}
+/>
+          </div>
+        );
+      })}
+
       <nav className="fixed left-8 bottom-8 z-30">
         <div className="flex flex-col gap-3">
-          {/* Number Grid */}
           <div className="flex flex-wrap gap-x-3 gap-y-2 max-w-[200px]">
             {works.map((work, index) => (
               <button
@@ -308,9 +294,7 @@ export const PremiumScrollSlider = ({ works, onWorkClick, onBrightnessChange }: 
                 onClick={() => navigateToSlide(index)}
                 disabled={isTransitioning}
                 className={`cursor-pointer font-mono text-xs transition-all duration-300 ${
-                  index === activeIndex
-                    ? (isDark ? 'text-white font-bold' : 'text-black font-bold')
-                    : (isDark ? 'text-white/30 hover:text-white/60' : 'text-black/30 hover:text-black/60')
+                  index === activeIndex ? activeButtonClass : inactiveButtonClass
                 }`}
                 style={{
                   letterSpacing: '0.05em',

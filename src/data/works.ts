@@ -48,6 +48,7 @@ export interface Work {
   selected: boolean;
   order: number;
   relatedArticles?: RelatedArticle[];
+  gallery_image_map?: Record<string, string>;
 }
 
 /**
@@ -68,3 +69,9 @@ export const getSelectedWorks = (): Work[] => {
 export const getAllWorks = (): Work[] => {
   return worksData.sort((a, b) => a.order - b.order);
 };
+
+export interface MainIndexSlide {
+  image: string;
+  title?: string;
+  info?: string;
+}

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { parseMultilingualCaption } from '@/services/wp-api';
 
 // ============================================================
 // BlockRenderer: WordPress Gutenberg 블록 → React 컴포넌트
-// WP 에디터에서 배치한 순서 그대로 프론트에 렌더링
+// 워드프레스 에디터에서 작성한 순서 그대로 렌더
+// - 개별 이미지: 그대로
+// - gallery 블록: slider
+// - Sliderberg 블록: Embla slider로 재렌더
+// - ACF gallery ids → acf-slider-gallery도 gallery slider로 처리
+// - video/embed: 그대로
 // ============================================================
 
 interface ParsedBlock {
@@ -13,6 +16,7 @@ interface ParsedBlock {
     | 'heading'
     | 'image'
     | 'gallery'
+    | 'sliderberg'
     | 'video'
     | 'embed'
     | 'list'
@@ -29,6 +33,53 @@ interface RenderGroup {
   type: 'single' | 'image-slider';
   blocks: ParsedBlock[];
 }
+
+interface ExtractedImage {
+  src: string;
+  caption: string;
+  width?: number;
+  height?: number;
+  styleWidth?: string;
+  styleMaxWidth?: string;
+  classWidth?: string;
+  align?: 'left' | 'center' | 'right' | 'wide' | 'full';
+}
+
+// 추가: 최상단 아무데나 (import 아래 추천)
+const handleLinkClick = (e: React.MouseEvent) => {
+  const target = e.target as HTMLElement;
+  const anchor = target.closest('a') as HTMLAnchorElement | null;
+
+  if (!anchor) return;
+
+  const href = anchor.getAttribute('href') || '';
+
+  // 외부 링크 → 그대로
+  if (href.startsWith('http') || href.startsWith('//')) return;
+
+  // 라우터 링크 → 그대로
+  if (href.startsWith('#/')) return;
+
+  // 🔥 footnote 처리
+  if (href.startsWith('#')) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const id = href.replace('#', '');
+
+    const el =
+      document.getElementById(id) ||
+      document.querySelector(`[name="${id}"]`) ||
+      document.getElementById(id.replace(/[^\d]/g, ''));
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  }
+};
 
 // ============================================================
 // HTML Sanitization
@@ -49,6 +100,33 @@ const sanitizeHtml = (html: string): string => {
       return `<figure class="wp-block-image">${imgTag}${
         captionText ? `<figcaption>${captionText}</figcaption>` : ''
       }</figure>`;
+    }
+  );
+
+  // ============================================================
+  // [gallery ids="..."] → gallery HTML 변환
+  // ============================================================
+  cleaned = cleaned.replace(
+    /\[gallery\b([^\]]*)ids=['"]([^'"]+)['"]([^\]]*)\]/gi,
+    (_, _beforeIds, idsStr) => {
+      const ids = idsStr
+        .split(',')
+        .map((id: string) => id.trim())
+        .filter(Boolean);
+
+      return `
+        <figure class="wp-block-gallery" data-gallery-ids="${ids.join(',')}">
+          ${ids
+            .map(
+              (id: string) => `
+                <figure class="wp-block-image">
+                  <img data-gallery-id="${id}" alt="" />
+                </figure>
+              `
+            )
+            .join('')}
+        </figure>
+      `;
     }
   );
 
@@ -95,11 +173,14 @@ const detectAlign = (
   if (attrs?.align && isValid(attrs.align)) return attrs.align;
   if (attrs?.textAlign && isValid(attrs.textAlign)) return attrs.textAlign;
 
+  if (/\balignleft\b/i.test(html)) return 'left';
+  if (/\balignright\b/i.test(html)) return 'right';
+  if (/\baligncenter\b/i.test(html)) return 'center';
+  if (/\balignwide\b/i.test(html)) return 'wide';
+  if (/\balignfull\b/i.test(html)) return 'full';
+
   const textAlignMatch = html.match(/has-text-align-(left|center|right)/i);
   if (textAlignMatch) return textAlignMatch[1].toLowerCase() as AlignType;
-
-  const mediaAlignMatch = html.match(/\balign(left|right|center|wide|full)\b/i);
-  if (mediaAlignMatch) return mediaAlignMatch[1].toLowerCase() as AlignType;
 
   const styleMatch = html.match(
     /style="[^"]*text-align:\s*(left|center|right)/i
@@ -123,104 +204,6 @@ const textAlignClass = (align?: ParsedBlock['align']): string => {
 };
 
 // ============================================================
-// Multilingual helpers
-// ============================================================
-const LANG_MARKERS = ['[KO]', '[EN]', '[JP]'] as const;
-const hasLangMarkers = (text: string) => LANG_MARKERS.some((m) => text.includes(m));
-
-const parseMultilingualHtml = (html: string, lang: string): string => {
-  if (!hasLangMarkers(html)) return html;
-
-  const langKey = `[${lang.toUpperCase()}]`;
-  const allMarkers = LANG_MARKERS as readonly string[];
-
-  const startIdx = html.indexOf(langKey);
-  if (startIdx === -1) {
-    const koIdx = html.indexOf('[KO]');
-    if (koIdx === -1) return html;
-
-    const koStart = koIdx + 4;
-    let koEnd = html.length;
-
-    for (const m of allMarkers) {
-      if (m === '[KO]') continue;
-      const idx = html.indexOf(m, koStart);
-      if (idx !== -1 && idx < koEnd) koEnd = idx;
-    }
-
-    return html.slice(0, html.indexOf('[KO]')) + html.slice(koStart, koEnd);
-  }
-
-  const contentStart = startIdx + langKey.length;
-  let contentEnd = html.length;
-
-  for (const m of allMarkers) {
-    if (m === langKey) continue;
-    const idx = html.indexOf(m, contentStart);
-    if (idx !== -1 && idx < contentEnd) contentEnd = idx;
-  }
-
-  const beforeMarkers = html.slice(0, html.indexOf(LANG_MARKERS[0]));
-  return beforeMarkers + html.slice(contentStart, contentEnd);
-};
-
-const filterBlocksByLanguage = (blocks: ParsedBlock[], lang: string): ParsedBlock[] => {
-  const textTypes = new Set(['paragraph', 'heading', 'list', 'quote', 'unknown']);
-
-  const isStandaloneMarker = (b: ParsedBlock) => {
-    const text = b.html.replace(/<[^>]+>/g, '').trim();
-    return text === '[KO]' || text === '[EN]' || text === '[JP]';
-  };
-
-  const hasStandaloneMarkers = blocks.some(isStandaloneMarker);
-
-  if (hasStandaloneMarkers) {
-    const langKey = `[${lang.toUpperCase()}]`;
-    let currentSection: string | null = null;
-    const filtered: ParsedBlock[] = [];
-
-    for (const block of blocks) {
-      const text = block.html.replace(/<[^>]+>/g, '').trim();
-
-      if (text === '[KO]' || text === '[EN]' || text === '[JP]') {
-        currentSection = text;
-        continue;
-      }
-
-      if (currentSection === null) {
-        filtered.push(block);
-      } else if (currentSection === langKey) {
-        filtered.push(block);
-      } else if (!textTypes.has(block.type)) {
-        filtered.push(block);
-      }
-    }
-
-    return filtered;
-  }
-
-  const anyBlockHasMarkers = blocks.some(
-    (b) => textTypes.has(b.type) && hasLangMarkers(b.html)
-  );
-  if (!anyBlockHasMarkers) return blocks;
-
-  return blocks
-    .map((b) => {
-      if (textTypes.has(b.type) && hasLangMarkers(b.html)) {
-        return { ...b, html: parseMultilingualHtml(b.html, lang) };
-      }
-      return b;
-    })
-    .filter((b) => {
-      if (textTypes.has(b.type)) {
-        const text = b.html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-        return text.length > 0;
-      }
-      return true;
-    });
-};
-
-// ============================================================
 // Shared styles
 // ============================================================
 const wpContentStyles = [
@@ -229,6 +212,31 @@ const wpContentStyles = [
   '[&_a:hover]:decoration-foreground/50 [&_a:hover]:text-foreground',
   '[&_ul_ul]:mt-1 [&_ul_ul]:pl-4 [&_ol_ol]:mt-1 [&_ol_ol]:pl-4',
 ].join(' ');
+
+const withExternalLinkTarget = (html: string): string => {
+  if (!html) return '';
+
+  return html.replace(
+    /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*)>/gi,
+    (_match, beforeHref, href, afterHref) => {
+      const attrs = `${beforeHref} href="${href}" ${afterHref}`
+        .replace(/\starget=["'][^"']*["']/gi, '')
+        .replace(/\srel=["'][^"']*["']/gi, '')
+        .trim();
+
+      const isExternal =
+        href.startsWith('http://') ||
+        href.startsWith('https://') ||
+        href.startsWith('//');
+
+      if (isExternal) {
+        return `<a ${attrs} target="_blank" rel="noopener noreferrer">`;
+      }
+
+      return `<a ${attrs}>`;
+    }
+  );
+};
 
 // ============================================================
 // Parse WordPress block comments
@@ -286,6 +294,9 @@ const mapBlockType = (blockName: string): ParsedBlock['type'] => {
       return 'image';
     case 'gallery':
       return 'gallery';
+    case 'sliderberg':
+    case 'sliderberg/slider':
+      return 'sliderberg';
     case 'video':
       return 'video';
     case 'embed':
@@ -305,60 +316,140 @@ const mapBlockType = (blockName: string): ParsedBlock['type'] => {
   }
 };
 
+const isGalleryHtml = (html: string): boolean => {
+  return (
+    /\bwp-block-gallery\b/i.test(html) ||
+    /\bhas-nested-images\b/i.test(html) ||
+    /\bblocks-gallery-grid\b/i.test(html) ||
+    /\bblocks-gallery-item\b/i.test(html) ||
+    /\bacf-slider-gallery\b/i.test(html) ||
+    (/\bgallery\b/i.test(html) &&
+      (/\bgallery-item\b/i.test(html) ||
+        /\bgallery-icon\b/i.test(html) ||
+        /\bgallery-caption\b/i.test(html)))
+  );
+};
+
+const isSingleImageHtml = (html: string): boolean => {
+  return /\bwp-block-image\b/i.test(html);
+};
+
+const isSliderbergHtml = (html: string): boolean => {
+  return (
+    /\bsliderberg\b/i.test(html) ||
+    /\bsliderberg-slide\b/i.test(html) ||
+    /\bwp-block-sliderberg\b/i.test(html)
+  );
+};
+
 const parseOrphanHtml = (html: string): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
-  const parts = html.split(
-    /(<(?:figure|p|h[1-6]|ul|ol|blockquote|hr|div|iframe)[^>]*>[\s\S]*?<\/(?:figure|p|h[1-6]|ul|ol|blockquote|div|iframe)>|<img[^>]*\/?>|<hr\s*\/?>)/gi
-  );
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
 
-  for (const part of parts) {
-    const trimmed = part.trim();
-    if (!trimmed) continue;
+  const nodes = Array.from(doc.body.childNodes);
 
-    const align = detectAlign(trimmed);
-
-    if (/<figure/i.test(trimmed)) {
-      if (/<img/i.test(trimmed)) {
-        const imgCount = (trimmed.match(/<img/gi) || []).length;
-        blocks.push({ type: imgCount > 1 ? 'gallery' : 'image', html: trimmed, align });
-      } else if (/<iframe/i.test(trimmed) || /<video/i.test(trimmed)) {
-        blocks.push({ type: 'embed', html: trimmed, align });
+  for (const node of nodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent?.trim();
+      if (text) {
+        blocks.push({
+          type: 'paragraph',
+          html: `<p>${text.replace(/\n/g, '<br>')}</p>`,
+        });
       }
-    } else if (/^<img\b/i.test(trimmed)) {
-      blocks.push({ type: 'image', html: `<figure>${trimmed}</figure>`, align });
-    } else if (/<h[1-6]/i.test(trimmed)) {
-      blocks.push({ type: 'heading', html: trimmed, align });
-    } else if (/<p/i.test(trimmed)) {
-      if (/<iframe/i.test(trimmed)) blocks.push({ type: 'embed', html: trimmed, align });
-      else if (/<img/i.test(trimmed)) blocks.push({ type: 'image', html: trimmed, align });
-      else blocks.push({ type: 'paragraph', html: trimmed, align });
-    } else if (/<ul|<ol/i.test(trimmed)) {
-      blocks.push({ type: 'list', html: trimmed, align });
-    } else if (/<blockquote/i.test(trimmed)) {
-      blocks.push({ type: 'quote', html: trimmed, align });
-    } else if (/<hr/i.test(trimmed)) {
-      blocks.push({ type: 'separator', html: trimmed });
-    } else if (/<iframe/i.test(trimmed)) {
-      blocks.push({ type: 'embed', html: trimmed, align });
-    } else if (trimmed.replace(/<[^>]+>/g, '').trim()) {
-      const cleanText = trimmed.replace(/<[^>]+>/g, '').trim();
-      if (cleanText) {
-        if (!/<p/i.test(trimmed)) {
-          const paragraphs = trimmed.split(/\n\s*\n/).filter((p) => p.trim());
-          for (const p of paragraphs) {
-            const pTrimmed = p.trim();
-            if (pTrimmed) {
-              blocks.push({
-                type: 'paragraph',
-                html: `<p>${pTrimmed.replace(/\n/g, '<br>')}</p>`,
-                align,
-              });
-            }
-          }
-        } else {
-          blocks.push({ type: 'paragraph', html: trimmed, align });
-        }
+      continue;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+    const el = node as HTMLElement;
+    const outer = el.outerHTML.trim();
+    if (!outer) continue;
+
+    const align = detectAlign(outer);
+
+    // 1. ACF slider gallery wrapper
+    if (
+      /\bacf-slider-gallery\b/i.test(outer) ||
+      /data-slider=['"]acf-gallery['"]/i.test(outer)
+    ) {
+      blocks.push({ type: 'gallery', html: outer, align });
+      continue;
+    }
+
+    // 2. WP gallery wrapper
+    if (isGalleryHtml(outer)) {
+      blocks.push({ type: 'gallery', html: outer, align });
+      continue;
+    }
+
+    // 3. Sliderberg
+    if (isSliderbergHtml(outer)) {
+      blocks.push({ type: 'sliderberg', html: outer, align });
+      continue;
+    }
+
+    // 4. Single image
+    if (
+  isSingleImageHtml(outer) ||
+  (el.tagName === 'IMG' &&
+    !el.closest('.wp-block-gallery') &&
+    !el.closest('.gallery'))
+) {
+      blocks.push({
+        type: 'image',
+        html: el.tagName === 'IMG' ? `<figure>${outer}</figure>` : outer,
+        align,
+      });
+      continue;
+    }
+
+    // 5. Heading
+    if (/^H[1-6]$/i.test(el.tagName)) {
+      blocks.push({ type: 'heading', html: outer, align });
+      continue;
+    }
+
+    // 6. Paragraph
+    if (el.tagName === 'P') {
+      if (/<iframe/i.test(outer)) {
+        blocks.push({ type: 'embed', html: outer, align });
+      } else if (/<img/i.test(outer)) {
+        blocks.push({ type: 'image', html: outer, align });
+      } else {
+        blocks.push({ type: 'paragraph', html: outer, align });
       }
+      continue;
+    }
+
+    // 7. List
+    if (el.tagName === 'UL' || el.tagName === 'OL') {
+      blocks.push({ type: 'list', html: outer, align });
+      continue;
+    }
+
+    // 8. Quote
+    if (el.tagName === 'BLOCKQUOTE') {
+      blocks.push({ type: 'quote', html: outer, align });
+      continue;
+    }
+
+    // 9. Separator
+    if (el.tagName === 'HR') {
+      blocks.push({ type: 'separator', html: outer });
+      continue;
+    }
+
+    // 10. Video / Embed
+    if (/<iframe/i.test(outer) || /<video/i.test(outer)) {
+      blocks.push({ type: 'embed', html: outer, align });
+      continue;
+    }
+
+    // 11. Unknown fallback
+    if (outer.replace(/<[^>]+>/g, '').trim()) {
+      blocks.push({ type: 'unknown', html: outer, align });
     }
   }
 
@@ -366,37 +457,52 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
 };
 
 // ============================================================
-// Group consecutive image blocks into sliders
+// Group blocks for rendering
 // ============================================================
 const groupBlocksForRendering = (blocks: ParsedBlock[]): RenderGroup[] => {
   const groups: RenderGroup[] = [];
-  let currentImageGroup: ParsedBlock[] = [];
+  let i = 0;
 
-  const flushImageGroup = () => {
-    if (currentImageGroup.length > 0) {
-      groups.push({ type: 'image-slider', blocks: [...currentImageGroup] });
-      currentImageGroup = [];
+  while (i < blocks.length) {
+    const block = blocks[i];
+
+    // gallery는 그대로 단독 slider
+    if (block.type === 'gallery') {
+      groups.push({
+        type: 'image-slider',
+        blocks: [block],
+      });
+      i += 1;
+      continue;
     }
-  };
 
-  for (const block of blocks) {
-    if (block.type === 'image') {
-      if (block.align === 'left' || block.align === 'right') {
-        flushImageGroup();
-        groups.push({ type: 'single', blocks: [block] });
-      } else {
-        currentImageGroup.push(block);
+    // 연속된 sliderberg 블록들을 하나의 slider로 묶기
+    if (block.type === 'sliderberg') {
+      const sliderbergGroup: ParsedBlock[] = [block];
+      let j = i + 1;
+
+      while (j < blocks.length && blocks[j].type === 'sliderberg') {
+        sliderbergGroup.push(blocks[j]);
+        j += 1;
       }
-    } else if (block.type === 'gallery') {
-      flushImageGroup();
-      groups.push({ type: 'image-slider', blocks: [block] });
-    } else {
-      flushImageGroup();
-      groups.push({ type: 'single', blocks: [block] });
+
+      groups.push({
+        type: 'image-slider',
+        blocks: sliderbergGroup,
+      });
+
+      i = j;
+      continue;
     }
+
+    // 나머지는 single
+    groups.push({
+      type: 'single',
+      blocks: [block],
+    });
+    i += 1;
   }
 
-  flushImageGroup();
   return groups;
 };
 
@@ -408,10 +514,8 @@ const stripWpResolutionSuffix = (url: string): string => {
 };
 
 const getBestImageUrl = (html: string): string | null => {
-  const aHrefMatch = html.match(
-    /<a[^>]+href="([^"]+\.(?:jpe?g|png|webp|gif|avif)(?:\?[^"]*)?)"/i
-  );
-  if (aHrefMatch) return aHrefMatch[1];
+  const srcMatch = html.match(/<img[^>]+src="([^"]+)"/i);
+  if (srcMatch) return stripWpResolutionSuffix(srcMatch[1]);
 
   const srcsetMatch = html.match(/srcset="([^"]+)"/i);
   if (srcsetMatch) {
@@ -433,11 +537,15 @@ const getBestImageUrl = (html: string): string | null => {
     if (bestUrl) return stripWpResolutionSuffix(bestUrl);
   }
 
+  const aHrefMatch = html.match(
+    /<a[^>]+href="([^"]+\.(?:jpe?g|png|webp|gif|avif)(?:\?[^"]*)?)"/i
+  );
+  if (aHrefMatch) return aHrefMatch[1];
+
   const dataFullMatch = html.match(/data-(?:full-url|orig-file)="([^"]+)"/i);
   if (dataFullMatch) return dataFullMatch[1];
 
-  const srcMatch = html.match(/<img[^>]+src="([^"]+)"/i);
-  return srcMatch ? stripWpResolutionSuffix(srcMatch[1]) : null;
+  return null;
 };
 
 const decodeHtmlEntities = (text: string): string => {
@@ -459,56 +567,105 @@ const decodeHtmlEntities = (text: string): string => {
     .replace(/&#038;/g, '&');
 };
 
-const extractImagesFromBlocks = (
-  blocks: ParsedBlock[]
-): { src: string; caption: string }[] => {
-  const images: { src: string; caption: string }[] = [];
+const getImageMetaFromHtml = (
+  html: string,
+  fallbackAlign?: ParsedBlock['align']
+): ExtractedImage | null => {
+  const src = getBestImageUrl(html);
+  if (!src) return null;
+
+  const captionMatch = html.match(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/i);
+  const widthMatch = html.match(/\bwidth=["']?(\d+)["']?/i);
+  const heightMatch = html.match(/\bheight=["']?(\d+)["']?/i);
+  const styleWidthMatch = html.match(/style=["'][^"']*width:\s*([^;"']+)/i);
+  const styleMaxWidthMatch = html.match(/style=["'][^"']*max-width:\s*([^;"']+)/i);
+
+  let classWidth: string | undefined;
+if (/\bsize-thumbnail\b/i.test(html)) classWidth = '150px';
+else if (/\bsize-medium\b/i.test(html)) classWidth = '300px';
+else if (/\bsize-large\b/i.test(html)) classWidth = '1024px';
+// size-full은 강제로 100% 주지 않음
+
+  let align: ExtractedImage['align'] = fallbackAlign;
+
+if (/\balignleft\b/i.test(html) || /float:\s*left/i.test(html)) {
+  align = 'left';
+} else if (/\balignright\b/i.test(html) || /float:\s*right/i.test(html)) {
+  align = 'right';
+} else if (
+  /\baligncenter\b/i.test(html) ||
+  (/margin-left:\s*auto/i.test(html) && /margin-right:\s*auto/i.test(html))
+) {
+  align = 'center';
+} else if (/\balignwide\b/i.test(html)) {
+  align = 'wide';
+} else if (/\balignfull\b/i.test(html)) {
+  align = 'full';
+}
+
+  return {
+    src,
+    caption: captionMatch
+      ? decodeHtmlEntities(captionMatch[1].replace(/<[^>]+>/g, '').trim())
+      : '',
+    width: widthMatch ? Number(widthMatch[1]) : undefined,
+    height: heightMatch ? Number(heightMatch[1]) : undefined,
+    styleWidth: styleWidthMatch ? styleWidthMatch[1].trim() : undefined,
+    styleMaxWidth: styleMaxWidthMatch ? styleMaxWidthMatch[1].trim() : undefined,
+    classWidth,
+    align,
+  };
+};
+
+const extractImagesFromBlocks = (blocks: ParsedBlock[]): ExtractedImage[] => {
+  const images: ExtractedImage[] = [];
 
   for (const block of blocks) {
-    if (block.type === 'gallery') {
-      const figureRegex = /<figure[^>]*>([\s\S]*?)<\/figure>/gi;
-      let m;
-      while ((m = figureRegex.exec(block.html)) !== null) {
-        const figureHtml = m[1];
-        const src = getBestImageUrl(m[0]) || getBestImageUrl(figureHtml);
-        const captionMatch = figureHtml.match(
-          /<figcaption[^>]*>([\s\S]*?)<\/figcaption>/
-        );
+    if (block.type === 'sliderberg') {
+      const bgRegex = /background-image:\s*url\((['"]?)(.*?)\1\)/gi;
+      let bgMatch;
 
-        if (src) {
-          images.push({
-            src,
-            caption: captionMatch
-              ? decodeHtmlEntities(
-                  captionMatch[1].replace(/<[^>]+>/g, '').trim()
-                )
-              : '',
-          });
-        }
+      while ((bgMatch = bgRegex.exec(block.html)) !== null) {
+        const src = bgMatch[2]?.trim();
+        if (!src) continue;
+
+        images.push({
+          src,
+          caption: '',
+          align: block.align,
+        });
       }
 
       if (images.length === 0) {
-        const imgRegex = /<img[^>]+>/g;
+        const imgRegex = /<img[^>]*>/gi;
+        let imgMatch;
+
+        while ((imgMatch = imgRegex.exec(block.html)) !== null) {
+          const meta = getImageMetaFromHtml(imgMatch[0], block.align);
+          if (meta) images.push(meta);
+        }
+      }
+    } else if (block.type === 'gallery') {
+      const figureRegex = /<figure[^>]*>[\s\S]*?<\/figure>/gi;
+      let m;
+
+      while ((m = figureRegex.exec(block.html)) !== null) {
+        const meta = getImageMetaFromHtml(m[0], block.align);
+        if (meta) images.push(meta);
+      }
+
+      if (images.length === 0) {
+        const imgRegex = /<img[^>]*>/gi;
         let im;
+
         while ((im = imgRegex.exec(block.html)) !== null) {
-          const src = getBestImageUrl(im[0]);
-          if (src) images.push({ src, caption: '' });
+          const meta = getImageMetaFromHtml(im[0], block.align);
+          if (meta) images.push(meta);
         }
       }
     } else if (block.type === 'image') {
-      const src = getBestImageUrl(block.html);
-      const captionMatch = block.html.match(
-        /<figcaption[^>]*>([\s\S]*?)<\/figcaption>/
-      );
-
-      if (src) {
-        images.push({
-          src,
-          caption: captionMatch
-            ? decodeHtmlEntities(captionMatch[1].replace(/<[^>]+>/g, '').trim())
-            : '',
-        });
-      }
+      const meta = getImageMetaFromHtml(block.html, block.align);
+      if (meta) images.push(meta);
     }
   }
 
@@ -519,24 +676,56 @@ const extractImagesFromBlocks = (
 // Shared image frame
 // ============================================================
 const ImageFrame = ({
-  src,
+  image,
   alt,
   priority = false,
+  compact = false,
 }: {
-  src: string;
+  image: ExtractedImage;
   alt: string;
   priority?: boolean;
-}) => (
-  <div className="flex items-center justify-center min-h-[240px] max-h-[520px] md:min-h-[320px] md:max-h-[620px] min-[1025px]:max-h-[90vh]">
-    <img
-      src={src}
-      alt={alt}
-      className="block w-auto h-auto max-w-full max-h-full object-contain"
-      loading={priority ? 'eager' : 'lazy'}
-      draggable={false}
-    />
-  </div>
-);
+  compact?: boolean;
+}) => {
+  const wrapperAlignClass =
+    image.align === 'left'
+      ? 'mr-auto'
+      : image.align === 'right'
+      ? 'ml-auto'
+      : 'mx-auto';
+
+  const wrapperStyle: React.CSSProperties = {
+  width: image.styleWidth || undefined,
+  maxWidth:
+    image.styleMaxWidth ||
+    (image.width ? `${image.width}px` : image.classWidth || '100%'),
+};
+
+  return (
+    <div
+      className={`flex ${
+        image.align === 'left'
+          ? 'justify-start'
+          : image.align === 'right'
+          ? 'justify-end'
+          : 'justify-center'
+      }`}
+    >
+      <div className={`${wrapperAlignClass}`} style={wrapperStyle}>
+        <div className="flex items-center justify-center">
+  <img
+    src={image.src}
+    alt={alt}
+    width={image.width}
+    height={image.height}
+    className="block w-auto h-auto max-w-full object-contain"
+    loading={priority ? 'eager' : 'lazy'}
+    draggable={false}
+  />
+</div>
+      </div>
+    </div>
+  );
+};
 
 // ============================================================
 // Individual Block Renderers
@@ -560,12 +749,12 @@ const ParagraphBlock = ({
           lang === 'jp'
             ? 'font-[var(--font-body-jp)]'
             : lang === 'en'
-            ? 'font-[Space_Grotesk]'
+            ? 'font-[Petrona]'
             : 'font-[var(--font-body-ko)]'
-        } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80 ${textAlignClass(
+        } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-100 ${textAlignClass(
           align
         )} ${wpContentStyles}`}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
       />
     </div>
   );
@@ -587,78 +776,64 @@ const HeadingBlock = ({
           ? 'font-[var(--font-body-jp)]'
           : lang === 'en'
           ? 'font-[var(--font-display-latin)]'
-          : 'font-[var(--font-body-ko)]'
+          : 'font-[var(--font-body-Petrona)]'
       } text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(
         align
       )} ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>
 );
 
-// ============================================================
-// Aligned Single Image
-// ============================================================
-const AlignedSingleImage = ({
+const SingleImageBlock = ({
   block,
-  lang,
 }: {
   block: ParsedBlock;
-  lang: string;
 }) => {
   const images = extractImagesFromBlocks([block]);
   if (images.length === 0) return null;
 
-  const { src, caption } = images[0];
-  const parsedCaption = caption ? parseMultilingualCaption(caption, lang) : '';
-  const positionClass = block.align === 'left' ? 'mr-auto' : 'ml-auto';
+  const image = images[0];
+  const captionAlignClass =
+    image.align === 'right'
+      ? 'text-right'
+      : image.align === 'left'
+      ? 'text-left'
+      : 'text-center';
 
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-12">
-      <div className={`max-w-md min-[1025px]:max-w-lg ${positionClass}`}>
-        <img
-          src={src}
-          alt={caption || 'Image'}
-          className="w-full h-auto block"
-          loading="lazy"
-          draggable={false}
-        />
-        {parsedCaption && (
-          <p
-            className={`text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans mt-3 ${
-              block.align === 'right' ? 'text-right' : 'text-left'
-            }`}
-          >
-            {parsedCaption}
-          </p>
-        )}
-      </div>
+      <ImageFrame image={image} alt={image.caption || 'Image'} />
+      {image.caption && (
+        <p
+          className={`text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans mt-3 ${captionAlignClass}`}
+        >
+          {image.caption}
+        </p>
+      )}
     </div>
   );
 };
 
 // ============================================================
-// Image Slider
+// Image Slider (gallery + sliderberg)
 // ============================================================
 const ImageSliderBlock = ({
   blocks,
-  lang,
   compact,
 }: {
   blocks: ParsedBlock[];
-  lang: string;
   compact?: boolean;
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const [isTablet, setIsTablet] = useState(false);
+
   const images = extractImagesFromBlocks(blocks);
 
   useEffect(() => {
     const updateDeviceType = () => {
       const w = window.innerWidth;
       setIsMobile(w < 768);
-      setIsTablet(w >= 768 && w <= 1024);
     };
 
     updateDeviceType();
@@ -666,10 +841,13 @@ const ImageSliderBlock = ({
     return () => window.removeEventListener('resize', updateDeviceType);
   }, []);
 
-  const goToNext = () =>
+  const goToNext = () => {
     setCurrentSlide((prev) => (prev + 1) % images.length);
-  const goToPrev = () =>
+  };
+
+  const goToPrev = () => {
     setCurrentSlide((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -688,10 +866,8 @@ const ImageSliderBlock = ({
 
   if (images.length === 0) return null;
 
-  const currentCaption = images[currentSlide]?.caption || '';
-  const parsedCaption = currentCaption
-    ? parseMultilingualCaption(currentCaption, lang)
-    : '';
+  const currentImage = images[currentSlide];
+  const currentCaption = currentImage?.caption || '';
 
   if (images.length === 1) {
     return (
@@ -702,16 +878,17 @@ const ImageSliderBlock = ({
       >
         <div className="w-full overflow-hidden">
           <ImageFrame
-            src={images[0].src}
+            image={images[0]}
             alt={images[0].caption || 'Image'}
             priority
+            compact={compact}
           />
         </div>
 
         <div className="mt-5 h-6 flex items-center justify-center">
-          {parsedCaption && (
+          {currentCaption && (
             <p className="text-center text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
-              {parsedCaption}
+              {currentCaption}
             </p>
           )}
         </div>
@@ -728,6 +905,7 @@ const ImageSliderBlock = ({
       <div className="flex w-full flex-col items-center gap-5 md:gap-6">
         <div className="group relative w-full overflow-hidden">
           <div className="relative">
+            {/* Desktop / Tablet: 좌우 invisible click zone */}
             <div
               className="hidden md:block absolute left-0 top-0 z-20 h-full w-1/2 cursor-pointer"
               onClick={goToPrev}
@@ -736,45 +914,29 @@ const ImageSliderBlock = ({
               className="hidden md:block absolute right-0 top-0 z-20 h-full w-1/2 cursor-pointer"
               onClick={goToNext}
             />
+
+            {/* Mobile: 전체 클릭시 다음 */}
             <div
-              className="md:hidden absolute inset-0 z-20 cursor-pointer active:bg-black/5"
+              className="md:hidden absolute inset-0 z-20 cursor-pointer"
               onClick={goToNext}
             />
 
-            {isTablet ? (
-              <motion.div
-                key={currentSlide}
-                className="w-full"
-                drag="x"
-                dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.12}
-                onDragEnd={(e, { offset, velocity }) => {
-                  if (Math.abs(offset.x) > 50 || Math.abs(velocity.x) > 500) {
-                    if (offset.x > 0) goToPrev();
-                    else goToNext();
-                  }
-                }}
-              >
-                <ImageFrame
-                  src={images[currentSlide].src}
-                  alt={`Gallery ${currentSlide + 1}`}
-                />
-              </motion.div>
-            ) : (
-              <div className="w-full">
-                <ImageFrame
-                  src={images[currentSlide].src}
-                  alt={`Gallery ${currentSlide + 1}`}
-                />
-              </div>
-            )}
+            {/* 현재 이미지 1장만 렌더 */}
+            <div className="w-full">
+              <ImageFrame
+                image={currentImage}
+                alt={currentImage.caption || `Gallery ${currentSlide + 1}`}
+                priority
+                compact={compact}
+              />
+            </div>
           </div>
         </div>
 
         <div className="h-6 flex items-center justify-center">
-          {parsedCaption && (
+          {currentCaption && (
             <p className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
-              {parsedCaption}
+              {currentCaption}
             </p>
           )}
         </div>
@@ -845,14 +1007,7 @@ const ImageSliderBlock = ({
 // ============================================================
 // Featured Film Label
 // ============================================================
-const FeaturedFilmLabel = () => (
-  <div className="mt-4 flex items-center justify-between opacity-50">
-    <span className="text-[14px] uppercase tracking-widest font-mono">
-      Featured Film
-    </span>
-    <div className="h-px bg-current flex-grow ml-4"></div>
-  </div>
-);
+const FeaturedFilmLabel = () => null;
 
 // ============================================================
 // Video / Embed
@@ -953,7 +1108,7 @@ const EmbedBlock = ({
     <div className="max-w-5xl mx-auto px-6 md:px-12">
       <div
         className="[&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:h-auto [&_iframe]:max-w-full"
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
       />
     </div>
   );
@@ -975,7 +1130,7 @@ const ListBlock = ({
       } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80 [&_li]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${textAlignClass(
         align
       )} ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>
 );
@@ -996,7 +1151,7 @@ const QuoteBlock = ({
       } text-foreground/70 text-sm md:text-base leading-[1.8] italic ${textAlignClass(
         align
       )} ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>
 );
@@ -1020,8 +1175,8 @@ interface BlockRendererProps {
   compact?: boolean;
 }
 
-const MEDIA_TYPES = new Set(['image', 'gallery', 'video', 'embed']);
-const IMAGE_ONLY_TYPES = new Set(['image', 'gallery']);
+const MEDIA_TYPES = new Set(['image', 'gallery', 'sliderberg', 'video', 'embed']);
+const IMAGE_ONLY_TYPES = new Set(['image', 'gallery', 'sliderberg']);
 
 export { parseBlocks, MEDIA_TYPES, groupBlocksForRendering };
 export type { ParsedBlock, RenderGroup };
@@ -1036,12 +1191,13 @@ export const BlockRenderer = ({
   const rawBlocks = parseBlocks(html);
   if (rawBlocks.length === 0) return null;
 
-  let blocks = filterBlocksByLanguage(rawBlocks, lang);
+  let blocks = rawBlocks;
 
   if (mediaOnly) {
     const allowedTypes = imageOnly ? IMAGE_ONLY_TYPES : MEDIA_TYPES;
     blocks = blocks.filter(
-      (b) => allowedTypes.has(b.type) || b.type === 'spacer' || b.type === 'separator'
+      (b) =>
+        allowedTypes.has(b.type) || b.type === 'spacer' || b.type === 'separator'
     );
   }
 
@@ -1050,7 +1206,10 @@ export const BlockRenderer = ({
   const groups = groupBlocksForRendering(blocks);
 
   return (
-    <div className="space-y-8 md:space-y-12 min-[1025px]:space-y-16">
+    <div
+      className="space-y-8 md:space-y-12 min-[1025px]:space-y-16"
+      onClick={handleLinkClick}
+    >
       {groups.map((group, index) => {
         const key = `group-${index}`;
 
@@ -1059,7 +1218,6 @@ export const BlockRenderer = ({
             <ImageSliderBlock
               key={key}
               blocks={group.blocks}
-              lang={lang}
               compact={compact}
             />
           );
@@ -1088,7 +1246,7 @@ export const BlockRenderer = ({
               />
             );
           case 'image':
-            return <AlignedSingleImage key={blockKey} block={block} lang={lang} />;
+            return <SingleImageBlock key={blockKey} block={block} />;
           case 'video':
             return <VideoBlock key={blockKey} html={block.html} align={block.align} />;
           case 'embed':
@@ -1122,7 +1280,7 @@ export const BlockRenderer = ({
                   className={`text-foreground/80 text-sm md:text-base leading-[1.8] ${textAlignClass(
                     block.align
                   )} ${wpContentStyles}`}
-                  dangerouslySetInnerHTML={{ __html: block.html }}
+                  dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(block.html) }}
                 />
               </div>
             );

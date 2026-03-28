@@ -125,37 +125,6 @@ export const ScrollToTop = ({ showAfterScroll }: ScrollToTopProps) => {
   if (!isVisible) return null;
 
   return (
-    <button
-      ref={buttonRef}
-      onClick={handleClick}
-      className={`
-        fixed bottom-10 right-10 md:bottom-12 md:right-12 z-50
-        w-12 h-12 md:w-14 md:h-14
-        border border-foreground/10
-        bg-background/80 backdrop-blur-md
-        text-foreground
-        flex items-center justify-center
-        transition-all duration-500 ease-out
-        ${isMagnetic ? 'scale-110 border-foreground/30' : 'scale-100'}
-        group
-        hover:bg-foreground hover:text-background
-      `}
-      aria-label="Scroll to top"
-    >
-      {/* Flipped ν Symbol */}
-      <span 
-        className="text-lg font-light transition-transform duration-500 group-hover:-translate-y-0.5"
-        style={{ 
-          transform: 'scaleY(-1)',
-          display: 'inline-block',
-          fontFamily: 'Georgia, serif'
-        }}
-      >
-        ν
-      </span>
-      
-      {/* Subtle glow on hover */}
-      <span className="absolute inset-0 bg-foreground/5 scale-0 group-hover:scale-100 transition-transform duration-700 ease-out" />
-    </button>
+    null
   );
 };

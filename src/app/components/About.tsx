@@ -66,8 +66,53 @@ const ContactLink = ({
 };
 
 // ----------------------------------------------------------------------
-// About Component
+// About Component Helpers
 // ----------------------------------------------------------------------
+
+const normalizeWorkTitle = (str: string) => {
+  return (str || '')
+    .toLowerCase()
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, '')
+    .replace(/[^\w가-힣ぁ-ゔァ-ヴー々〆〤一-龥]/g, '');
+};
+
+const extractWorkMeta = (text: string) => {
+  const match = text.match(/\[work:(.*?)\]/i);
+  return match ? match[1].trim() : null;
+};
+
+const removeWorkMeta = (html: string) => {
+  return html
+    .replace(/\s*\[work:.*?\]\s*/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
+
+const getWorkTitleByLang = (work: Work, lang: string) => {
+  if (lang === 'en') {
+    return work.title_en || work.title_ko || work.title;
+  }
+  if (lang === 'jp') {
+    return work.title_jp || work.title_ko || work.title;
+  }
+  return work.title_ko || work.title;
+};
+
+const findWorkByMeta = (metaTitle: string, works: Work[], lang: string) => {
+  const normalizedMeta = normalizeWorkTitle(metaTitle);
+  if (!normalizedMeta) return null;
+
+  return (
+    works.find(work => normalizeWorkTitle(getWorkTitleByLang(work, lang) || '') === normalizedMeta) ||
+    works.find(work => normalizeWorkTitle(work.title_ko || '') === normalizedMeta) ||
+    works.find(work => normalizeWorkTitle(work.title_en || '') === normalizedMeta) ||
+    works.find(work => normalizeWorkTitle(work.title_jp || '') === normalizedMeta) ||
+    works.find(work => normalizeWorkTitle(work.title || '') === normalizedMeta) ||
+    null
+  );
+};
 
 const transformBioContent = (html: string | undefined, works: Work[], lang: string) => {
   if (!html) return '';
@@ -80,27 +125,50 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
     let changed = false;
 
     const findWorkIdInText = (text: string) => {
+      const cleanText = removeWorkMeta(text);
+
       const sortedWorks = [...works].sort((a, b) => {
-        const titleA = (lang === 'ko' ? a.title_ko : a.title_en) || a.title;
-        const titleB = (lang === 'ko' ? b.title_ko : b.title_en) || b.title;
+        const titleA = getWorkTitleByLang(a, lang);
+        const titleB = getWorkTitleByLang(b, lang);
         return (titleB?.length || 0) - (titleA?.length || 0);
       });
 
       for (const work of sortedWorks) {
-        const title = (lang === 'ko' ? work.title_ko : work.title_en) || work.title;
-        if (!title) continue;
+        const candidates = [
+          getWorkTitleByLang(work, lang),
+          work.title_ko,
+          work.title_en,
+          work.title_jp,
+          work.title,
+        ].filter(Boolean) as string[];
 
-        let safeTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        safeTitle = safeTitle.replace(/\s+/g, '[\\s\\u00A0]*');
-        safeTitle = safeTitle.replace(/</g, '(?:<|&lt;)').replace(/>/g, '(?:>|&gt;)');
+        for (const title of candidates) {
+          let safeTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          safeTitle = safeTitle.replace(/\s+/g, '[\\s\\u00A0]*');
+          safeTitle = safeTitle.replace(/</g, '(?:<|&lt;)').replace(/>/g, '(?:>|&gt;)');
 
-        const regex = new RegExp(`(${safeTitle})`, 'gi');
+          const regex = new RegExp(`(${safeTitle})`, 'gi');
 
-        if (regex.test(text)) {
-          return work.id;
+          if (regex.test(cleanText)) {
+            return work.id;
+          }
         }
       }
+
       return null;
+    };
+
+    const findWorkByMetaOrText = (text: string) => {
+      const metaTitle = extractWorkMeta(text);
+
+      if (metaTitle) {
+        const foundByMeta = findWorkByMeta(metaTitle, works, lang);
+        if (foundByMeta) {
+          return foundByMeta.id;
+        }
+      }
+
+      return findWorkIdInText(text);
     };
 
     elements.forEach(el => {
@@ -115,12 +183,14 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
 
         const temp = document.createElement('div');
         temp.innerHTML = part;
+
         const text = (temp.textContent || '').replace(/[\u200B\uFEFF]/g, '').trim();
+        const cleanText = removeWorkMeta(text);
 
         const match =
-          text.match(/^(\d{4}(?:[-.~]\d{2,4})?)\s+(.*)/s) ||
-          text.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s) ||
-          text.match(/^(\d{4}(?:[-.~]\d{2,4})?)$/);
+          cleanText.match(/^(\d{4}(?:[-.~]\d{2,4})?)\s+(.*)/s) ||
+          cleanText.match(/^(\d{4}(?:[-.~]\d{2,4})?)(?=[^\w\s])(.*)/s) ||
+          cleanText.match(/^(\d{4}(?:[-.~]\d{2,4})?)$/);
 
         if (match) {
           hasYearEntry = true;
@@ -153,6 +223,8 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
               }
             }
 
+            contentHtml = removeWorkMeta(contentHtml);
+
             const strippedCheck = contentHtml.replace(/<[^>]*>/g, '').trim();
             if (!strippedCheck) {
               contentHtml = '';
@@ -162,18 +234,20 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
           if (!contentHtml) {
             processedRows.push({ year: yearStr, content: '', workId: null });
           } else {
-            const workId = findWorkIdInText(text);
+            const workId = findWorkByMetaOrText(text);
             processedRows.push({ year: yearStr, content: contentHtml, workId });
           }
         } else {
-          if (text.length > 0) {
-            const workId = findWorkIdInText(text);
+          if (cleanText.length > 0) {
+            const workId = findWorkByMetaOrText(text);
+            const cleanedPart = removeWorkMeta(part);
             const prevRow = processedRows[processedRows.length - 1];
+
             if (prevRow && prevRow.year && !prevRow.content) {
-              prevRow.content = part;
+              prevRow.content = cleanedPart;
               prevRow.workId = prevRow.workId || workId;
             } else {
-              processedRows.push({ year: '', content: part, workId });
+              processedRows.push({ year: '', content: cleanedPart, workId });
             }
           }
         }
@@ -206,12 +280,18 @@ const transformBioContent = (html: string | undefined, works: Work[], lang: stri
         table.appendChild(tbody);
         el.replaceWith(table);
         changed = true;
+      } else {
+        const cleanedHtml = removeWorkMeta(rawHtml);
+        if (cleanedHtml !== rawHtml) {
+          el.innerHTML = cleanedHtml;
+          changed = true;
+        }
       }
     });
 
-    return changed ? doc.body.innerHTML : html;
+    return changed ? doc.body.innerHTML : removeWorkMeta(html);
   } catch {
-    return html;
+    return removeWorkMeta(html);
   }
 };
 
@@ -240,6 +320,10 @@ const translateSectionHeaders = (html: string, lang: string): string => {
 
   return result;
 };
+
+// ----------------------------------------------------------------------
+// About Component
+// ----------------------------------------------------------------------
 
 export const About = () => {
   const { lang } = useLanguage();
@@ -287,6 +371,20 @@ export const About = () => {
 
     sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(scrollValue)));
   };
+
+  function processedContentSafeKey(
+    aboutDataValue: AboutData | null,
+    currentLang: string,
+    worksValue: Work[]
+  ) {
+    return JSON.stringify({
+      lang: currentLang,
+      content: aboutDataValue?.content ?? '',
+      content_en: aboutDataValue?.content_en ?? '',
+      content_jp: aboutDataValue?.content_jp ?? '',
+      worksLen: worksValue.length,
+    });
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -373,10 +471,7 @@ export const About = () => {
 
     const handleNativeScroll = () => {
       if (window.innerWidth < 1025) {
-        sessionStorage.setItem(
-          ABOUT_SCROLL_STORAGE_KEY,
-          String(Math.round(container.scrollTop))
-        );
+        sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(container.scrollTop)));
       }
     };
 
@@ -417,20 +512,6 @@ export const About = () => {
     return transformed;
   }, [aboutData?.content, aboutData?.content_en, aboutData?.content_jp, works, lang]);
 
-  function processedContentSafeKey(
-    aboutDataValue: AboutData | null,
-    currentLang: string,
-    worksValue: Work[]
-  ) {
-    return JSON.stringify({
-      lang: currentLang,
-      content: aboutDataValue?.content ?? '',
-      content_en: aboutDataValue?.content_en ?? '',
-      content_jp: aboutDataValue?.content_jp ?? '',
-      worksLen: worksValue.length,
-    });
-  }
-
   const processProfileText = (text: string | undefined) => {
     if (!text) return '';
 
@@ -455,7 +536,6 @@ export const About = () => {
     return text;
   };
 
-  // Get language-specific profile info based on current language
   const getProfileInfo = () => {
     if (lang === 'ko' && aboutData?.profile_info_ko) {
       return aboutData.profile_info_ko;
@@ -466,7 +546,6 @@ export const About = () => {
     if (lang === 'jp' && aboutData?.profile_info_jp) {
       return aboutData.profile_info_jp;
     }
-    // Fallback to default profile_info
     return aboutData?.profile_info || '';
   };
 
@@ -542,9 +621,11 @@ export const About = () => {
     };
   }, [tooltipWorkId]);
 
-  // Intersection Observer placeholder
   void visibleWorkRows;
   void observerRef;
+  void scrollbarRef;
+  void isManualHover;
+  void isMobile;
 
   useEffect(() => {
     if (typeof window === 'undefined' || loading) return;
@@ -610,10 +691,7 @@ export const About = () => {
       }
 
       if (window.innerWidth >= 1025) {
-        sessionStorage.setItem(
-          ABOUT_SCROLL_STORAGE_KEY,
-          String(Math.round(s.target))
-        );
+        sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(s.target)));
       }
 
       if (thumbRef.current && s.maxScroll > 0) {
@@ -726,10 +804,10 @@ export const About = () => {
           </div>
 
           <div className="mt-12 md:mt-8 min-[1025px]:mt-0 min-[1025px]:absolute min-[1025px]:bottom-12 min-[1025px]:left-0 flex flex-col gap-4 pointer-events-auto md:pb-8 min-[1025px]:pb-0">
-            {contactLinks.map((item, idx) => (
+            {contactLinks.map(item => (
               <div key={item.label} className="flex flex-col gap-0.5">
                 <RevealText>
-                  <span className="text-[10px] font-mono text-muted-foreground/50 tracking-widest mb-1 block">
+                  <span className="text-[10px] text-muted-foreground/50 tracking-widest mb-1 block font-[Petrona]">
                     {item.label}
                   </span>
                   <ContactLink
@@ -826,7 +904,7 @@ export const About = () => {
             </div>
           )}
 
-          <div className="pt-16 pb-4 opacity-100 md:opacity-30 md:hover:opacity-100 transition-opacity duration-500">
+          <div className="pt-16 pb-4 opacity-100">
             <Footer />
           </div>
         </div>

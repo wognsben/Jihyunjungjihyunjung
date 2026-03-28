@@ -5,10 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { motion, AnimatePresence } from 'motion/react';
 import gsap from 'gsap';
-import { TextPlugin } from 'gsap/TextPlugin';
 import { Category } from '@/data/texts';
-
-gsap.registerPlugin(TextPlugin);
 
 // ----------------------------------------------------------------------
 // Types & Data
@@ -28,15 +25,6 @@ const sectionLabels: Record<string, Record<string, string>> = {
   category: { ko: 'category', en: 'category', jp: 'カテゴリー' },
   results:  { ko: 'RESULTS', en: 'RESULTS', jp: '結果' },
 };
-
-const GHOST_PHRASES = [
-    "Reflections on the Water",
-    "Black and white film",
-    "Quiet moments",
-    "Knight on a Horse",
-    "Minimalism is not absence",
-    "Forms follow function"
-];
 
 // ----------------------------------------------------------------------
 // Advanced Typography Component
@@ -91,7 +79,6 @@ export const Text = () => {
   // Hover Image State
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   
-  const ghostTextRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const imagePreviewRef = useRef<HTMLDivElement>(null);
@@ -158,35 +145,6 @@ export const Text = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Ghost Text Animation
-  useEffect(() => {
-    if (!ghostTextRef.current) return;
-    if (searchQuery.length > 0) {
-      gsap.set(ghostTextRef.current, { opacity: 0 });
-      return;
-    }
-    gsap.set(ghostTextRef.current, { opacity: 0.5 }); 
-
-    const tl = gsap.timeline({ repeat: -1 });
-    const textEl = ghostTextRef.current;
-
-    GHOST_PHRASES.forEach((phrase) => {
-        tl.call(() => { if (textEl) textEl.innerText = ""; });
-        const chars = phrase.split("");
-        chars.forEach((char) => {
-            tl.to(textEl, {
-                duration: 0.05 + Math.random() * 0.05, 
-                text: { value: textEl.innerText + char },
-                ease: "none"
-            });
-        });
-        tl.to({}, { duration: 2 });
-        tl.to(textEl, { duration: 0.5, opacity: 0, ease: "power2.out" });
-        tl.to(textEl, { duration: 0, opacity: 0.5 });
-    });
-    return () => { tl.kill(); };
-  }, [searchQuery]); 
-
   // Keyboard Shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -236,7 +194,7 @@ export const Text = () => {
             {hoveredImage && hoveredImage !== '' && (
                 <motion.div
                     key={hoveredImage}
-                    initial={{ opacity: 0, scale: 0.9, x: 20, y: 20 }} // Reset offset
+                    initial={{ opacity: 0, scale: 0.9, x: 20, y: 20 }}
                     animate={{ opacity: 1, scale: 1, x: 20, y: 20 }} 
                     exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
@@ -266,57 +224,39 @@ export const Text = () => {
                ${showFloatingBar ? 'opacity-0 pointer-events-none min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto' : 'opacity-100'}
             `}
         >
-          {/* GHOST SEARCH BAR */}
+          {/* SEARCH BAR */}
           <div className="relative group w-full">
             <div className="relative flex items-center border-b border-foreground/20 pb-2 transition-colors duration-300 focus-within:border-foreground">
-                <div className="mr-3 text-muted-foreground">
-                   <Search size={16} strokeWidth={1.5} />
-                </div>
-                <div className="relative flex-1 h-6 overflow-hidden">
-                    <div 
-                        ref={ghostTextRef}
-                        className="absolute left-0 top-0 w-full h-full text-sm font-light text-muted-foreground/40 pointer-events-none whitespace-nowrap overflow-hidden"
-                        aria-hidden="true"
-                    ></div>
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="relative w-full h-full bg-transparent text-sm font-light outline-none text-foreground placeholder-transparent z-10"
-                        style={{ fontSize: 'max(16px, 0.875rem)' }}
-                        autoComplete="off"
-                        spellCheck="false"
-                    />
-                </div>
-                <div className="ml-2">
-                    {searchQuery ? (
-                         <button 
-                            onClick={() => setSearchQuery('')}
-                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                         >
-                            <X size={14} />
-                         </button>
-                    ) : (
-                        <div 
-                            onClick={() => inputRef.current?.focus()}
-                            className="hidden min-[1025px]:flex items-center justify-center w-5 h-5 cursor-pointer group/hint"
-                        >
-                            <span className="text-xl leading-none font-serif text-muted-foreground/60 group-hover/hint:text-foreground transition-all duration-700 group-hover/hint:rotate-180 origin-center">
-                                *
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-            
-            <div className="mt-4 hidden min-[1025px]:block opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 delay-100">
-                <button 
-                    onClick={() => inputRef.current?.focus()}
-                    className="text-[10px] uppercase tracking-widest font-mono text-foreground/40 hover:text-foreground transition-colors flex items-center gap-2"
-                >
-                    <span className="w-4 h-[1px] bg-foreground/20" />
-                </button>
+              <div className="mr-3 text-muted-foreground">
+                <Search size={16} strokeWidth={1.5} />
+              </div>
+
+              <div className="relative flex-1 h-6">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search"
+                  className="relative w-full h-full bg-transparent text-sm font-light outline-none text-foreground placeholder:text-muted-foreground/40 z-10"
+                  style={{ fontSize: 'max(16px, 0.875rem)' }}
+                  autoComplete="off"
+                  spellCheck="false"
+                />
+              </div>
+
+              <div className="ml-2">
+                {searchQuery ? (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                  >
+                    <X size={14} />
+                  </button>
+                ) : (
+                  null
+                )}
+              </div>
             </div>
           </div>
 
@@ -333,10 +273,10 @@ export const Text = () => {
                     setActiveCategory(cat);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className={`flex-shrink-0 text-left text-sm transition-all duration-300 flex items-center gap-2 group/btn whitespace-nowrap px-3 py-1 min-[1025px]:px-0 min-[1025px]:py-0 rounded-full min-[1025px]:rounded-none border min-[1025px]:border-0 ${
-                    activeCategory === cat 
-                      ? 'bg-foreground text-background min-[1025px]:bg-transparent min-[1025px]:text-foreground min-[1025px]:font-medium min-[1025px]:pl-2 min-[1025px]:border-l min-[1025px]:border-foreground border-transparent' 
-                      : 'bg-transparent text-muted-foreground hover:text-foreground border-foreground/10 min-[1025px]:border-transparent'
+                  className={`flex-shrink-0 text-left text-sm transition-all duration-300 flex items-center gap-2 group/btn whitespace-nowrap px-0 py-0 rounded-none border-0 ${
+                    activeCategory === cat
+                      ? 'text-foreground font-medium pl-2 border-l border-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   <span>{categoryLabels[cat][lang]}</span>
@@ -405,10 +345,6 @@ export const Text = () => {
                     </span>
                   </div>
                 </div>
-
-                <div className="hidden min-[1025px]:block absolute left-0 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 -translate-x-4 group-hover/item:-translate-x-2 transition-all duration-300 text-black text-sm z-10">
-                  →
-                </div>
               </motion.a>
             ))}
           </div>
@@ -445,7 +381,6 @@ export const Text = () => {
                     *
                   </motion.span>
                   <span className="text-xs font-mono uppercase tracking-widest">Search</span>
-                  {/* Active filter indicator */}
                   {(activeCategory !== 'All' || searchQuery) && (
                     <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
                   )}
@@ -460,7 +395,6 @@ export const Text = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -470,7 +404,6 @@ export const Text = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             />
             
-            {/* Sheet */}
             <motion.div
               ref={sheetRef}
               initial={{ y: "100%" }}
@@ -480,14 +413,11 @@ export const Text = () => {
               className="fixed bottom-0 left-0 right-0 z-[61] min-[1025px]:hidden"
             >
               <div className="bg-background rounded-t-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] max-h-[70vh] overflow-hidden">
-                {/* Drag Handle */}
                 <div className="flex justify-center pt-3 pb-2">
                   <div className="w-10 h-1 rounded-full bg-foreground/15" />
                 </div>
                 
-                {/* Sheet Content */}
                 <div className="px-6 pb-8 pt-2 flex flex-col gap-6">
-                  {/* Search Input */}
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">Search</span>
@@ -523,7 +453,6 @@ export const Text = () => {
                     </div>
                   </div>
 
-                  {/* Categories */}
                   <div className="flex flex-col gap-3">
                     <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
                       {sectionLabels.category[lang]}
@@ -534,7 +463,6 @@ export const Text = () => {
                           key={cat}
                           onClick={() => {
                             setActiveCategory(cat);
-                            // Auto-close sheet after category selection, then smooth scroll to top
                             setTimeout(() => {
                               setIsMobileMenuOpen(false);
                               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -552,7 +480,6 @@ export const Text = () => {
                     </div>
                   </div>
 
-                  {/* Result Count */}
                   <div className="flex items-center justify-between pt-2 border-t border-foreground/5">
                     <span className="text-xs font-mono text-muted-foreground/50">
                       {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
