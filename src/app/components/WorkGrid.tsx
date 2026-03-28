@@ -162,18 +162,39 @@ export const WorkGrid = () => {
         end: 'bottom bottom',
         onUpdate: (self) => {
           const velocity = self.getVelocity();
-          const scrollY = self.scroll();
-          const topDamping = Math.min(1, scrollY / 200);
+const progress = self.progress; // 0 ~ 1
 
-          const dragFactor = -0.06;
-          let targetY = velocity * dragFactor * topDamping;
+// ----------------------
+// 1. 기본 위치 기반 drift (항상 작동)
+// ----------------------
+const baseAmplitude = 30; // 전체 움직임 크기
+const baseOffset = (progress - 0.5) * baseAmplitude;
 
-          targetY = Math.max(-60, Math.min(60, targetY));
-          targetY = Math.round(targetY);
+// ----------------------
+// 2. 속도 기반 추가 반응 (스크롤 빠를 때만)
+// ----------------------
+const velocityFactor = -0.025;
+let velocityOffset = velocity * velocityFactor;
 
-          yToFuncs.forEach((yTo) => {
-            yTo(targetY);
-          });
+// clamp (너무 튀지 않게)
+velocityOffset = Math.max(-40, Math.min(40, velocityOffset));
+
+// ----------------------
+// 3. 최종 값
+// ----------------------
+let targetY = baseOffset + velocityOffset;
+
+// ----------------------
+// 4. 컬럼별 차이 (depth 느낌)
+// ----------------------
+yToFuncs.forEach((yTo, i) => {
+  const center = (yToFuncs.length - 1) / 2;
+  const dist = Math.abs(i - center);
+
+  const depthFactor = 1 + dist * 0.25;
+
+  yTo(targetY * depthFactor);
+});
         },
       });
     }, containerRef);

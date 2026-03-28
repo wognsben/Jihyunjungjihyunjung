@@ -114,7 +114,39 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     const href = anchor.getAttribute('href') || '';
 
     // 외부 링크는 그대로
-    if (href.startsWith('http') || href.startsWith('//')) return;
+    if (href.startsWith('http') || href.startsWith('//')) {
+  try {
+    const url = new URL(href);
+
+    // 현재 페이지랑 같은 origin이면 → 내부 anchor로 처리
+    if (url.origin === window.location.origin && url.hash) {
+      const id = url.hash.replace('#', '');
+
+      const el =
+        document.getElementById(id) ||
+        document.getElementById(`footnote-${id}`) ||
+        document.getElementById(`fn-${id}`) ||
+        document.getElementById(`note-${id}`) ||
+        document.getElementById(id.replace(/[^\d]/g, ''));
+
+      if (el) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        el.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }
+
+      return;
+    }
+  } catch {
+    return;
+  }
+
+  return;
+}
 
     // 라우터 링크는 그대로
     if (href.startsWith('#/')) return;

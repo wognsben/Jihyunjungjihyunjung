@@ -54,30 +54,60 @@ const handleLinkClick = (e: React.MouseEvent) => {
 
   const href = anchor.getAttribute('href') || '';
 
-  // 외부 링크 → 그대로
-  if (href.startsWith('http') || href.startsWith('//')) return;
-
-  // 라우터 링크 → 그대로
+  // 라우터 링크는 그대로
   if (href.startsWith('#/')) return;
 
-  // 🔥 footnote 처리
-  if (href.startsWith('#')) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const id = href.replace('#', '');
+  const scrollToFootnote = (rawId: string) => {
+    const id = rawId.replace(/^#/, '');
+    const numeric = id.replace(/[^\d]/g, '');
 
     const el =
       document.getElementById(id) ||
       document.querySelector(`[name="${id}"]`) ||
-      document.getElementById(id.replace(/[^\d]/g, ''));
+      document.getElementById(`footnote-${id}`) ||
+      document.getElementById(`fn-${id}`) ||
+      document.getElementById(`note-${id}`) ||
+      document.getElementById(`_ftn${numeric}`) ||
+      document.getElementById(`_edn${numeric}`) ||
+      document.getElementById(`fnref-${numeric}`) ||
+      document.getElementById(`footnote-ref-${numeric}`) ||
+      document.getElementById(numeric) ||
+      document.getElementById(`footnote-${numeric}`) ||
+      document.getElementById(`fn-${numeric}`) ||
+      document.getElementById(`note-${numeric}`);
 
     if (el) {
+      e.preventDefault();
+      e.stopPropagation();
       el.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       });
+      return true;
     }
+
+    return false;
+  };
+
+  // 상대 해시 링크
+  if (href.startsWith('#')) {
+    scrollToFootnote(href);
+    return;
+  }
+
+  // 절대경로 + hash 링크도 footnote면 내부 스크롤 처리
+  if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+    try {
+      const url = new URL(href, window.location.origin);
+      if (url.hash) {
+        const handled = scrollToFootnote(url.hash);
+        if (handled) return;
+      }
+    } catch {
+      return;
+    }
+
+    return;
   }
 };
 
@@ -235,12 +265,42 @@ const withExternalLinkTarget = (html: string): string => {
         .replace(/\srel=["'][^"']*["']/gi, '')
         .trim();
 
-      const isExternal =
+      const isAbsolute =
         href.startsWith('http://') ||
         href.startsWith('https://') ||
         href.startsWith('//');
 
-      if (isExternal) {
+      // footnote / same-page anchor
+      if (href.startsWith('#')) {
+        return `<a ${attrs}>`;
+      }
+
+      // 절대경로인데 hash 포함 + 같은 페이지 footnote 계열이면 내부 링크로 취급
+      if (isAbsolute) {
+        try {
+          const url = new URL(href, window.location.origin);
+          const hash = url.hash || '';
+
+          const isSamePageFootnote =
+  !!hash &&
+  (
+    hash.startsWith('#footnote') ||
+    hash.startsWith('#fn') ||
+    hash.startsWith('#note') ||
+    hash.startsWith('#_ftn') ||
+    hash.startsWith('#_edn') ||
+    hash.startsWith('#fnref') ||
+    hash.startsWith('#footnote-ref') ||
+    /^#\d+$/.test(hash)
+  );
+
+          if (isSamePageFootnote) {
+            return `<a ${attrs}>`;
+          }
+        } catch {
+          // URL 파싱 실패 시 아래 외부링크 처리
+        }
+
         return `<a ${attrs} target="_blank" rel="noopener noreferrer">`;
       }
 

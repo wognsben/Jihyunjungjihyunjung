@@ -180,7 +180,7 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
                     {/* To Field - Static */}
                     <div className="flex items-center py-2 border-b border-foreground/5">
                       <span className="w-16 text-xs font-medium text-muted-foreground">To:</span>
-                      <span className="text-sm font-light text-foreground/80">wognsben1997@gmail.com</span>
+                      <span className="text-sm font-light text-foreground/80">astradiog@gmail.com</span>
                     </div>
 
                     {/* From Field - Email Input */}
