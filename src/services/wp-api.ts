@@ -46,55 +46,9 @@ export interface HistoryItem {
 // Helper to decode HTML entities in titles (e.g. "Dn&#038;D" -> "DnD")
 const decode = (str: string) => he.decode(str || '');
 
-// Map of broken URLs to Unsplash replacements (Fixing "Failed to fetch" errors)
-const BROKEN_IMAGE_REPLACEMENTS: Record<string, string> = {
-  // Existing replacements
-  'kaeru_09.jpg':
-    'https://images.unsplash.com/photo-1768783848291-8dd873a22369?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGNvbnRlbXBvcmFyeSUyMGFydCUyMGluc3RhbGxhdGlvbiUyMG1pbmltYWx8ZW58MXx8fHwxNzY5NzYwOTE2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Right-1.jpg':
-    'https://images.unsplash.com/photo-1569264090102-cb8c5c31d083?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibGFjayUyMGFuZCUyMHdoaXRlJTIwYWJzdHJhY3QlMjB0ZXh0dXJlJTIwYXJ0fGVufDF8fHx8MTc2OTc2MDkyM3ww&ixlib=rb-4.1.0&q=80&w=1080',
-  '1Y2A7405.jpg':
-    'https://images.unsplash.com/photo-1762928289094-197055a5d5c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcnQlMjBnYWxsZXJ5JTIwc3BhY2UlMjB3aGl0ZXxlbnwxfHx8fDE3Njk3NjA5MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Square-2.jpg':
-    'https://images.unsplash.com/photo-1764197943854-13f02f484fe1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMG1ldGFsJTIwc2N1bHB0dXJlJTIwZGV0YWlsfGVufDF8fHx8MTc2OTc2MDkzMHww&ixlib=rb-4.1.0&q=80&w=1080',
-
-  // Hangdog Series (Sculptures)
-  'Hangdog-1.jpg':
-    'https://images.unsplash.com/photo-1662661600800-0b7220bab431?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMG9yZ2FuaWMlMjBzY3VscHR1cmUlMjBjbGF5JTIwbWluaW1hbHxlbnwxfHx8fDE3Njk3NjIwNjN8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-2.jpg':
-    'https://images.unsplash.com/photo-1759150467057-f09fc8ee0f10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHN0b25lJTIwc2N1bHB0dXJlJTIwbWluaW1hbGlzdHxlbnwxfHx8fDE3Njk3NjIwNjd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-3.jpg':
-    'https://images.unsplash.com/photo-1763578997952-31105b309a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMG1ldGFsJTIwZm9ybSUyMHNjdWxwdHVyZXxlbnwxfHx8fDE3Njk3NjIwODF8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-4.jpg':
-    'https://images.unsplash.com/photo-1662661600800-0b7220bab431?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMG9yZ2FuaWMlMjBzY3VscHR1cmUlMjBjbGF5JTIwbWluaW1hbHxlbnwxfHx8fDE3Njk3NjIwNjN8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-5.jpg':
-    'https://images.unsplash.com/photo-1759150467057-f09fc8ee0f10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHN0b25lJTIwc2N1bHB0dXJlJTIwbWluaW1hbGlzdHxlbnwxfHx8fDE3Njk3NjIwNjd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-6.jpg':
-    'https://images.unsplash.com/photo-1763578997952-31105b309a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMG1ldGFsJTIwZm9ybSUyMHNjdWxwdHVyZXxlbnwxfHx8fDE3Njk3NjIwODF8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Hangdog-8.jpg':
-    'https://images.unsplash.com/photo-1769325318810-2d2c73188119?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjZXJhbWljJTIwYXJ0JTIwZGV0YWlsJTIwbWFjcm98ZW58MXx8fHwxNzY5NzYyMDg3fDA&ixlib=rb-4.1.0&q=80&w=1080',
-
-  // Other Works
-  'Swept-9.jpg':
-    'https://images.unsplash.com/photo-1614062387997-8dd3b011bdf9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMHdoaXRlJTIwdGV4dHVyZSUyMGFydCUyMGRldGFpbHxlbnwxfHx8fDE3Njk3NjIwNzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Flower-Handed-3.jpg':
-    'https://images.unsplash.com/photo-1758432299946-327963c5bea2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb250ZW1wb3JhcnklMjBhcnQlMjBpbnN0YWxsYXRpb24lMjBkZXRhaWwlMjBmYWJyaWN8ZW58MXx8fHwxNzY5NzYyMDcwfDA&ixlib=rb-4.1.0&q=80&w=1080',
-  'Caught-Sleeve-7.jpg':
-    'https://images.unsplash.com/photo-1758432299946-327963c5bea2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb250ZW1wb3JhcnklMjBhcnQlMjBpbnN0YWxsYXRpb24lMjBkZXRhaWwlMjBmYWJyaWN8ZW58MXx8fHwxNzY5NzYyMDcwfDA&ixlib=rb-4.1.0&q=80&w=1080',
-  '1Y2A7358_01.jpg':
-    'https://images.unsplash.com/photo-1767706508416-414285b8bead?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwZ2FsbGVyeSUyMGV4aGliaXRpb24lMjBzcGFjZXxlbnwxfHx8fDE3Njk3NjIwNzd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-};
-
 // Helper to get full size URL by removing WP resolution suffix (e.g. -150x150)
 const getFullSizeUrl = (url: string): string => {
   if (!url) return '';
-
-  // Check for broken URLs and replace them
-  for (const [key, replacement] of Object.entries(BROKEN_IMAGE_REPLACEMENTS)) {
-    if (url.includes(key)) {
-      return replacement;
-    }
-  }
 
   // Clean up WP resolution suffix
   return url.replace(/-\d+x\d+(\.[a-zA-Z]+)$/, '$1');
