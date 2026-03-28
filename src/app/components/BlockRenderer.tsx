@@ -154,6 +154,11 @@ const sanitizeHtml = (html: string): string => {
   cleaned = cleaned.replace(/<p[^>]*>\s*(<br\s*\/?\s*>\s*)+<\/p>/gi, '');
   cleaned = cleaned.replace(/(<br\s*\/?\s*>\s*){3,}/gi, '<br><br>');
   cleaned = cleaned.replace(/<p[^>]*>\s*<\/p>/gi, '');
+  // 🔥 anchor가 단독 block으로 떨어진 경우 앞뒤 문장과 합치기
+cleaned = cleaned.replace(
+  /<\/p>\s*(<a[^>]+>.*?<\/a>)\s*<p>/gi,
+  ' $1 '
+);
 
   return cleaned;
 };
@@ -207,9 +212,15 @@ const textAlignClass = (align?: ParsedBlock['align']): string => {
 // Shared styles
 // ============================================================
 const wpContentStyles = [
-  '[&_a]:underline [&_a]:decoration-foreground/20 [&_a]:underline-offset-[3px]',
-  '[&_a]:transition-colors [&_a]:duration-300',
-  '[&_a:hover]:decoration-foreground/50 [&_a:hover]:text-foreground',
+  '[&_a]:inline',
+  '[&_a]:text-foreground/55',
+  '[&_a]:underline',
+  '[&_a]:decoration-foreground/20',
+  '[&_a]:underline-offset-[3px]',
+  '[&_a]:transition-colors',
+  '[&_a]:duration-300',
+  '[&_a:hover]:text-foreground/80',
+  '[&_a:hover]:decoration-foreground/40',
   '[&_ul_ul]:mt-1 [&_ul_ul]:pl-4 [&_ol_ol]:mt-1 [&_ol_ol]:pl-4',
 ].join(' ');
 
@@ -347,16 +358,28 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
 
+  const flushInlineBuffer = (buffer: string[]) => {
+    const joined = buffer.join('').trim();
+    if (!joined) return;
+
+    blocks.push({
+      type: 'paragraph',
+      html: `<p>${joined}</p>`,
+      align: detectAlign(joined),
+    });
+
+    buffer.length = 0;
+  };
+
   const nodes = Array.from(doc.body.childNodes);
+  const inlineBuffer: string[] = [];
 
   for (const node of nodes) {
+    // 1) 텍스트 노드 → 일단 버퍼에 쌓음
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent?.trim();
-      if (text) {
-        blocks.push({
-          type: 'paragraph',
-          html: `<p>${text.replace(/\n/g, '<br>')}</p>`,
-        });
+      const text = node.textContent || '';
+      if (text.trim()) {
+        inlineBuffer.push(text.replace(/\n/g, '<br>'));
       }
       continue;
     }
@@ -367,9 +390,20 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
     const outer = el.outerHTML.trim();
     if (!outer) continue;
 
+    const tag = el.tagName.toUpperCase();
     const align = detectAlign(outer);
 
-    // 1. ACF slider gallery wrapper
+    // 2) inline 요소(a, span, strong, em 등)는 버퍼에 쌓음
+    const inlineTags = ['A', 'SPAN', 'STRONG', 'B', 'EM', 'I', 'U', 'MARK', 'SUP', 'SUB', 'SMALL', 'BR'];
+    if (inlineTags.includes(tag)) {
+      inlineBuffer.push(outer);
+      continue;
+    }
+
+    // 여기서부터는 block 요소이므로, 먼저 inline 버퍼를 flush
+    flushInlineBuffer(inlineBuffer);
+
+    // 3. ACF slider gallery wrapper
     if (
       /\bacf-slider-gallery\b/i.test(outer) ||
       /data-slider=['"]acf-gallery['"]/i.test(outer)
@@ -378,25 +412,25 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
       continue;
     }
 
-    // 2. WP gallery wrapper
+    // 4. WP gallery wrapper
     if (isGalleryHtml(outer)) {
       blocks.push({ type: 'gallery', html: outer, align });
       continue;
     }
 
-    // 3. Sliderberg
+    // 5. Sliderberg
     if (isSliderbergHtml(outer)) {
       blocks.push({ type: 'sliderberg', html: outer, align });
       continue;
     }
 
-    // 4. Single image
+    // 6. Single image
     if (
-  isSingleImageHtml(outer) ||
-  (el.tagName === 'IMG' &&
-    !el.closest('.wp-block-gallery') &&
-    !el.closest('.gallery'))
-) {
+      isSingleImageHtml(outer) ||
+      (el.tagName === 'IMG' &&
+        !el.closest('.wp-block-gallery') &&
+        !el.closest('.gallery'))
+    ) {
       blocks.push({
         type: 'image',
         html: el.tagName === 'IMG' ? `<figure>${outer}</figure>` : outer,
@@ -405,13 +439,13 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
       continue;
     }
 
-    // 5. Heading
+    // 7. Heading
     if (/^H[1-6]$/i.test(el.tagName)) {
       blocks.push({ type: 'heading', html: outer, align });
       continue;
     }
 
-    // 6. Paragraph
+    // 8. Paragraph
     if (el.tagName === 'P') {
       if (/<iframe/i.test(outer)) {
         blocks.push({ type: 'embed', html: outer, align });
@@ -423,35 +457,53 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
       continue;
     }
 
-    // 7. List
+    // 9. List
     if (el.tagName === 'UL' || el.tagName === 'OL') {
       blocks.push({ type: 'list', html: outer, align });
       continue;
     }
 
-    // 8. Quote
+    // 10. Quote
     if (el.tagName === 'BLOCKQUOTE') {
       blocks.push({ type: 'quote', html: outer, align });
       continue;
     }
 
-    // 9. Separator
+    // 11. Separator
     if (el.tagName === 'HR') {
       blocks.push({ type: 'separator', html: outer });
       continue;
     }
 
-    // 10. Video / Embed
+    // 12. Video / Embed
     if (/<iframe/i.test(outer) || /<video/i.test(outer)) {
       blocks.push({ type: 'embed', html: outer, align });
       continue;
     }
 
-    // 11. Unknown fallback
+    // 13. div/section/article인데 내부가 사실상 인라인 텍스트만이면 paragraph로 처리
+    const inner = el.innerHTML?.trim() || '';
+    const hasOnlyInlineContent =
+      inner &&
+      !/<(p|div|figure|blockquote|ul|ol|li|h[1-6]|hr|section|article|iframe|video)\b/i.test(inner);
+
+    if (hasOnlyInlineContent) {
+      blocks.push({
+        type: 'paragraph',
+        html: `<p>${inner}</p>`,
+        align: detectAlign(inner),
+      });
+      continue;
+    }
+
+    // 14. Unknown fallback
     if (outer.replace(/<[^>]+>/g, '').trim()) {
       blocks.push({ type: 'unknown', html: outer, align });
     }
   }
+
+  // 마지막에 남은 inline 버퍼 flush
+  flushInlineBuffer(inlineBuffer);
 
   return blocks;
 };
@@ -933,13 +985,31 @@ const ImageSliderBlock = ({
           </div>
         </div>
 
-        <div className="h-6 flex items-center justify-center">
-          {currentCaption && (
-            <p className="text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
-              {currentCaption}
-            </p>
-          )}
-        </div>
+        <div className="h-auto flex items-center justify-center">
+  {currentCaption && (() => {
+   const lines = currentCaption
+  .split('//')
+  .map(p => p.trim())
+  .filter(Boolean);
+
+    return (
+      <div className="font-sans tracking-wide text-center leading-[1.3]">
+        {lines.map((line, i) => (
+          <p
+            key={i}
+            className={`text-[10px] md:text-[11px] ${
+              i === 0
+                ? 'text-foreground/70'
+                : 'text-muted-foreground/50 mt-[2px]'
+            }`}
+          >
+            {line}
+          </p>
+        ))}
+      </div>
+    );
+  })()}
+</div>
 
         <div className="flex items-center justify-center gap-8 md:gap-10">
           <button

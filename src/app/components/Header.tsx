@@ -99,7 +99,7 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
           return (
             <span className="flex items-baseline gap-2">
               {/* Italiana 폰트 적용: 우아함을 강조 */}
-              <span className="font-['Petrona'] text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[200px] leading-tight break-words block">
+              <span className="font-['Petrona'] text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block">
                 {detailTitle}
               </span>
             </span>
@@ -116,7 +116,7 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
 
           return (
             <span className="flex items-baseline gap-2">
-              <span className="font-['Petrona'] opacity-100 relative top-[1px] max-w-[100px] min-[1025px]:max-w-[200px] leading-tight break-words block text-[12px]">
+              <span className="font-['Petrona'] opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px]">
                 {hasAuthor ? (
                   <>
                     {titlePart}
