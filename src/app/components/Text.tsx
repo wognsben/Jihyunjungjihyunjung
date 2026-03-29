@@ -300,17 +300,13 @@ export const Text = () => {
 
           <div className="flex flex-col mt-4 min-[1025px]:mt-0">
             {filteredData.map((item, index) => (
-              <motion.a
-                href={`#/text/${item.id}`}
-                key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-20px" }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                onMouseEnter={() => setHoveredImage(item.image)}
-                onMouseLeave={() => setHoveredImage(null)}
-                className="group/item relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 md:-mx-6 md:px-6 cursor-pointer rounded-lg overflow-hidden"
-              >
+              <a
+  href={`#/text/${item.id}`}
+  key={item.id}
+  onMouseEnter={() => setHoveredImage(item.image)}
+  onMouseLeave={() => setHoveredImage(null)}
+  className="group/item relative border-b border-foreground/5 py-8 md:py-6 transition-all duration-500 md:-mx-6 md:px-6 cursor-pointer rounded-lg overflow-hidden"
+>
                 {/* Hover Background (White instead of Dark) */}
                 <div className="absolute inset-0 bg-white opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 z-0" />
 
@@ -345,7 +341,7 @@ export const Text = () => {
                     </span>
                   </div>
                 </div>
-              </motion.a>
+              </a>
             ))}
           </div>
 
