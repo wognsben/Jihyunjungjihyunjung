@@ -29,7 +29,6 @@ const cleanText = (text: string) => {
     .replace(/&rdquo;/g, '"');
 };
 
-// Sanitize HTML: only allow safe inline tags
 const sanitizeHtml = (html: string): string => {
   if (!html) return '';
 
@@ -55,6 +54,21 @@ const sanitizeHtml = (html: string): string => {
   );
 
   return sanitized;
+};
+
+const stripHtmlToText = (html: string) => {
+  if (!html) return '';
+
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<\/p>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&#160;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
 export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
@@ -105,6 +119,29 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     }
   }, [textId, lang, currentLang, contextText, translateTextsByIds]);
 
+  const title = text?.title?.[lang]?.trim() || '';
+  const content = text?.content?.[lang]?.trim() || '';
+  const hasLangContent =
+  !!text?.content?.[lang]?.trim() ||
+  !!text?.contentHtml?.[lang]?.trim();
+
+const rawHtml = hasLangContent
+  ? text?.contentHtml?.[lang]?.trim() || ''
+  : '';
+  const rawHtmlText = stripHtmlToText(rawHtml);
+
+  // 현재 언어에 실제 본문이 있는지 판정
+  const hasLocalizedContent = !!(content || rawHtmlText);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!text) return;
+
+    if (!hasLocalizedContent) {
+      window.location.hash = '#/text';
+    }
+  }, [loading, text, hasLocalizedContent]);
+
   const handleContentClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const anchor = target.closest('a') as HTMLAnchorElement | null;
@@ -115,38 +152,38 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
 
     // 외부 링크는 그대로
     if (href.startsWith('http') || href.startsWith('//')) {
-  try {
-    const url = new URL(href);
+      try {
+        const url = new URL(href);
 
-    // 현재 페이지랑 같은 origin이면 → 내부 anchor로 처리
-    if (url.origin === window.location.origin && url.hash) {
-      const id = url.hash.replace('#', '');
+        // 현재 페이지랑 같은 origin이면 → 내부 anchor로 처리
+        if (url.origin === window.location.origin && url.hash) {
+          const id = url.hash.replace('#', '');
 
-      const el =
-        document.getElementById(id) ||
-        document.getElementById(`footnote-${id}`) ||
-        document.getElementById(`fn-${id}`) ||
-        document.getElementById(`note-${id}`) ||
-        document.getElementById(id.replace(/[^\d]/g, ''));
+          const el =
+            document.getElementById(id) ||
+            document.getElementById(`footnote-${id}`) ||
+            document.getElementById(`fn-${id}`) ||
+            document.getElementById(`note-${id}`) ||
+            document.getElementById(id.replace(/[^\d]/g, ''));
 
-      if (el) {
-        e.preventDefault();
-        e.stopPropagation();
+          if (el) {
+            e.preventDefault();
+            e.stopPropagation();
 
-        el.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
+            el.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
+
+          return;
+        }
+      } catch {
+        return;
       }
 
       return;
     }
-  } catch {
-    return;
-  }
-
-  return;
-}
 
     // 라우터 링크는 그대로
     if (href.startsWith('#/')) return;
@@ -196,16 +233,9 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
     );
   }
 
-  const title = text.title[lang] || text.title.ko;
-  const content = text.content
-    ? text.content[lang] || text.content.ko
-    : text.summary
-      ? text.summary[lang] || text.summary.ko
-      : '';
-
-  const rawHtml = text.contentHtml
-    ? text.contentHtml[lang] || text.contentHtml.ko
-    : undefined;
+  if (!hasLocalizedContent) {
+    return null;
+  }
 
   const useBlockRenderer = !!rawHtml;
 
@@ -291,24 +321,24 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
       >
         <article>
           <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
-  <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-mono">
-    <div className="flex items-center gap-3">
-      <span className="font-[SansSerif]">{text.category.toLowerCase()}</span>
-      <span className="opacity-30">/</span>
-      <span>{text.year}</span>
-    </div>
-  </div>
+            <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-mono">
+              <div className="flex items-center gap-3">
+                <span className="font-[SansSerif]">{text.category.toLowerCase()}</span>
+                <span className="opacity-30">/</span>
+                <span>{text.year}</span>
+              </div>
+            </div>
 
-  <motion.h1
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.8, ease: 'easeOut' }}
-    className={`font-light text-foreground/90 leading-tight text-[24px] text-center ${
-      lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
-    }`}
-  >
-    {cleanText(title)}
-  </motion.h1>
+            <motion.h1
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className={`font-light text-foreground/90 leading-tight text-[24px] text-center ${
+                lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
+              }`}
+            >
+              {cleanText(title)}
+            </motion.h1>
 
             {text.image && (
               <motion.div
@@ -331,7 +361,7 @@ export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
           <div className="space-y-6">
             {useBlockRenderer ? (
               <div onClick={handleContentClick}>
-                <BlockRenderer html={rawHtml!} lang={lang} compact />
+                <BlockRenderer html={rawHtml} lang={lang} compact />
               </div>
             ) : (
               paragraphs.map((paragraph, index) => (

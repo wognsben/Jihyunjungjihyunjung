@@ -883,13 +883,13 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
   });
 
   // EN
-  const title_en = acf['text_제목en']
-    ? decode(acf['text_제목en'])
-    : acf['text_제목_en']
-    ? decode(acf['text_제목_en'])
-    : acf.title_en
-    ? decode(acf.title_en)
-    : title_ko;
+ const title_en = acf['text_제목en']
+  ? decode(acf['text_제목en'])
+  : acf['text_제목_en']
+  ? decode(acf['text_제목_en'])
+  : acf.title_en
+  ? decode(acf.title_en)
+  : '';
 
   const content_en_raw = await resolveGalleryShortcodes(
     acf['TEXT_작품_설명en'] ||
@@ -898,19 +898,19 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
       acf.content_en ||
       ''
   );
-  const summary_en = acf.summary_en ? decode(acf.summary_en) : summary_ko;
+  const summary_en = acf.summary_en ? decode(acf.summary_en) : '';
   const content_en = content_en_raw
-    ? decode(stripHtmlToText(content_en_raw))
-    : content_ko;
+  ? decode(stripHtmlToText(content_en_raw))
+  : '';
 
   // JP
   const title_jp = acf['text_제목jp']
-    ? decode(acf['text_제목jp'])
-    : acf['text_제목_jp']
-    ? decode(acf['text_제목_jp'])
-    : acf.title_jp
-    ? decode(acf.title_jp)
-    : title_ko;
+  ? decode(acf['text_제목jp'])
+  : acf['text_제목_jp']
+  ? decode(acf['text_제목_jp'])
+  : acf.title_jp
+  ? decode(acf.title_jp)
+  : '';
 
   const content_jp_raw = await resolveGalleryShortcodes(
     acf['TEXT_작품_설명jp'] ||
@@ -920,10 +920,10 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
       acf.content_jp ||
       ''
   );
-  const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : summary_ko;
+  const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : '';
   const content_jp = content_jp_raw
-    ? decode(stripHtmlToText(content_jp_raw))
-    : content_ko;
+  ? decode(stripHtmlToText(content_jp_raw))
+  : '';
 
   // 🔍 DEBUG: Log final values
   console.log('🔍 [transformText Debug] Final values:', {
