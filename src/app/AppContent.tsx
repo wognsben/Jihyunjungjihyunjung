@@ -235,134 +235,175 @@ export const AppContent = () => {
   }, []);
 
   useEffect(() => {
-    if (isRestoringScrollRef.current) {
-      const savedPosition = scrollPositionsRef.current[currentView] || 0;
-      isRestoringScrollRef.current = false;
-      pendingScrollRef.current = savedPosition;
+  // 🔥 text-detail에서는 전역 window scroll 복원 자체를 막음
+  if (currentView === 'text-detail') {
+    isRestoringScrollRef.current = false;
+    pendingScrollRef.current = null;
 
-      if (scrollSpacerRef.current) {
-        scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-      }
+    if (scrollSpacerRef.current) {
+      scrollSpacerRef.current.style.height = '0px';
+    }
 
-      requestAnimationFrame(() => {
+    return;
+  }
+
+  if (isRestoringScrollRef.current) {
+    const savedPosition = scrollPositionsRef.current[currentView] || 0;
+    isRestoringScrollRef.current = false;
+    pendingScrollRef.current = savedPosition;
+
+    if (scrollSpacerRef.current) {
+      scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, savedPosition);
+    });
+
+    const EXIT_MS = 850;
+    const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+
+    const timeoutIds = delays.map((delay) =>
+      setTimeout(() => {
         window.scrollTo(0, savedPosition);
-      });
 
-      const EXIT_MS = 850;
-      const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-      const timeoutIds = delays.map((delay) =>
-        setTimeout(() => {
+        if (
+          scrollSpacerRef.current &&
+          document.documentElement.scrollHeight -
+            parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
+            savedPosition
+        ) {
+          scrollSpacerRef.current.style.height = '0px';
+        }
+      }, delay)
+    );
+
+    const cleanupId = setTimeout(() => {
+      if (scrollSpacerRef.current) {
+        scrollSpacerRef.current.style.height = '0px';
+      }
+    }, 3000);
+
+    return () => {
+      timeoutIds.forEach((id) => clearTimeout(id));
+      clearTimeout(cleanupId);
+    };
+  } else {
+    const stack = detailScrollStackRef.current;
+    const currentId =
+      currentView === 'work-detail'
+        ? selectedWorkId
+        : currentView === 'text-detail'
+        ? selectedTextId
+        : currentView === 'about'
+        ? null
+        : null;
+
+    if (stack.length > 0) {
+      const lastEntry = stack[stack.length - 1];
+
+      if (lastEntry.view === currentView && lastEntry.id === currentId) {
+        stack.pop();
+
+        if (lastEntry.view === 'work-detail' && lastEntry.id) {
+          setWorkDetailRestoreMap((prev) => ({
+            ...prev,
+            [lastEntry.id as string]: true,
+          }));
+        }
+
+        const savedPosition = lastEntry.scrollY;
+        pendingScrollRef.current = savedPosition;
+
+        if (scrollSpacerRef.current) {
+          scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+        }
+
+        requestAnimationFrame(() => {
           window.scrollTo(0, savedPosition);
-          if (
-            scrollSpacerRef.current &&
-            document.documentElement.scrollHeight -
-              parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-              savedPosition
-          ) {
+        });
+
+        const EXIT_MS = 850;
+        const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+
+        const timeoutIds = delays.map((delay) =>
+          setTimeout(() => {
+            window.scrollTo(0, savedPosition);
+
+            if (
+              scrollSpacerRef.current &&
+              document.documentElement.scrollHeight -
+                parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
+                savedPosition
+            ) {
+              scrollSpacerRef.current.style.height = '0px';
+            }
+          }, delay)
+        );
+
+        const cleanupId = setTimeout(() => {
+          if (scrollSpacerRef.current) {
             scrollSpacerRef.current.style.height = '0px';
           }
-        }, delay)
-      );
+        }, 3000);
 
-      const cleanupId = setTimeout(() => {
-        if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
-      }, 3000);
-
-      return () => {
-        timeoutIds.forEach((id) => clearTimeout(id));
-        clearTimeout(cleanupId);
-      };
-    } else {
-      const stack = detailScrollStackRef.current;
-      const currentId =
-        currentView === 'work-detail'
-          ? selectedWorkId
-          : currentView === 'text-detail'
-          ? selectedTextId
-          : currentView === 'about'
-          ? null
-          : null;
-
-      if (stack.length > 0) {
-        const lastEntry = stack[stack.length - 1];
-
-        if (lastEntry.view === currentView && lastEntry.id === currentId) {
-          stack.pop();
-
-          if (lastEntry.view === 'work-detail' && lastEntry.id) {
-            setWorkDetailRestoreMap((prev) => ({
-              ...prev,
-              [lastEntry.id as string]: true,
-            }));
-          }
-
-          const savedPosition = lastEntry.scrollY;
-          pendingScrollRef.current = savedPosition;
-
-          if (scrollSpacerRef.current) {
-            scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-          }
-
-          requestAnimationFrame(() => {
-            window.scrollTo(0, savedPosition);
-          });
-
-          const EXIT_MS = 850;
-          const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-          const timeoutIds = delays.map((delay) =>
-            setTimeout(() => {
-              window.scrollTo(0, savedPosition);
-              if (
-                scrollSpacerRef.current &&
-                document.documentElement.scrollHeight -
-                  parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-                  savedPosition
-              ) {
-                scrollSpacerRef.current.style.height = '0px';
-              }
-            }, delay)
-          );
-
-          const cleanupId = setTimeout(() => {
-            if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
-          }, 3000);
-
-          return () => {
-            timeoutIds.forEach((id) => clearTimeout(id));
-            clearTimeout(cleanupId);
-          };
-        }
+        return () => {
+          timeoutIds.forEach((id) => clearTimeout(id));
+          clearTimeout(cleanupId);
+        };
       }
-
-      pendingScrollRef.current = 0;
-      if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
     }
-  }, [currentView, selectedWorkId, selectedTextId]);
 
-  const ScrollRestorer = React.useCallback(() => {
-    useLayoutEffect(() => {
-      const target = pendingScrollRef.current;
-      if (target !== null) {
-        window.scrollTo(0, target);
-        requestAnimationFrame(() => {
-          window.scrollTo(0, target);
-          setTimeout(() => {
-            if (scrollSpacerRef.current) scrollSpacerRef.current.style.height = '0px';
-          }, 500);
-        });
-        pendingScrollRef.current = null;
+    pendingScrollRef.current = 0;
+
+    if (scrollSpacerRef.current) {
+      scrollSpacerRef.current.style.height = '0px';
+    }
+  }
+}, [currentView, selectedWorkId, selectedTextId]);
+
+const ScrollRestorer = React.useCallback(() => {
+  useLayoutEffect(() => {
+    // 🔥 text-detail에서는 ScrollRestorer도 실행하지 않음
+    if (currentViewRef.current === 'text-detail') {
+      pendingScrollRef.current = null;
+
+      if (scrollSpacerRef.current) {
+        scrollSpacerRef.current.style.height = '0px';
       }
-    }, []);
-    return null;
+
+      return;
+    }
+
+    const target = pendingScrollRef.current;
+
+    if (target !== null) {
+      window.scrollTo(0, target);
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, target);
+
+        setTimeout(() => {
+          if (scrollSpacerRef.current) {
+            scrollSpacerRef.current.style.height = '0px';
+          }
+        }, 500);
+      });
+
+      pendingScrollRef.current = null;
+    }
   }, []);
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-      </div>
-    );
-  }
+  return null;
+}, []);
+
+if (isLoading) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+      <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+    </div>
+  );
+}
 
   const currentWork = selectedWorkId ? works.find((w) => w.id === selectedWorkId) : null;
   const currentWorkTitle = currentWork
@@ -474,11 +515,10 @@ export const AppContent = () => {
             <Text />
           </PageTransition>
         ) : currentView === 'text-detail' ? (
-          <PageTransition key={`text-detail-${selectedTextId}`} className="min-h-screen">
-            <ScrollRestorer />
-            <TextDetail textId={selectedTextId} isPage />
-          </PageTransition>
-        ) : (
+  <PageTransition key={`text-detail-${selectedTextId}`} className="min-h-screen">
+    <TextDetail textId={selectedTextId} isPage />
+  </PageTransition>
+) : (
           <PageTransition key="work" className="min-h-screen">
             <ScrollRestorer />
             <WorkGrid />
