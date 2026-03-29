@@ -416,20 +416,43 @@ const isSliderbergHtml = (html: string): boolean => {
 const parseOrphanHtml = (html: string): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
   const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
+  const normalizedHtml = html
+  .replace(/<p>\s*<\/p>/gi, '[[PARA_BREAK]]');
+
+const doc = parser.parseFromString(normalizedHtml, 'text/html');
 
   const flushInlineBuffer = (buffer: string[]) => {
-    const joined = buffer.join('').trim();
-    if (!joined) return;
+  const joined = buffer.join('').trim();
 
+  if (!joined) {
+    buffer.length = 0;
+    return;
+  }
+
+  const normalized = joined
+    .replace(/(?:<br\s*\/?>\s*){2,}/gi, '[[PARA_BREAK]]')
+    .replace(/\[\[PARA_BREAK\]\]/g, '[[PARA_BREAK]]');
+
+  const parts = normalized
+    .split('[[PARA_BREAK]]')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    buffer.length = 0;
+    return;
+  }
+
+  parts.forEach((part) => {
     blocks.push({
       type: 'paragraph',
-      html: `<p>${joined}</p>`,
-      align: detectAlign(joined),
+      html: `<p>${part}</p>`,
+      align: detectAlign(part),
     });
+  });
 
-    buffer.length = 0;
-  };
+  buffer.length = 0;
+};
 
   const nodes = Array.from(doc.body.childNodes);
   const inlineBuffer: string[] = [];
@@ -437,12 +460,22 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
   for (const node of nodes) {
     // 1) 텍스트 노드 → 일단 버퍼에 쌓음
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent || '';
-      if (text.trim()) {
-        inlineBuffer.push(text.replace(/\n/g, '<br>'));
-      }
-      continue;
-    }
+  const text = node.textContent || '';
+
+  const normalizedText = text
+    // CRLF / LF 정리
+    .replace(/\r\n/g, '\n')
+    // NBSP만 있는 빈 줄도 문단 구분으로 살린다
+    .replace(/\n[\s\u00a0]*\n+/g, '[[PARA_BREAK]]')
+    // 일반 줄바꿈은 <br>로
+    .replace(/\n/g, '<br>');
+
+  // 진짜 아무 내용도 없고 문단 구분도 없으면 버림
+  if (!normalizedText.trim() || normalizedText === '<br>') continue;
+
+  inlineBuffer.push(normalizedText);
+  continue;
+}
 
     if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
@@ -454,11 +487,24 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
     const align = detectAlign(outer);
 
     // 2) inline 요소(a, span, strong, em 등)는 버퍼에 쌓음
-    const inlineTags = ['A', 'SPAN', 'STRONG', 'B', 'EM', 'I', 'U', 'MARK', 'SUP', 'SUB', 'SMALL', 'BR'];
-    if (inlineTags.includes(tag)) {
-      inlineBuffer.push(outer);
-      continue;
-    }
+    const inlineTags = ['A', 'SPAN', 'STRONG', 'B', 'EM', 'I', 'U', 'MARK', 'SUP', 'SUB', 'SMALL'];
+
+if (tag === 'BR') {
+  const prev = inlineBuffer[inlineBuffer.length - 1] || '';
+
+  // 연속 줄바꿈이면 문단 구분 토큰으로 사용
+  if (/<br\s*\/?>$/i.test(prev)) {
+    inlineBuffer.push('[[PARA_BREAK]]');
+  } else {
+    inlineBuffer.push('<br>');
+  }
+  continue;
+}
+
+if (inlineTags.includes(tag)) {
+  inlineBuffer.push(outer);
+  continue;
+}
 
     // 여기서부터는 block 요소이므로, 먼저 inline 버퍼를 flush
     flushInlineBuffer(inlineBuffer);
