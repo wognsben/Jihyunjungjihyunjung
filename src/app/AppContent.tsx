@@ -46,8 +46,10 @@ export const AppContent = () => {
     { view: View; id: string | null; scrollY: number }[]
   >([]);
 
-  // Global nav → work fresh entry 구분용
+    // Global nav fresh entry flags
   const isFreshNavToWorkRef = React.useRef(false);
+  const isFreshNavToTextRef = React.useRef(false);
+  const isFreshNavToAboutRef = React.useRef(false);
 
   useEffect(() => {
     currentViewRef.current = currentView;
@@ -107,15 +109,21 @@ export const AppContent = () => {
       // Save current page scroll before switching
       scrollPositionsRef.current[prevView] = window.scrollY;
 
-      // text detail: #/text/:id
+            // text detail: #/text/:id
       const textDetailMatch = hash.match(/^#\/text\/([^/]+)$/);
       if (textDetailMatch) {
         const textId = textDetailMatch[1];
         const stack = detailScrollStackRef.current;
         const top = stack[stack.length - 1];
 
+        // text list / index 에서 detail로 들어가는 건 항상 fresh entry
+        const isEnteringTextDetailFromList =
+          prevView === 'text' || prevView === 'index';
+
         const isReturningToTextDetail =
-          top?.view === 'text-detail' && top?.id === textId;
+          !isEnteringTextDetailFromList &&
+          top?.view === 'text-detail' &&
+          top?.id === textId;
 
         if (!isReturningToTextDetail) {
           if (prevView === 'about') {
@@ -144,20 +152,32 @@ export const AppContent = () => {
         }
 
         setSelectedTextId(textId);
-        setSelectedWorkId(null);
-        setCurrentView('text-detail');
-        return;
-      }
+setSelectedWorkId(null);
+setCurrentView('text-detail');
 
-      // work detail: #/work/:id
+// 🔥 fresh일 때만 top
+if (!isReturningToTextDetail) {
+  window.scrollTo(0, 0);
+}
+
+return;
+}
+
+            // work detail: #/work/:id
       const workDetailMatch = hash.match(/^#\/work\/([^/]+)$/);
       if (workDetailMatch) {
         const workId = workDetailMatch[1];
         const stack = detailScrollStackRef.current;
         const top = stack[stack.length - 1];
 
+        // work list / index 에서 detail로 들어가는 건 항상 fresh entry
+        const isEnteringWorkDetailFromList =
+          prevView === 'work' || prevView === 'index';
+
         const isReturningToWorkDetail =
-          top?.view === 'work-detail' && top?.id === workId;
+          !isEnteringWorkDetailFromList &&
+          top?.view === 'work-detail' &&
+          top?.id === workId;
 
         if (!isReturningToWorkDetail) {
           if (prevView === 'about') {
@@ -185,25 +205,33 @@ export const AppContent = () => {
           }
         }
 
+        // list -> detail / header -> work -> detail 은 항상 fresh
         setWorkDetailRestoreMap((prev) => ({
           ...prev,
-          [workId]: false,
+          [workId]: isReturningToWorkDetail,
         }));
 
         setSelectedWorkId(workId);
         setSelectedTextId(null);
         setCurrentView('work-detail');
+        // 🔥 fresh detail 진입이면 딱 1번만 top
+if (!isReturningToWorkDetail) {
+  window.scrollTo(0, 0);
+}
         return;
       }
 
-      // work list: #/work
+            // work list: #/work
       if (hash === '#/work') {
         if (isFreshNavToWorkRef.current) {
-          // 글로벌 Work 클릭으로 들어온 경우는 fresh entry
-          isRestoringScrollRef.current = false;
-          pendingScrollRef.current = 0;
-          isFreshNavToWorkRef.current = false;
-        } else {
+  isRestoringScrollRef.current = false;
+  pendingScrollRef.current = 0;
+
+  // 즉시 top (1회)
+  window.scrollTo(0, 0);
+
+  isFreshNavToWorkRef.current = false;
+} else {
           // back / 복원 흐름
           isRestoringScrollRef.current = true;
         }
@@ -213,9 +241,18 @@ export const AppContent = () => {
         setSelectedTextId(null);
         return;
       }
-
-      // about: #/about
+      
+            // about: #/about
       if (hash === '#/about') {
+        if (isFreshNavToAboutRef.current) {
+  isRestoringScrollRef.current = false;
+  pendingScrollRef.current = 0;
+
+  window.scrollTo(0, 0);
+
+  isFreshNavToAboutRef.current = false;
+}
+
         setCurrentView('about');
         setSelectedWorkId(null);
         setSelectedTextId(null);
@@ -223,13 +260,23 @@ export const AppContent = () => {
       }
 
       // text list: #/text
-      if (hash === '#/text') {
-        isRestoringScrollRef.current = true;
-        setCurrentView('text');
-        setSelectedWorkId(null);
-        setSelectedTextId(null);
-        return;
-      }
+if (hash === '#/text') {
+  if (isFreshNavToTextRef.current) {
+    isRestoringScrollRef.current = false;
+    pendingScrollRef.current = 0;
+
+    window.scrollTo(0, 0);
+
+    isFreshNavToTextRef.current = false;
+  } else {
+    isRestoringScrollRef.current = true;
+  }
+
+  setCurrentView('text');
+  setSelectedWorkId(null);
+  setSelectedTextId(null);
+  return;
+}
 
       // index
       setCurrentView('index');
@@ -243,60 +290,42 @@ export const AppContent = () => {
   }, []);
 
   useEffect(() => {
-    // 🔥 text-detail에서는 전역 window scroll 복원 자체를 막음
-    if (currentView === 'text-detail') {
-      isRestoringScrollRef.current = false;
-      pendingScrollRef.current = null;
+    // about 에서는 AppContent 전역 scroll 복원을 막음
+if (currentView === 'about') {
+  isRestoringScrollRef.current = false;
+  pendingScrollRef.current = null;
+
+  if (scrollSpacerRef.current) {
+    scrollSpacerRef.current.style.height = '0px';
+  }
+
+  return;
+}
+
+    if (isRestoringScrollRef.current) {
+  const savedPosition = scrollPositionsRef.current[currentView] || 0;
+  isRestoringScrollRef.current = false;
+  pendingScrollRef.current = savedPosition;
+
+  if (scrollSpacerRef.current) {
+    scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+  }
+
+  requestAnimationFrame(() => {
+    window.scrollTo(0, savedPosition);
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, savedPosition);
 
       if (scrollSpacerRef.current) {
         scrollSpacerRef.current.style.height = '0px';
       }
+    });
+  });
 
-      return;
-    }
-
-    if (isRestoringScrollRef.current) {
-      const savedPosition = scrollPositionsRef.current[currentView] || 0;
-      isRestoringScrollRef.current = false;
-      pendingScrollRef.current = savedPosition;
-
-      if (scrollSpacerRef.current) {
-        scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-      }
-
-      requestAnimationFrame(() => {
-        window.scrollTo(0, savedPosition);
-      });
-
-      const EXIT_MS = 850;
-      const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-
-      const timeoutIds = delays.map((delay) =>
-        setTimeout(() => {
-          window.scrollTo(0, savedPosition);
-
-          if (
-            scrollSpacerRef.current &&
-            document.documentElement.scrollHeight -
-              parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-              savedPosition
-          ) {
-            scrollSpacerRef.current.style.height = '0px';
-          }
-        }, delay)
-      );
-
-      const cleanupId = setTimeout(() => {
-        if (scrollSpacerRef.current) {
-          scrollSpacerRef.current.style.height = '0px';
-        }
-      }, 3000);
-
-      return () => {
-        timeoutIds.forEach((id) => clearTimeout(id));
-        clearTimeout(cleanupId);
-      };
-    } else {
+  return;
+}
+    else {
       const stack = detailScrollStackRef.current;
       const currentId =
         currentView === 'work-detail'
@@ -307,60 +336,41 @@ export const AppContent = () => {
           ? null
           : null;
 
-      if (stack.length > 0) {
-        const lastEntry = stack[stack.length - 1];
+     if (stack.length > 0) {
+  const lastEntry = stack[stack.length - 1];
 
-        if (lastEntry.view === currentView && lastEntry.id === currentId) {
-          stack.pop();
+  if (lastEntry.view === currentView && lastEntry.id === currentId) {
+    stack.pop();
 
-          if (lastEntry.view === 'work-detail' && lastEntry.id) {
-            setWorkDetailRestoreMap((prev) => ({
-              ...prev,
-              [lastEntry.id as string]: true,
-            }));
-          }
+    if (lastEntry.view === 'work-detail' && lastEntry.id) {
+      setWorkDetailRestoreMap((prev) => ({
+        ...prev,
+        [lastEntry.id as string]: true,
+      }));
+    }
 
-          const savedPosition = lastEntry.scrollY;
-          pendingScrollRef.current = savedPosition;
+    const savedPosition = lastEntry.scrollY;
+    pendingScrollRef.current = savedPosition;
 
-          if (scrollSpacerRef.current) {
-            scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-          }
+    if (scrollSpacerRef.current) {
+      scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+    }
 
-          requestAnimationFrame(() => {
-            window.scrollTo(0, savedPosition);
-          });
+    requestAnimationFrame(() => {
+      window.scrollTo(0, savedPosition);
 
-          const EXIT_MS = 850;
-          const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
 
-          const timeoutIds = delays.map((delay) =>
-            setTimeout(() => {
-              window.scrollTo(0, savedPosition);
-
-              if (
-                scrollSpacerRef.current &&
-                document.documentElement.scrollHeight -
-                  parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-                  savedPosition
-              ) {
-                scrollSpacerRef.current.style.height = '0px';
-              }
-            }, delay)
-          );
-
-          const cleanupId = setTimeout(() => {
-            if (scrollSpacerRef.current) {
-              scrollSpacerRef.current.style.height = '0px';
-            }
-          }, 3000);
-
-          return () => {
-            timeoutIds.forEach((id) => clearTimeout(id));
-            clearTimeout(cleanupId);
-          };
+        if (scrollSpacerRef.current) {
+          scrollSpacerRef.current.style.height = '0px';
         }
-      }
+      });
+    });
+
+    return;
+  }
+}
 
       pendingScrollRef.current = 0;
 
@@ -371,39 +381,37 @@ export const AppContent = () => {
   }, [currentView, selectedWorkId, selectedTextId]);
 
   const ScrollRestorer = React.useCallback(() => {
-    useLayoutEffect(() => {
-      // 🔥 text-detail에서는 ScrollRestorer도 실행하지 않음
-      if (currentViewRef.current === 'text-detail') {
-        pendingScrollRef.current = null;
+  useLayoutEffect(() => {
+    // about 에서는 ScrollRestorer를 실행하지 않음
+if (currentViewRef.current === 'about') {
+  pendingScrollRef.current = null;
+
+  if (scrollSpacerRef.current) {
+    scrollSpacerRef.current.style.height = '0px';
+  }
+
+  return;
+}
+
+    const target = pendingScrollRef.current;
+
+    if (target !== null) {
+      window.scrollTo(0, target);
+
+      requestAnimationFrame(() => {
+        window.scrollTo(0, target);
 
         if (scrollSpacerRef.current) {
           scrollSpacerRef.current.style.height = '0px';
         }
+      });
 
-        return;
-      }
-
-      const target = pendingScrollRef.current;
-
-      if (target !== null) {
-        window.scrollTo(0, target);
-
-        requestAnimationFrame(() => {
-          window.scrollTo(0, target);
-
-          setTimeout(() => {
-            if (scrollSpacerRef.current) {
-              scrollSpacerRef.current.style.height = '0px';
-            }
-          }, 500);
-        });
-
-        pendingScrollRef.current = null;
-      }
-    }, []);
-
-    return null;
+      pendingScrollRef.current = null;
+    }
   }, []);
+
+  return null;
+}, []);
 
   const shouldBlockEntireApp = currentView !== 'index' && isLoading;
 
@@ -450,15 +458,27 @@ export const AppContent = () => {
     // work detail 복원 플래그도 초기화
     setWorkDetailRestoreMap({});
 
-    // global nav로 work에 들어가는 경우를 별도 표식
+        // fresh nav flags reset
+    isFreshNavToWorkRef.current = false;
+    isFreshNavToTextRef.current = false;
+    isFreshNavToAboutRef.current = false;
+
+    // global nav fresh entry flags
     if (view === 'work') {
       isFreshNavToWorkRef.current = true;
       setWorkFilter('all');
     }
 
     if (view === 'text') {
-  setTextFilter('All');
-}
+      isFreshNavToTextRef.current = true;
+      setTextFilter('All');
+    }
+
+        if (view === 'about') {
+      isFreshNavToAboutRef.current = true;
+      sessionStorage.setItem('aboutFreshEntry', 'true');
+      sessionStorage.removeItem('aboutScrollTop');
+    }
 
     // 섹션 이동 시 선택 상태 정리
     if (view !== 'work-detail') {

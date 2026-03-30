@@ -16,7 +16,7 @@ interface InfiniteWorkGridProps {
   works: Work[];
   onWorkClick?: (workId: number) => void;
   restoreKey?: string;
-  shouldRestore?: boolean;
+  shouldRestore: boolean;
 }
 
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
@@ -71,7 +71,7 @@ export const InfiniteWorkGrid = ({
   works,
   onWorkClick,
   restoreKey,
-  shouldRestore = false,
+  shouldRestore,
 }: InfiniteWorkGridProps) => {
   const { lang } = useLanguage();
 
@@ -397,7 +397,7 @@ export const InfiniteWorkGrid = ({
   }, [isReady, isDesktop, isDesktopTrackActive, works, animateDesktopToTarget]);
 
   // Reset to start for fresh entry
-  useEffect(() => {
+    useEffect(() => {
     if (!mode) return;
     if (shouldRestore) return;
 
@@ -407,7 +407,7 @@ export const InfiniteWorkGrid = ({
       sessionStorage.removeItem(storageKey);
     }
 
-    requestAnimationFrame(() => {
+    const applyResetToStart = () => {
       if (mode === 'mobile' && mobileViewportRef.current) {
         mobileViewportRef.current.scrollLeft = 0;
         setCurrentSlide(0);
@@ -424,11 +424,28 @@ export const InfiniteWorkGrid = ({
         desktopTargetScrollRef.current = 0;
         setScrollProgress(0);
       }
+    };
+
+    let timeoutId: number | null = null;
+
+    const rafId = requestAnimationFrame(() => {
+      applyResetToStart();
+
+      timeoutId = window.setTimeout(() => {
+        applyResetToStart();
+      }, 60);
     });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
   }, [shouldRestore, mode, tabletX, storageKey]);
 
   // Restore saved position only when returning back
-  useEffect(() => {
+    useEffect(() => {
     if (!shouldRestore) return;
     if (!storageKey || !mode || hasRestoredRef.current) return;
 
@@ -442,7 +459,9 @@ export const InfiniteWorkGrid = ({
       const parsed = JSON.parse(raw);
       const savedValue = Number(parsed?.value ?? 0);
 
-      requestAnimationFrame(() => {
+      let timeoutId: number | null = null;
+
+      const applyRestore = () => {
         if (mode === 'mobile' && mobileViewportRef.current) {
           mobileViewportRef.current.scrollLeft = savedValue;
 
@@ -482,12 +501,26 @@ export const InfiniteWorkGrid = ({
           desktopTargetScrollRef.current = clampedValue;
           setScrollProgress(maxScroll <= 0 ? 0 : clampedValue / maxScroll);
         }
-      });
-    } catch {
-      // ignore
-    }
+      };
 
-    hasRestoredRef.current = true;
+      const rafId = requestAnimationFrame(() => {
+        applyRestore();
+
+        timeoutId = window.setTimeout(() => {
+          applyRestore();
+          hasRestoredRef.current = true;
+        }, 60);
+      });
+
+      return () => {
+        cancelAnimationFrame(rafId);
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+    } catch {
+      hasRestoredRef.current = true;
+    }
   }, [shouldRestore, storageKey, mode, tabletX, tabletBounds.left, works.length]);
 
   useEffect(() => {

@@ -13,6 +13,7 @@ import gsap from 'gsap';
 // ----------------------------------------------------------------------
 
 const ABOUT_SCROLL_STORAGE_KEY = 'aboutScrollTop';
+const ABOUT_FRESH_ENTRY_KEY = 'aboutFreshEntry';
 
 let aboutDataCache: AboutData | null = null;
 let historyItemsCache: HistoryItem[] = [];
@@ -460,8 +461,59 @@ export const About = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
     if (loading) return;
+    if (typeof window === 'undefined') return;
+
+    const isFreshEntry = sessionStorage.getItem(ABOUT_FRESH_ENTRY_KEY) === 'true';
+
+    // header -> about 은 무조건 top
+        if (isFreshEntry) {
+      sessionStorage.removeItem(ABOUT_FRESH_ENTRY_KEY);
+      sessionStorage.removeItem(ABOUT_SCROLL_STORAGE_KEY);
+
+      const applyFreshTop = () => {
+        if (window.innerWidth < 1025) {
+          if (containerRef.current) {
+            containerRef.current.scrollTop = 0;
+          }
+          return;
+        }
+
+        const s = state.current;
+        s.winH = window.innerHeight;
+
+        if (contentRef.current) {
+          s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
+          contentRef.current.style.transform = `translate3d(0, 0px, 0)`;
+        }
+
+        s.current = 0;
+        s.target = 0;
+
+        if (thumbRef.current) {
+          thumbRef.current.style.transform = `translate3d(0, 0px, 0)`;
+        }
+      };
+
+      let timeoutId: number | null = null;
+
+      const raf1 = requestAnimationFrame(() => {
+        applyFreshTop();
+
+        // 모바일/태블릿 레이아웃 안정화 후 1회 재적용
+        timeoutId = window.setTimeout(() => {
+          applyFreshTop();
+        }, 180);
+      });
+
+      return () => {
+        cancelAnimationFrame(raf1);
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+    }
 
     const raw = sessionStorage.getItem(ABOUT_SCROLL_STORAGE_KEY);
     if (!raw) return;
@@ -470,8 +522,6 @@ export const About = () => {
     if (Number.isNaN(saved)) return;
 
     const applySavedScroll = () => {
-      if (typeof window === 'undefined') return;
-
       if (window.innerWidth < 1025) {
         if (containerRef.current) {
           containerRef.current.scrollTop = saved;
@@ -503,13 +553,18 @@ export const About = () => {
       }
     };
 
-    requestAnimationFrame(applySavedScroll);
-    const t1 = setTimeout(applySavedScroll, 250);
-    const t2 = setTimeout(applySavedScroll, 700);
+    const rafId = requestAnimationFrame(() => {
+      applySavedScroll();
+    });
+
+    // 모바일/태블릿은 첫 프레임만으로는 복원이 씹힐 수 있어서 1회 재적용
+    const timeoutId = window.setTimeout(() => {
+      applySavedScroll();
+    }, 180);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(timeoutId);
     };
   }, [loading, processedContentSafeKey(aboutData, lang, works)]);
 

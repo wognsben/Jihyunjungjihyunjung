@@ -18,15 +18,15 @@ interface TooltipTransitionProps {
   onMouseLeave?: () => void;
 }
 
-export const TooltipTransition: React.FC<TooltipTransitionProps> = ({ 
-  hoveredWorkId, 
-  isOpen, 
+export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
+  hoveredWorkId,
+  isOpen,
   onClose,
   triggerRect,
   onClick,
   isMobile = false,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
 }) => {
   const { works } = useWorks();
   const { lang } = useLanguage();
@@ -36,10 +36,31 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   const slideshowTimer = useRef<gsap.core.Tween | null>(null);
   const slideshowIndexRef = useRef<number>(0);
 
+  const extractImagesFromHtml = (html: string): string[] => {
+    if (!html) return [];
+
+    const images: string[] = [];
+    const seen = new Set<string>();
+
+    const imgRegex = /<img[^>]+src="([^">]+)"/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = imgRegex.exec(html)) !== null) {
+      const src = match[1]?.trim();
+      if (!src) continue;
+      if (seen.has(src)) continue;
+
+      seen.add(src);
+      images.push(src);
+    }
+
+    return images;
+  };
+
   // Update active work
   useEffect(() => {
     if (hoveredWorkId) {
-      const found = works.find(w => w.id === hoveredWorkId);
+      const found = works.find((w) => w.id === hoveredWorkId);
       if (found) {
         setActiveWork(found);
         setCurrentImageIndex(0);
@@ -49,13 +70,31 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
   }, [hoveredWorkId, works]);
 
   const images = useMemo(() => {
-  if (!activeWork) return [];
+    if (!activeWork) return [];
 
-  const localizedImages = getLocalizedGalleryImages(activeWork as any, lang)
-    .filter(Boolean) as string[];
+    const koContent = activeWork.content_rendered || '';
 
-  return Array.from(new Set(localizedImages));
-}, [activeWork, lang]);
+    const localizedContent =
+      lang === 'en'
+        ? activeWork.content_en?.trim() || koContent
+        : lang === 'jp'
+        ? activeWork.content_jp?.trim() || koContent
+        : koContent;
+
+    const htmlImages = extractImagesFromHtml(localizedContent);
+
+    // 1순위: 현재 언어 HTML에서 추출된 이미지
+    if (htmlImages.length > 0) {
+      return Array.from(new Set(htmlImages));
+    }
+
+    // fallback: 기존 galleryImages 기반
+    const fallbackImages = getLocalizedGalleryImages(activeWork as any, lang).filter(
+      Boolean
+    ) as string[];
+
+    return Array.from(new Set(fallbackImages));
+  }, [activeWork, lang]);
 
   // Slideshow
   useEffect(() => {
@@ -65,7 +104,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         setCurrentImageIndex(slideshowIndexRef.current);
         slideshowTimer.current = gsap.delayedCall(1.8, nextSlide);
       };
-      
+
       const startTimer = gsap.delayedCall(1.8, nextSlide);
       return () => {
         if (slideshowTimer.current) slideshowTimer.current.kill();
@@ -79,14 +118,15 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     if (!tooltipRef.current) return;
 
     if (hoveredWorkId && activeWork) {
-      gsap.timeline()
+      gsap
+        .timeline()
         .set(tooltipRef.current, { opacity: 0, y: 20, scale: 0.95 })
         .to(tooltipRef.current, {
           opacity: 1,
           y: 0,
           scale: 1,
           duration: 0.8,
-          ease: 'power3.out'
+          ease: 'power3.out',
         });
     } else if (!hoveredWorkId) {
       gsap.to(tooltipRef.current, {
@@ -94,7 +134,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         y: 10,
         scale: 0.98,
         duration: 0.4,
-        ease: 'power2.in'
+        ease: 'power2.in',
       });
     }
   }, [hoveredWorkId, activeWork]);
@@ -120,13 +160,16 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
     };
   }, [isMobile, hoveredWorkId, onClose]);
 
-  const handleWorkClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (activeWork && onClick) {
-      onClick();
-    }
-  }, [activeWork, onClick]);
+  const handleWorkClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeWork && onClick) {
+        onClick();
+      }
+    },
+    [activeWork, onClick]
+  );
 
   // Don't show anything if no work is hovered
   if (!hoveredWorkId || !activeWork) {
@@ -135,14 +178,16 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
 
   // Render tooltip directly to body - NO wrapper div
   return createPortal(
-    <aside 
+    <aside
       ref={tooltipRef}
-      className={`tooltip fixed right-[3vw] bottom-[5vh] w-[220px] md:w-[320px] z-[9999999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden backdrop-blur-xl group${lang === 'ko' ? ' notranslate' : ''}`}
+      className={`tooltip fixed right-[3vw] bottom-[5vh] w-[220px] md:w-[320px] z-[9999999] flex flex-col bg-background dark:bg-zinc-900 shadow-[0_25px_60px_rgba(0,0,0,0.3)] border border-border/20 rounded-sm overflow-hidden backdrop-blur-xl group${
+        lang === 'ko' ? ' notranslate' : ''
+      }`}
       translate={lang === 'ko' ? 'no' : undefined}
-      style={{ 
+      style={{
         opacity: 0,
         pointerEvents: 'auto',
-        isolation: 'isolate'
+        isolation: 'isolate',
       }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -169,7 +214,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
       </div>
 
       {/* Image Gallery with Premium Crossfade */}
-      <div 
+      <div
         onClick={handleWorkClick}
         className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10 cursor-pointer z-20"
       >
@@ -184,27 +229,28 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         >
           <X className="w-3 h-3 text-foreground/60" />
         </button>
-        
-        {activeWork && images.map((img, i) => (
-          <div 
-            key={i}
-            className="absolute inset-0 transition-all duration-[1200ms] ease-in-out pointer-events-none"
-            style={{ 
-              opacity: i === currentImageIndex ? 1 : 0,
-              transform: i === currentImageIndex ? 'scale(1.05)' : 'scale(1.1)',
-              transition: 'opacity 1.2s ease-in-out, transform 12s ease-out'
-            }}
-          >
-            <div 
-              className="w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${img})` }}
-            />
-          </div>
-        ))}
-        
+
+        {activeWork &&
+          images.map((img, i) => (
+            <div
+              key={i}
+              className="absolute inset-0 transition-all duration-[1200ms] ease-in-out pointer-events-none"
+              style={{
+                opacity: i === currentImageIndex ? 1 : 0,
+                transform: i === currentImageIndex ? 'scale(1.05)' : 'scale(1.1)',
+                transition: 'opacity 1.2s ease-in-out, transform 12s ease-out',
+              }}
+            >
+              <div
+                className="w-full h-full bg-cover bg-center"
+                style={{ backgroundImage: `url(${img})` }}
+              />
+            </div>
+          ))}
+
         {/* Vignette Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20 pointer-events-none"></div>
-        
+
         {/* Image Counter - Left Top */}
         {images.length > 1 && (
           <div className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full border border-border/20 pointer-events-none">
@@ -214,7 +260,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
           </div>
         )}
       </div>
-      
+
       {/* Premium Content Section */}
       {activeWork && (
         <div className="w-full flex flex-col bg-background/95 dark:bg-zinc-900/95 backdrop-blur-sm relative z-20">
@@ -224,19 +270,18 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
             <div className="flex items-baseline justify-between gap-3">
               <div className="flex items-baseline gap-2 min-w-0 flex-1">
                 <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate">
-                  {lang === 'en' 
-                    ? (activeWork.title_en || activeWork.title_ko || activeWork.title) 
+                  {lang === 'en'
+                    ? activeWork.title_en || activeWork.title_ko || activeWork.title
                     : lang === 'jp'
-                      ? (activeWork.title_jp || activeWork.title_ko || activeWork.title)
-                      : (activeWork.title_ko || activeWork.title)
-                  }
+                    ? activeWork.title_jp || activeWork.title_ko || activeWork.title
+                    : activeWork.title_ko || activeWork.title}
                 </h3>
               </div>
               <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
                 {activeWork.year}
               </span>
             </div>
-            
+
             {/* Medium if available */}
             {activeWork.medium && (
               <div className="flex items-center gap-2">
@@ -248,19 +293,33 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
           </div>
 
           {/* Action Footer - OPEN button */}
-          <div 
+          <div
             role="button"
             tabIndex={0}
             onClick={handleWorkClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleWorkClick(e as any); }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') handleWorkClick(e as any);
+            }}
             className="tooltip-action w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 cursor-pointer hover:bg-muted/30 active:bg-muted/40 select-none"
           >
             <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 transition-colors duration-300">
               open
             </span>
             {/* Arrow */}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-foreground/50 transition-all duration-300">
-              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="text-foreground/50 transition-all duration-300"
+            >
+              <path
+                d="M5 12H19M19 12L12 5M19 12L12 19"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
         </div>

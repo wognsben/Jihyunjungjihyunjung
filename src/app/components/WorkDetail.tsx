@@ -14,14 +14,14 @@ import { BlockRenderer } from '@/app/components/BlockRenderer';
 
 interface WorkDetailProps {
   workId: string | null;
-  shouldRestoreGrid?: boolean;
+  shouldRestoreGrid: boolean;
 }
 
 const cleanText = (text: string) => { if (!text) return ''; return text .replace(/<br\s*\/?>/gi, ' ') .replace(/<\/p>\s*<p[^>]*>/gi, ' ') .replace(/<[^>]+>/g, ' ') .replace(/\[caption[^\]]*\]|\[\/caption\]/gi, ' ') .replace(/caption:\s*id=["']?[^"' \]]+["']?/gi, ' ') .replace(/&nbsp;/g, ' ') .replace(/&amp;/g, '&') .replace(/&lt;/g, '<') .replace(/&gt;/g, '>') .replace(/&quot;/g, '"') .replace(/&#39;/g, "'") .replace(/&rsquo;/g, "'") .replace(/&lsquo;/g, "'") .replace(/&#8216;/g, "'") .replace(/&#8217;/g, "'") .replace(/&ldquo;/g, '"') .replace(/&rdquo;/g, '"') .replace(/&#8220;/g, '"') .replace(/&#8221;/g, '"') .replace(/&#038;/g, '&') .replace(/\s+/g, ' ') .trim(); };
 
 export const WorkDetail = ({
   workId,
-  shouldRestoreGrid = false,
+  shouldRestoreGrid,
 }: WorkDetailProps) => {
   const { lang } = useLanguage();
   const { works, texts, translateWorksByIds, currentLang } = useWorks();
@@ -466,7 +466,7 @@ export const WorkDetail = ({
   works={otherWorks}
   onWorkClick={handleWorkClick}
   restoreKey={`work-detail-${workId}`}
-  shouldRestore={shouldRestoreGrid}
+  shouldRestore={!!shouldRestoreGrid}
 />
           </div>
         )}
