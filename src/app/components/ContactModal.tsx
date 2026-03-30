@@ -67,7 +67,7 @@ export const ContactModal = ({ isOpen, onClose }: ContactModalProps) => {
 
     try {
       // Formspree 엔드포인트 — https://formspree.io 에서 폼 생성 후 아래 ID를 교체하세요
-      const FORMSPREE_ID = 'xjgaprpj';
+      const FORMSPREE_ID = 'mgopagly';
       const response = await axios.post(
         `https://formspree.io/f/${FORMSPREE_ID}`,
         {
