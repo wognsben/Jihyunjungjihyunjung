@@ -46,9 +46,9 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     },
   };
 
- const handleFilterChange = (filter: string) => {
-  onFilterChange(filter);
-};
+  const handleFilterChange = (filter: string) => {
+    onFilterChange(filter);
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -61,6 +61,31 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  const extractFirstImageFromHtml = (html: string): string => {
+    if (!html) return '';
+
+    const match = html.match(/<img[^>]+src="([^">]+)"/i);
+    return match?.[1]?.trim() || '';
+  };
+
+  const getLocalizedGridImage = (work: any): string => {
+    const koContent = work.content_rendered || '';
+
+    const localizedContent =
+      lang === 'en'
+        ? (work.content_en?.trim() || koContent)
+        : lang === 'jp'
+        ? (work.content_jp?.trim() || koContent)
+        : koContent;
+
+    const firstImageFromLocalizedHtml = extractFirstImageFromHtml(localizedContent);
+    if (firstImageFromLocalizedHtml) {
+      return firstImageFromLocalizedHtml;
+    }
+
+    return getLocalizedThumbnail(work, lang) || '';
+  };
 
   const sortedWorks = useMemo(() => {
     if (!works || works.length === 0) return [];
@@ -76,7 +101,8 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     const duplicateWorks: any[] = [];
 
     baseSorted.forEach((work: any) => {
-      const imgUrl = work.thumbnail || (work.galleryImages && work.galleryImages[0]);
+      const imgUrl =
+        getLocalizedThumbnail(work, lang) || (work.galleryImages && work.galleryImages[0]);
 
       if (imgUrl && !seenImages.has(imgUrl)) {
         seenImages.add(imgUrl);
@@ -87,7 +113,7 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     });
 
     return [...uniqueWorks, ...duplicateWorks];
-  }, [works]);
+  }, [works, lang]);
 
   const filteredWorks = useMemo(() => {
     if (!sortedWorks.length) return [];
@@ -269,18 +295,7 @@ yToFuncs.forEach((yTo, i) => {
             } will-change-transform [transform:translateZ(0)] [backface-visibility:hidden] [transform-style:preserve-3d]`}
           >
             {colWorks.map((work: any, workIndex: number) => {
-            console.log('[WorkGrid image check]', {
-  id: work.id,
-  lang,
-  thumbnail: work.thumbnail,
-  thumbnail_en: work.thumbnail_en,
-  thumbnail_jp: work.thumbnail_jp,
-  localized: getLocalizedThumbnail(work, lang),
-  title_ko: work.title_ko,
-  title_en: work.title_en,
-  title_jp: work.title_jp,
-});
-            const globalIndex = colIndex + workIndex * columns.length;
+              const globalIndex = colIndex + workIndex * columns.length;
               const shouldPrioritize = globalIndex < 8;
 
               return (
@@ -293,11 +308,9 @@ yToFuncs.forEach((yTo, i) => {
                 >
                   <div className="relative w-full aspect-[4/3] overflow-hidden">
                     <PremiumImage
-                      src={getLocalizedThumbnail(work, lang) || ''}
+                      src={getLocalizedGridImage(work) || ''}
                       alt={getTitle(work)}
-                      className={`w-full h-full ${
-  isMobile ? 'object-contain' : 'object-cover'
-}`}
+                      className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
                       containerClassName="w-full h-full"
                       priority={shouldPrioritize}
                     />
@@ -314,12 +327,12 @@ yToFuncs.forEach((yTo, i) => {
                         "
                       >
                         <h3 className="text-white font-bold text-xl tracking-wider drop-shadow-md">
-  {getTitle(work)}
-</h3>
+                          {getTitle(work)}
+                        </h3>
 
                         <p className="text-white/80 text-sm tracking-[0.12em] drop-shadow-sm">
-  {work.year}
-</p>
+                          {work.year}
+                        </p>
                       </div>
                     </div>
                   </div>
