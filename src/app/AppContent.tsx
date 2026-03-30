@@ -7,7 +7,7 @@ import { fetchMainIndexPage } from '@/services/wp-api';
 import { MainIndexSlide } from '@/data/works';
 import { WorkGrid } from '@/app/components/WorkGrid';
 import { WorkDetail } from '@/app/components/WorkDetail';
-import { About } from '@/app/components/About';
+import { About, preloadAboutData } from '@/app/components/About';
 import { Text } from '@/app/components/Text';
 import { TextDetail } from '@/app/components/TextDetail';
 import { PageTransition } from '@/app/components/ui/PageTransition';
@@ -89,6 +89,13 @@ export const AppContent = () => {
       isMounted = false;
     };
   }, [lang]);
+
+  // ✅ app 시작 시 About 데이터 미리 로드
+  useEffect(() => {
+    preloadAboutData().catch((error) => {
+      console.error('Failed to preload About data:', error);
+    });
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -234,137 +241,9 @@ export const AppContent = () => {
   }, []);
 
   useEffect(() => {
-  // 🔥 text-detail에서는 전역 window scroll 복원 자체를 막음
-  if (currentView === 'text-detail') {
-    isRestoringScrollRef.current = false;
-    pendingScrollRef.current = null;
-
-    if (scrollSpacerRef.current) {
-      scrollSpacerRef.current.style.height = '0px';
-    }
-
-    return;
-  }
-
-  if (isRestoringScrollRef.current) {
-    const savedPosition = scrollPositionsRef.current[currentView] || 0;
-    isRestoringScrollRef.current = false;
-    pendingScrollRef.current = savedPosition;
-
-    if (scrollSpacerRef.current) {
-      scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-    }
-
-    requestAnimationFrame(() => {
-      window.scrollTo(0, savedPosition);
-    });
-
-    const EXIT_MS = 850;
-    const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-
-    const timeoutIds = delays.map((delay) =>
-      setTimeout(() => {
-        window.scrollTo(0, savedPosition);
-
-        if (
-          scrollSpacerRef.current &&
-          document.documentElement.scrollHeight -
-            parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-            savedPosition
-        ) {
-          scrollSpacerRef.current.style.height = '0px';
-        }
-      }, delay)
-    );
-
-    const cleanupId = setTimeout(() => {
-      if (scrollSpacerRef.current) {
-        scrollSpacerRef.current.style.height = '0px';
-      }
-    }, 3000);
-
-    return () => {
-      timeoutIds.forEach((id) => clearTimeout(id));
-      clearTimeout(cleanupId);
-    };
-  } else {
-    const stack = detailScrollStackRef.current;
-    const currentId =
-      currentView === 'work-detail'
-        ? selectedWorkId
-        : currentView === 'text-detail'
-        ? selectedTextId
-        : currentView === 'about'
-        ? null
-        : null;
-
-    if (stack.length > 0) {
-      const lastEntry = stack[stack.length - 1];
-
-      if (lastEntry.view === currentView && lastEntry.id === currentId) {
-        stack.pop();
-
-        if (lastEntry.view === 'work-detail' && lastEntry.id) {
-          setWorkDetailRestoreMap((prev) => ({
-            ...prev,
-            [lastEntry.id as string]: true,
-          }));
-        }
-
-        const savedPosition = lastEntry.scrollY;
-        pendingScrollRef.current = savedPosition;
-
-        if (scrollSpacerRef.current) {
-          scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
-        }
-
-        requestAnimationFrame(() => {
-          window.scrollTo(0, savedPosition);
-        });
-
-        const EXIT_MS = 850;
-        const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
-
-        const timeoutIds = delays.map((delay) =>
-          setTimeout(() => {
-            window.scrollTo(0, savedPosition);
-
-            if (
-              scrollSpacerRef.current &&
-              document.documentElement.scrollHeight -
-                parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
-                savedPosition
-            ) {
-              scrollSpacerRef.current.style.height = '0px';
-            }
-          }, delay)
-        );
-
-        const cleanupId = setTimeout(() => {
-          if (scrollSpacerRef.current) {
-            scrollSpacerRef.current.style.height = '0px';
-          }
-        }, 3000);
-
-        return () => {
-          timeoutIds.forEach((id) => clearTimeout(id));
-          clearTimeout(cleanupId);
-        };
-      }
-    }
-
-    pendingScrollRef.current = 0;
-
-    if (scrollSpacerRef.current) {
-      scrollSpacerRef.current.style.height = '0px';
-    }
-  }
-}, [currentView, selectedWorkId, selectedTextId]);
-
-const ScrollRestorer = React.useCallback(() => {
-  useLayoutEffect(() => {
-    // 🔥 text-detail에서는 ScrollRestorer도 실행하지 않음
-    if (currentViewRef.current === 'text-detail') {
+    // 🔥 text-detail에서는 전역 window scroll 복원 자체를 막음
+    if (currentView === 'text-detail') {
+      isRestoringScrollRef.current = false;
       pendingScrollRef.current = null;
 
       if (scrollSpacerRef.current) {
@@ -374,37 +253,165 @@ const ScrollRestorer = React.useCallback(() => {
       return;
     }
 
-    const target = pendingScrollRef.current;
+    if (isRestoringScrollRef.current) {
+      const savedPosition = scrollPositionsRef.current[currentView] || 0;
+      isRestoringScrollRef.current = false;
+      pendingScrollRef.current = savedPosition;
 
-    if (target !== null) {
-      window.scrollTo(0, target);
+      if (scrollSpacerRef.current) {
+        scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+      }
 
       requestAnimationFrame(() => {
-        window.scrollTo(0, target);
-
-        setTimeout(() => {
-          if (scrollSpacerRef.current) {
-            scrollSpacerRef.current.style.height = '0px';
-          }
-        }, 500);
+        window.scrollTo(0, savedPosition);
       });
 
-      pendingScrollRef.current = null;
+      const EXIT_MS = 850;
+      const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+
+      const timeoutIds = delays.map((delay) =>
+        setTimeout(() => {
+          window.scrollTo(0, savedPosition);
+
+          if (
+            scrollSpacerRef.current &&
+            document.documentElement.scrollHeight -
+              parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
+              savedPosition
+          ) {
+            scrollSpacerRef.current.style.height = '0px';
+          }
+        }, delay)
+      );
+
+      const cleanupId = setTimeout(() => {
+        if (scrollSpacerRef.current) {
+          scrollSpacerRef.current.style.height = '0px';
+        }
+      }, 3000);
+
+      return () => {
+        timeoutIds.forEach((id) => clearTimeout(id));
+        clearTimeout(cleanupId);
+      };
+    } else {
+      const stack = detailScrollStackRef.current;
+      const currentId =
+        currentView === 'work-detail'
+          ? selectedWorkId
+          : currentView === 'text-detail'
+          ? selectedTextId
+          : currentView === 'about'
+          ? null
+          : null;
+
+      if (stack.length > 0) {
+        const lastEntry = stack[stack.length - 1];
+
+        if (lastEntry.view === currentView && lastEntry.id === currentId) {
+          stack.pop();
+
+          if (lastEntry.view === 'work-detail' && lastEntry.id) {
+            setWorkDetailRestoreMap((prev) => ({
+              ...prev,
+              [lastEntry.id as string]: true,
+            }));
+          }
+
+          const savedPosition = lastEntry.scrollY;
+          pendingScrollRef.current = savedPosition;
+
+          if (scrollSpacerRef.current) {
+            scrollSpacerRef.current.style.height = `${savedPosition + window.innerHeight}px`;
+          }
+
+          requestAnimationFrame(() => {
+            window.scrollTo(0, savedPosition);
+          });
+
+          const EXIT_MS = 850;
+          const delays = [50, EXIT_MS, EXIT_MS + 100, EXIT_MS + 300, EXIT_MS + 600, EXIT_MS + 1200];
+
+          const timeoutIds = delays.map((delay) =>
+            setTimeout(() => {
+              window.scrollTo(0, savedPosition);
+
+              if (
+                scrollSpacerRef.current &&
+                document.documentElement.scrollHeight -
+                  parseInt(scrollSpacerRef.current.style.height || '0', 10) >=
+                  savedPosition
+              ) {
+                scrollSpacerRef.current.style.height = '0px';
+              }
+            }, delay)
+          );
+
+          const cleanupId = setTimeout(() => {
+            if (scrollSpacerRef.current) {
+              scrollSpacerRef.current.style.height = '0px';
+            }
+          }, 3000);
+
+          return () => {
+            timeoutIds.forEach((id) => clearTimeout(id));
+            clearTimeout(cleanupId);
+          };
+        }
+      }
+
+      pendingScrollRef.current = 0;
+
+      if (scrollSpacerRef.current) {
+        scrollSpacerRef.current.style.height = '0px';
+      }
     }
+  }, [currentView, selectedWorkId, selectedTextId]);
+
+  const ScrollRestorer = React.useCallback(() => {
+    useLayoutEffect(() => {
+      // 🔥 text-detail에서는 ScrollRestorer도 실행하지 않음
+      if (currentViewRef.current === 'text-detail') {
+        pendingScrollRef.current = null;
+
+        if (scrollSpacerRef.current) {
+          scrollSpacerRef.current.style.height = '0px';
+        }
+
+        return;
+      }
+
+      const target = pendingScrollRef.current;
+
+      if (target !== null) {
+        window.scrollTo(0, target);
+
+        requestAnimationFrame(() => {
+          window.scrollTo(0, target);
+
+          setTimeout(() => {
+            if (scrollSpacerRef.current) {
+              scrollSpacerRef.current.style.height = '0px';
+            }
+          }, 500);
+        });
+
+        pendingScrollRef.current = null;
+      }
+    }, []);
+
+    return null;
   }, []);
 
-  return null;
-}, []);
+  const shouldBlockEntireApp = currentView !== 'index' && isLoading;
 
-const shouldBlockEntireApp = currentView !== 'index' && isLoading;
-
-if (shouldBlockEntireApp) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-      <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-    </div>
-  );
-}
+  if (shouldBlockEntireApp) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+        <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const currentWork = selectedWorkId ? works.find((w) => w.id === selectedWorkId) : null;
   const currentWorkTitle = currentWork
@@ -483,7 +490,7 @@ if (shouldBlockEntireApp) {
         detailTitle={detailTitle}
       />
 
-            {currentView === 'index' ? (
+      {currentView === 'index' ? (
         <PageTransition className="fixed inset-0 z-0">
           <ScrollRestorer />
           {isMainSlidesLoading ? (

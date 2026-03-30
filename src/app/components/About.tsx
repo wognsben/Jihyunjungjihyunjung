@@ -18,6 +18,24 @@ let aboutDataCache: AboutData | null = null;
 let historyItemsCache: HistoryItem[] = [];
 let aboutDataPromise: Promise<void> | null = null;
 
+export const preloadAboutData = async () => {
+  if (aboutDataCache) return;
+
+  if (!aboutDataPromise) {
+    aboutDataPromise = (async () => {
+      const [about, history] = await Promise.all([
+        fetchAboutPage(),
+        fetchHistoryItems(),
+      ]);
+
+      aboutDataCache = about;
+      historyItemsCache = history;
+    })();
+  }
+
+  await aboutDataPromise;
+};
+
 const RevealText = ({ children }: { children: React.ReactNode; delay?: number }) => {
   const el = useRef<HTMLDivElement>(null);
 
