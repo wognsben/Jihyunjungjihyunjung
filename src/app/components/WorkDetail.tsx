@@ -188,7 +188,7 @@ export const WorkDetail = ({
             <div className="max-w-4xl mx-auto">
               {/* Classic Gallery Caption: Title, Year */}
               <div className="text-center pb-6 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
-                <h1 className="text-xl md:text-2xl min-[1025px]:text-3xl font-serif font-light text-foreground/90 leading-tight">
+                <h1 className="text-[18px] md:text-[20px] lg:text-[24px] font-serif font-light text-foreground/90 leading-tight">
                   {cleanText(title)}
                   {work.year && `, ${work.year}`}
                 </h1>

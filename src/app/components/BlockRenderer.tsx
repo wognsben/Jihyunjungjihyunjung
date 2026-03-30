@@ -901,7 +901,7 @@ const ParagraphBlock = ({
   if (!text) return null;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 md:px-12">
+    <div className="max-w-4xl mx-auto px-6 md:px-12">
       <div
         className={`${
           lang === 'jp'

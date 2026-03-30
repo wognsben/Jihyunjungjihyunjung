@@ -14,6 +14,30 @@ interface TextDetailProps {
   isPage?: boolean;
 }
 
+const extractFirstImageFromHtml = (html: string): string => {
+  if (!html) return '';
+
+  const match = html.match(/<img[^>]+src="([^">]+)"/i);
+  return match?.[1]?.trim() || '';
+};
+
+const getLocalizedWorkPreviewImage = (work: any, lang: string): string => {
+  const koContent = work.content_rendered || '';
+
+  const localizedContent =
+    lang === 'en'
+      ? (work.content_en?.trim() || koContent)
+      : lang === 'jp'
+      ? (work.content_jp?.trim() || koContent)
+      : koContent;
+
+  const firstImage = extractFirstImageFromHtml(localizedContent);
+
+  if (firstImage) return firstImage;
+
+  return getLocalizedThumbnail(work, lang) || '';
+};
+
 const cleanText = (text: string) => {
   if (!text) return '';
   return text
@@ -262,7 +286,7 @@ const rawHtml = hasLangContent
         id: work.id,
         slug: work.slug,
         title: workTitle || work.title_ko,
-        thumbnail: getLocalizedThumbnail(work, lang),
+        thumbnail: getLocalizedWorkPreviewImage(work, lang),
         year: String(work.year),
       };
     });
@@ -333,9 +357,14 @@ const rawHtml = hasLangContent
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className={`font-light text-foreground/90 leading-tight text-[24px] text-center ${
-                lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
-              }`}
+              className={`
+  font-light
+  text-foreground/90
+  leading-tight
+  text-center
+  text-[18px] md:text-[20px] lg:text-[24px]
+  ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}
+`}
             >
               {cleanText(title)}
             </motion.h1>
