@@ -59,8 +59,12 @@ const FormattedTitle = ({ text }: { text: string }) => {
 // Components
 // ----------------------------------------------------------------------
 
-export const Text = () => {
-  const [activeCategory, setActiveCategory] = useState<Category>('All');
+interface TextProps {
+  activeCategory: Category;
+  onCategoryChange: (category: Category) => void;
+}
+
+export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { lang } = useLanguage();
   const { texts } = useWorks();
@@ -270,9 +274,9 @@ export const Text = () => {
                 <button
                   key={cat}
                   onClick={() => {
-                    setActiveCategory(cat);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
+  onCategoryChange(cat);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}}
                   className={`flex-shrink-0 text-left text-sm transition-all duration-300 flex items-center gap-2 group/btn whitespace-nowrap px-0 py-0 rounded-none border-0 ${
                     activeCategory === cat
                       ? 'text-foreground font-medium pl-2 border-l border-foreground'
@@ -455,24 +459,24 @@ export const Text = () => {
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {categories.map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => {
-                            setActiveCategory(cat);
-                            setTimeout(() => {
-                              setIsMobileMenuOpen(false);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }, 300);
-                          }}
-                          className={`px-4 py-2 rounded-full border text-sm transition-all duration-200 ${
-                            activeCategory === cat 
-                              ? 'bg-foreground text-background border-foreground' 
-                              : 'bg-transparent text-foreground/70 border-foreground/15 active:bg-foreground/5'
-                          }`}
-                        >
-                          {categoryLabels[cat][lang]}
-                        </button>
-                      ))}
+  <button
+    key={cat}
+    onClick={() => {
+      onCategoryChange(cat);
+      setTimeout(() => {
+        setIsMobileMenuOpen(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 300);
+    }}
+    className={`px-4 py-2 rounded-full border text-sm transition-all duration-200 ${
+      activeCategory === cat 
+        ? 'bg-foreground text-background border-foreground' 
+        : 'bg-transparent text-foreground/70 border-foreground/15 active:bg-foreground/5'
+    }`}
+  >
+    {categoryLabels[cat][lang]}
+  </button>
+))}
                     </div>
                   </div>
 

@@ -25,6 +25,7 @@ export const AppContent = () => {
   const [isDarkBackground, setIsDarkBackground] = useState(true);
   const [workDetailRestoreMap, setWorkDetailRestoreMap] = useState<Record<string, boolean>>({});
   const [workFilter, setWorkFilter] = useState('all');
+  const [textFilter, setTextFilter] = useState('All');
 
   // General list-page scroll restoration
   const scrollPositionsRef = React.useRef<Record<string, number>>({});
@@ -455,6 +456,10 @@ export const AppContent = () => {
       setWorkFilter('all');
     }
 
+    if (view === 'text') {
+  setTextFilter('All');
+}
+
     // 섹션 이동 시 선택 상태 정리
     if (view !== 'work-detail') {
       setSelectedWorkId(null);
@@ -520,9 +525,12 @@ export const AppContent = () => {
         </PageTransition>
       ) : currentView === 'text' ? (
         <PageTransition className="min-h-screen">
-          <ScrollRestorer />
-          <Text />
-        </PageTransition>
+  <ScrollRestorer />
+  <Text
+    activeCategory={textFilter}
+    onCategoryChange={setTextFilter}
+  />
+</PageTransition>
       ) : currentView === 'text-detail' ? (
         <PageTransition className="min-h-screen">
           <TextDetail textId={selectedTextId} isPage />
