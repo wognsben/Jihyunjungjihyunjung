@@ -264,7 +264,18 @@ yToFuncs.forEach((yTo, i) => {
             } will-change-transform [transform:translateZ(0)] [backface-visibility:hidden] [transform-style:preserve-3d]`}
           >
             {colWorks.map((work: any, workIndex: number) => {
-              const globalIndex = colIndex + workIndex * columns.length;
+            console.log('[WorkGrid image check]', {
+  id: work.id,
+  lang,
+  thumbnail: work.thumbnail,
+  thumbnail_en: work.thumbnail_en,
+  thumbnail_jp: work.thumbnail_jp,
+  localized: getLocalizedThumbnail(work, lang),
+  title_ko: work.title_ko,
+  title_en: work.title_en,
+  title_jp: work.title_jp,
+});
+            const globalIndex = colIndex + workIndex * columns.length;
               const shouldPrioritize = globalIndex < 8;
 
               return (

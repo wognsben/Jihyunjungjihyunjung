@@ -372,6 +372,7 @@ export const About = () => {
   const thumbRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInTooltip = useRef(false);
+  const isRestoringMobileAboutRef = useRef(false);
 
   const state = useRef({
     current: 0,
@@ -462,69 +463,20 @@ export const About = () => {
   }, []);
 
     useEffect(() => {
-    if (loading) return;
-    if (typeof window === 'undefined') return;
+  if (loading) return;
+  if (typeof window === 'undefined') return;
 
-    const isFreshEntry = sessionStorage.getItem(ABOUT_FRESH_ENTRY_KEY) === 'true';
+  const isFreshEntry = sessionStorage.getItem(ABOUT_FRESH_ENTRY_KEY) === 'true';
 
-    // header -> about 은 무조건 top
-        if (isFreshEntry) {
-      sessionStorage.removeItem(ABOUT_FRESH_ENTRY_KEY);
-      sessionStorage.removeItem(ABOUT_SCROLL_STORAGE_KEY);
+  // header -> about 은 무조건 top
+  if (isFreshEntry) {
+    sessionStorage.removeItem(ABOUT_FRESH_ENTRY_KEY);
+    sessionStorage.removeItem(ABOUT_SCROLL_STORAGE_KEY);
 
-      const applyFreshTop = () => {
-        if (window.innerWidth < 1025) {
-          if (containerRef.current) {
-            containerRef.current.scrollTop = 0;
-          }
-          return;
-        }
-
-        const s = state.current;
-        s.winH = window.innerHeight;
-
-        if (contentRef.current) {
-          s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
-          contentRef.current.style.transform = `translate3d(0, 0px, 0)`;
-        }
-
-        s.current = 0;
-        s.target = 0;
-
-        if (thumbRef.current) {
-          thumbRef.current.style.transform = `translate3d(0, 0px, 0)`;
-        }
-      };
-
-      let timeoutId: number | null = null;
-
-      const raf1 = requestAnimationFrame(() => {
-        applyFreshTop();
-
-        // 모바일/태블릿 레이아웃 안정화 후 1회 재적용
-        timeoutId = window.setTimeout(() => {
-          applyFreshTop();
-        }, 180);
-      });
-
-      return () => {
-        cancelAnimationFrame(raf1);
-        if (timeoutId !== null) {
-          window.clearTimeout(timeoutId);
-        }
-      };
-    }
-
-    const raw = sessionStorage.getItem(ABOUT_SCROLL_STORAGE_KEY);
-    if (!raw) return;
-
-    const saved = parseInt(raw, 10);
-    if (Number.isNaN(saved)) return;
-
-    const applySavedScroll = () => {
+    const applyFreshTop = () => {
       if (window.innerWidth < 1025) {
         if (containerRef.current) {
-          containerRef.current.scrollTop = saved;
+          containerRef.current.scrollTop = 0;
         }
         return;
       }
@@ -534,63 +486,134 @@ export const About = () => {
 
       if (contentRef.current) {
         s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
+        contentRef.current.style.transform = `translate3d(0, 0px, 0)`;
       }
 
-      const clamped = Math.max(0, Math.min(saved, s.maxScroll || saved));
+      s.current = 0;
+      s.target = 0;
 
-      s.current = clamped;
-      s.target = clamped;
-
-      if (contentRef.current) {
-        contentRef.current.style.transform = `translate3d(0, ${-clamped}px, 0)`;
-      }
-
-      if (thumbRef.current && s.maxScroll > 0) {
-        const progress = clamped / s.maxScroll;
-        const trackH = s.winH - 80;
-        const thumbY = progress * (trackH - 60);
-        thumbRef.current.style.transform = `translate3d(0, ${thumbY}px, 0)`;
+      if (thumbRef.current) {
+        thumbRef.current.style.transform = `translate3d(0, 0px, 0)`;
       }
     };
 
-    const rafId = requestAnimationFrame(() => {
+    let timeoutId: number | null = null;
+
+    const raf1 = requestAnimationFrame(() => {
+      applyFreshTop();
+
+      timeoutId = window.setTimeout(() => {
+        applyFreshTop();
+      }, 180);
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }
+
+  const raw = sessionStorage.getItem(ABOUT_SCROLL_STORAGE_KEY);
+  if (!raw) return;
+
+  const saved = parseInt(raw, 10);
+  if (Number.isNaN(saved)) return;
+
+  const applySavedScroll = () => {
+    if (window.innerWidth < 1025) {
+      if (containerRef.current) {
+        containerRef.current.scrollTop = saved;
+      }
+      return;
+    }
+
+    const s = state.current;
+    s.winH = window.innerHeight;
+
+    if (contentRef.current) {
+      s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
+    }
+
+    const clamped = Math.max(0, Math.min(saved, s.maxScroll || saved));
+
+    s.current = clamped;
+    s.target = clamped;
+
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate3d(0, ${-clamped}px, 0)`;
+    }
+
+    if (thumbRef.current && s.maxScroll > 0) {
+      const progress = clamped / s.maxScroll;
+      const trackH = s.winH - 80;
+      const thumbY = progress * (trackH - 60);
+      thumbRef.current.style.transform = `translate3d(0, ${thumbY}px, 0)`;
+    }
+  };
+
+  let rafId1: number | null = null;
+  let rafId2: number | null = null;
+  let timeoutId: number | null = null;
+
+  if (window.innerWidth < 1025) {
+    isRestoringMobileAboutRef.current = true;
+
+    rafId1 = requestAnimationFrame(() => {
+      applySavedScroll();
+
+      rafId2 = requestAnimationFrame(() => {
+        applySavedScroll();
+
+        timeoutId = window.setTimeout(() => {
+          applySavedScroll();
+          isRestoringMobileAboutRef.current = false;
+        }, 220);
+      });
+    });
+  } else {
+    rafId1 = requestAnimationFrame(() => {
       applySavedScroll();
     });
 
-    // 모바일/태블릿은 첫 프레임만으로는 복원이 씹힐 수 있어서 1회 재적용
-    const timeoutId = window.setTimeout(() => {
+    timeoutId = window.setTimeout(() => {
       applySavedScroll();
     }, 180);
+  }
 
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.clearTimeout(timeoutId);
-    };
-  }, [loading, processedContentSafeKey(aboutData, lang, works)]);
+  return () => {
+    if (rafId1 !== null) cancelAnimationFrame(rafId1);
+    if (rafId2 !== null) cancelAnimationFrame(rafId2);
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+    isRestoringMobileAboutRef.current = false;
+  };
+}, [loading, processedContentSafeKey(aboutData, lang, works)]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  const container = containerRef.current;
+  if (!container) return;
 
-    const handleNativeScroll = () => {
-      if (window.innerWidth < 1025) {
-        sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(container.scrollTop)));
-      }
-    };
+  const handleNativeScroll = () => {
+    if (window.innerWidth < 1025) {
+      if (isRestoringMobileAboutRef.current) return;
+      sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(container.scrollTop)));
+    }
+  };
 
-    const handleBeforeUnload = () => {
-      saveAboutScrollPosition();
-    };
+  const handleBeforeUnload = () => {
+    saveAboutScrollPosition();
+  };
 
-    container.addEventListener('scroll', handleNativeScroll, { passive: true });
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  container.addEventListener('scroll', handleNativeScroll, { passive: true });
+  window.addEventListener('beforeunload', handleBeforeUnload);
 
-    return () => {
-      saveAboutScrollPosition();
-      container.removeEventListener('scroll', handleNativeScroll);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
+  return () => {
+    saveAboutScrollPosition();
+    container.removeEventListener('scroll', handleNativeScroll);
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+  };
+}, []);
 
   const processedContent = useMemo(() => {
     let rawContent: string | undefined;
