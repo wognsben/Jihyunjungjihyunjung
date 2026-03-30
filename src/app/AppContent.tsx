@@ -396,7 +396,9 @@ const ScrollRestorer = React.useCallback(() => {
   return null;
 }, []);
 
-if (isLoading) {
+const shouldBlockEntireApp = currentView !== 'index' && isLoading;
+
+if (shouldBlockEntireApp) {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
       <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
