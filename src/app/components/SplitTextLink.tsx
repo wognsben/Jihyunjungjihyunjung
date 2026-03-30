@@ -3,6 +3,10 @@ import { useState } from 'react';
 interface SplitTextLinkProps {
   text: string;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   isActive?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -16,6 +20,10 @@ interface SplitTextLinkProps {
 export const SplitTextLink = ({
   text,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
+  onFocus,
+  onBlur,
   isActive = false,
   className = '',
   style = {},
@@ -30,13 +38,27 @@ export const SplitTextLink = ({
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        onMouseEnter?.();
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        onMouseLeave?.();
+      }}
+      onFocus={() => {
+        setIsHovered(true);
+        onFocus?.();
+      }}
+      onBlur={() => {
+        setIsHovered(false);
+        onBlur?.();
+      }}
       className={`relative inline-block ${className} transition-colors duration-300 ease-out`}
       style={style}
+      type="button"
     >
-      {/* Text Layer */}
-      <span 
+      <span
         className={`block transition-colors duration-300 ${
           isActive || isHovered ? activeColor : inactiveColor
         }`}
@@ -44,14 +66,13 @@ export const SplitTextLink = ({
         {text}
       </span>
 
-      {/* Underline - Architect's Precision Line */}
       {showUnderline && (
         <span
           className={`absolute bottom-[-4px] left-0 h-[1px] ${underlineColor} transition-all duration-300 ease-out`}
           style={{
-            width: isActive ? '100%' : (isHovered ? '100%' : '0%'),
+            width: isActive ? '100%' : isHovered ? '100%' : '0%',
             opacity: isActive || isHovered ? 1 : 0,
-            transformOrigin: 'left center'
+            transformOrigin: 'left center',
           }}
           aria-hidden="true"
         />

@@ -3,6 +3,7 @@ import { useWorks } from '@/contexts/WorkContext';
 import { SplitTextLink } from '@/app/components/SplitTextLink';
 import { useState, useEffect } from 'react';
 import { useIsMobile } from '@/app/components/ui/use-mobile';
+import { preloadAboutData } from '@/app/components/About';
 
 interface HeaderProps {
   currentView: 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
@@ -223,15 +224,25 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
               />
 
               <SplitTextLink
-                text="about"
-                onClick={() => handleNavClick('about')}
-                isActive={currentView === 'about'}
-                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
-              />
+  text="about"
+  onMouseEnter={() => {
+    preloadAboutData().catch((error) => {
+      console.error('Failed to preload About data on hover:', error);
+    });
+  }}
+  onFocus={() => {
+    preloadAboutData().catch((error) => {
+      console.error('Failed to preload About data on focus:', error);
+    });
+  }}
+  onClick={() => handleNavClick('about')}
+  isActive={currentView === 'about'}
+  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+  inactiveColor={inactiveColor}
+  hoverColor={hoverColor}
+  underlineColor={borderColor}
+/>
             </nav>
           </div>
         </div>
