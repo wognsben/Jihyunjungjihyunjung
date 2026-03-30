@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { Header } from '@/app/components/Header';
@@ -482,49 +481,47 @@ if (isLoading) {
         detailTitle={detailTitle}
       />
 
-      <AnimatePresence mode="wait">
-        {currentView === 'index' ? (
-          <PageTransition key="index" className="fixed inset-0 z-0">
-            <ScrollRestorer />
-            {isMainSlidesLoading ? (
-              <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-                <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-              </div>
-            ) : (
-              <IndexSlideshow slides={mainSlides} />
-            )}
-          </PageTransition>
-        ) : currentView === 'work-detail' ? (
-          <PageTransition key={`work-detail-${selectedWorkId}`} className="min-h-screen">
-            <ScrollRestorer />
-            <WorkDetail
-              workId={selectedWorkId}
-              shouldRestoreGrid={
-                selectedWorkId ? !!workDetailRestoreMap[selectedWorkId] : false
-              }
-            />
-          </PageTransition>
-        ) : currentView === 'about' ? (
-          <PageTransition key="about" className="min-h-screen">
-            <ScrollRestorer />
-            <About />
-          </PageTransition>
-        ) : currentView === 'text' ? (
-          <PageTransition key="text" className="min-h-screen">
-            <ScrollRestorer />
-            <Text />
-          </PageTransition>
-        ) : currentView === 'text-detail' ? (
-  <PageTransition key={`text-detail-${selectedTextId}`} className="min-h-screen">
-    <TextDetail textId={selectedTextId} isPage />
-  </PageTransition>
-) : (
-          <PageTransition key="work" className="min-h-screen">
-            <ScrollRestorer />
-            <WorkGrid />
-          </PageTransition>
-        )}
-      </AnimatePresence>
+            {currentView === 'index' ? (
+        <PageTransition className="fixed inset-0 z-0">
+          <ScrollRestorer />
+          {isMainSlidesLoading ? (
+            <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
+              <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+            </div>
+          ) : (
+            <IndexSlideshow slides={mainSlides} />
+          )}
+        </PageTransition>
+      ) : currentView === 'work-detail' ? (
+        <PageTransition className="min-h-screen">
+          <ScrollRestorer />
+          <WorkDetail
+            workId={selectedWorkId}
+            shouldRestoreGrid={
+              selectedWorkId ? !!workDetailRestoreMap[selectedWorkId] : false
+            }
+          />
+        </PageTransition>
+      ) : currentView === 'about' ? (
+        <PageTransition className="min-h-screen">
+          <ScrollRestorer />
+          <About />
+        </PageTransition>
+      ) : currentView === 'text' ? (
+        <PageTransition className="min-h-screen">
+          <ScrollRestorer />
+          <Text />
+        </PageTransition>
+      ) : currentView === 'text-detail' ? (
+        <PageTransition className="min-h-screen">
+          <TextDetail textId={selectedTextId} isPage />
+        </PageTransition>
+      ) : (
+        <PageTransition className="min-h-screen">
+          <ScrollRestorer />
+          <WorkGrid />
+        </PageTransition>
+      )}
     </div>
   );
 };

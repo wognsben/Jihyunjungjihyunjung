@@ -14,6 +14,10 @@ import gsap from 'gsap';
 
 const ABOUT_SCROLL_STORAGE_KEY = 'aboutScrollTop';
 
+let aboutDataCache: AboutData | null = null;
+let historyItemsCache: HistoryItem[] = [];
+let aboutDataPromise: Promise<void> | null = null;
+
 const RevealText = ({ children }: { children: React.ReactNode; delay?: number }) => {
   const el = useRef<HTMLDivElement>(null);
 
@@ -339,9 +343,9 @@ export const About = () => {
   const [visibleWorkRows, setVisibleWorkRows] = useState<Set<string>>(new Set());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  const [aboutData, setAboutData] = useState<AboutData | null>(null);
-  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [aboutData, setAboutData] = useState<AboutData | null>(aboutDataCache);
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>(historyItemsCache);
+  const [loading, setLoading] = useState(!aboutDataCache);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -387,19 +391,45 @@ export const About = () => {
   }
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [about, history] = await Promise.all([fetchAboutPage(), fetchHistoryItems()]);
-        setAboutData(about);
-        setHistoryItems(history);
-      } catch (error) {
-        console.error('Failed to load About data', error);
-      } finally {
+  let isMounted = true;
+
+  if (aboutDataCache) {
+    setAboutData(aboutDataCache);
+    setHistoryItems(historyItemsCache);
+    setLoading(false);
+    return;
+  }
+
+  if (!aboutDataPromise) {
+    aboutDataPromise = (async () => {
+      const [about, history] = await Promise.all([
+        fetchAboutPage(),
+        fetchHistoryItems(),
+      ]);
+
+      aboutDataCache = about;
+      historyItemsCache = history;
+    })();
+  }
+
+  aboutDataPromise
+    .then(() => {
+      if (!isMounted) return;
+      setAboutData(aboutDataCache);
+      setHistoryItems(historyItemsCache);
+      setLoading(false);
+    })
+    .catch((error) => {
+      console.error('Failed to load About data', error);
+      if (isMounted) {
         setLoading(false);
       }
-    };
-    loadData();
-  }, []);
+    });
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -753,8 +783,6 @@ export const About = () => {
       ].filter(c => c.value)
     : [];
 
-  if (loading) return <div className="min-h-screen bg-background" />;
-
   return (
     <div
       ref={containerRef}
@@ -790,15 +818,15 @@ export const About = () => {
                     dangerouslySetInnerHTML={{ __html: processProfileText(getProfileInfo()) }}
                   />
                 )}
-                {aboutData.profile_info2 && (
-                  <div
-                    className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${
-                      lang === 'ko' ? ' notranslate' : ''
-                    }`}
-                    translate={lang === 'ko' ? 'no' : undefined}
-                    dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
-                  />
-                )}
+                {aboutData?.profile_info2 && (
+  <div
+    className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${
+      lang === 'ko' ? ' notranslate' : ''
+    }`}
+    translate={lang === 'ko' ? 'no' : undefined}
+    dangerouslySetInnerHTML={{ __html: processProfileText(aboutData?.profile_info2) }}
+  />
+)}
               </div>
             </RevealText>
           </div>
@@ -857,15 +885,15 @@ export const About = () => {
                         dangerouslySetInnerHTML={{ __html: processProfileText(getProfileInfo()) }}
                       />
                     )}
-                    {aboutData.profile_info2 && (
-                      <div
-                        className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${
-                          lang === 'ko' ? ' notranslate' : ''
-                        }`}
-                        translate={lang === 'ko' ? 'no' : undefined}
-                        dangerouslySetInnerHTML={{ __html: processProfileText(aboutData.profile_info2) }}
-                      />
-                    )}
+                    {aboutData?.profile_info2 && (
+  <div
+    className={`text-[14px] leading-relaxed text-foreground/80 font-sans whitespace-pre-line${
+      lang === 'ko' ? ' notranslate' : ''
+    }`}
+    translate={lang === 'ko' ? 'no' : undefined}
+    dangerouslySetInnerHTML={{ __html: processProfileText(aboutData?.profile_info2) }}
+  />
+)}
                   </div>
                 </RevealText>
 
@@ -890,7 +918,7 @@ export const About = () => {
             )}
           </div>
 
-          {aboutData && aboutData.content && (
+          {aboutData && processedContent && (
             <div className="flex flex-col gap-6 max-w-3xl">
               <RevealText>
                 <div
