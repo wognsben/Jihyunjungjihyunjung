@@ -169,33 +169,38 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
 const progress = self.progress; // 0 ~ 1
 
 // ----------------------
-// 1. 기본 위치 기반 drift (항상 작동)
+// 1. velocity 기반 반응만 사용
 // ----------------------
-const baseAmplitude = 30; // 전체 움직임 크기
-const baseOffset = (progress - 0.5) * baseAmplitude;
+const velocityFactor = -0.02;
+let targetY = velocity * velocityFactor;
+
+// 너무 튀지 않게 제한
+targetY = Math.max(-24, Math.min(24, targetY));
 
 // ----------------------
-// 2. 속도 기반 추가 반응 (스크롤 빠를 때만)
+// 2. 상단/하단에서는 효과를 0으로 수렴
+//    progress가 0 또는 1 근처일수록 fade가 0에 가까워짐
 // ----------------------
-const velocityFactor = -0.025;
-let velocityOffset = velocity * velocityFactor;
+const edgeStart = 0.08; // 상단/하단 8% 구간은 점점 0으로
+let edgeFade = 1;
 
-// clamp (너무 튀지 않게)
-velocityOffset = Math.max(-40, Math.min(40, velocityOffset));
+if (progress < edgeStart) {
+  edgeFade = progress / edgeStart;
+} else if (progress > 1 - edgeStart) {
+  edgeFade = (1 - progress) / edgeStart;
+}
+
+edgeFade = Math.max(0, Math.min(1, edgeFade));
+targetY *= edgeFade;
 
 // ----------------------
-// 3. 최종 값
-// ----------------------
-let targetY = baseOffset + velocityOffset;
-
-// ----------------------
-// 4. 컬럼별 차이 (depth 느낌)
+// 3. 컬럼별 depth 차이
 // ----------------------
 yToFuncs.forEach((yTo, i) => {
   const center = (yToFuncs.length - 1) / 2;
   const dist = Math.abs(i - center);
 
-  const depthFactor = 1 + dist * 0.25;
+  const depthFactor = 1 + dist * 0.18;
 
   yTo(targetY * depthFactor);
 });
