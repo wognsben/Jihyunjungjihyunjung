@@ -373,6 +373,7 @@ export const About = () => {
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInTooltip = useRef(false);
   const isRestoringMobileAboutRef = useRef(false);
+  const skipSaveOnUnmountRef = useRef(false);
 
   const state = useRef({
     current: 0,
@@ -609,7 +610,9 @@ export const About = () => {
   window.addEventListener('beforeunload', handleBeforeUnload);
 
   return () => {
-    saveAboutScrollPosition();
+    if (!skipSaveOnUnmountRef.current) {
+      saveAboutScrollPosition();
+    }
     container.removeEventListener('scroll', handleNativeScroll);
     window.removeEventListener('beforeunload', handleBeforeUnload);
   };
@@ -1044,11 +1047,12 @@ export const About = () => {
         isOpen={false}
         onClose={() => setTooltipWorkId(null)}
         onClick={() => {
-          if (tooltipWorkId) {
-            saveAboutScrollPosition();
-            window.location.hash = `#/work/${tooltipWorkId}`;
-          }
-        }}
+  if (tooltipWorkId) {
+    skipSaveOnUnmountRef.current = true;
+    saveAboutScrollPosition();
+    window.location.hash = `#/work/${tooltipWorkId}`;
+  }
+}}
         isMobile={isTouch}
         onMouseEnter={handleTooltipMouseEnter}
         onMouseLeave={handleTooltipMouseLeave}
