@@ -1099,11 +1099,11 @@ const ImageSliderBlock = ({
   .filter(Boolean);
 
     return (
-      <div className="font-sans tracking-wide text-center leading-[1.3]">
+      <div className="font-sans tracking-wide text-center leading-[1.6]">
         {lines.map((line, i) => (
           <p
             key={i}
-            className={`text-[10px] md:text-[11px] ${
+            className={`text-[10px] md:text-[14px] ${
               i === 0
                 ? 'text-foreground/70'
                 : 'text-muted-foreground/50 mt-[2px]'

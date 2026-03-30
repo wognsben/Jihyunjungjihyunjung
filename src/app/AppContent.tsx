@@ -24,6 +24,7 @@ export const AppContent = () => {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [isDarkBackground, setIsDarkBackground] = useState(true);
   const [workDetailRestoreMap, setWorkDetailRestoreMap] = useState<Record<string, boolean>>({});
+  const [workFilter, setWorkFilter] = useState('all');
 
   // General list-page scroll restoration
   const scrollPositionsRef = React.useRef<Record<string, number>>({});
@@ -451,6 +452,7 @@ export const AppContent = () => {
     // global nav로 work에 들어가는 경우를 별도 표식
     if (view === 'work') {
       isFreshNavToWorkRef.current = true;
+      setWorkFilter('all');
     }
 
     // 섹션 이동 시 선택 상태 정리
@@ -527,9 +529,12 @@ export const AppContent = () => {
         </PageTransition>
       ) : (
         <PageTransition className="min-h-screen">
-          <ScrollRestorer />
-          <WorkGrid />
-        </PageTransition>
+  <ScrollRestorer />
+  <WorkGrid
+    currentFilter={workFilter}
+    onFilterChange={setWorkFilter}
+  />
+</PageTransition>
       )}
     </div>
   );

@@ -10,7 +10,12 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-export const WorkGrid = () => {
+interface WorkGridProps {
+  currentFilter: string;
+  onFilterChange: (filter: string) => void;
+}
+
+export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
   const { lang } = useLanguage();
   const { works } = useWorks();
 
@@ -19,7 +24,6 @@ export const WorkGrid = () => {
 
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
-  const [currentFilter, setCurrentFilter] = useState('all');
 
   const filterLabels = {
     ko: {
@@ -42,9 +46,9 @@ export const WorkGrid = () => {
     },
   };
 
-  const handleFilterChange = (filter: string) => {
-    setCurrentFilter(filter);
-  };
+ const handleFilterChange = (filter: string) => {
+  onFilterChange(filter);
+};
 
   useEffect(() => {
     const checkMobile = () => {
