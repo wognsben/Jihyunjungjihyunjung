@@ -246,44 +246,47 @@ yToFuncs.forEach((yTo, i) => {
   return (
     <div
       ref={containerRef}
-      className="w-full min-h-screen bg-background text-foreground pt-32 pb-20 px-4 md:px-6"
-    >
+      className="w-full min-h-screen bg-background text-foreground pt-32 pb-20">
+      
       {/* Category Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-12 md:mb-16">
-        {[
-          { id: 'all', label: filterLabels[lang].all },
-          { id: 'works', label: filterLabels[lang].works },
-          { id: 'proj', label: filterLabels[lang].proj },
-          { id: 'exhib', label: filterLabels[lang].exhib },
-        ].map((item, index, array) => (
-          <div key={item.id} className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleFilterChange(item.id);
-              }}
-              className={`
-                text-xs md:text-sm tracking-widest transition-colors duration-300
-                ${
-                  currentFilter.toLowerCase() === item.id
-                    ? 'text-black dark:text-white font-bold'
-                    : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
-                }
-              `}
-            >
-              {item.label}
-            </button>
+<div className="px-6 md:px-12 mb-12 md:mb-16">
+  <div className="flex flex-wrap items-center gap-3">
+    {[
+      { id: 'all', label: filterLabels[lang].all },
+      { id: 'works', label: filterLabels[lang].works },
+      { id: 'proj', label: filterLabels[lang].proj },
+      { id: 'exhib', label: filterLabels[lang].exhib },
+    ].map((item, index, array) => (
+      <div key={item.id} className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFilterChange(item.id);
+          }}
+          className={`
+            text-xs md:text-sm tracking-widest transition-colors duration-300
+            ${
+              currentFilter.toLowerCase() === item.id
+                ? 'text-black dark:text-white font-bold'
+                : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+            }
+          `}
+        >
+          {item.label}
+        </button>
 
-            {index < array.length - 1 && (
-              <span className="text-gray-400 dark:text-gray-500 text-xs">/</span>
-            )}
-          </div>
-        ))}
+        {index < array.length - 1 && (
+          <span className="text-gray-400 dark:text-gray-500 text-xs">/</span>
+        )}
       </div>
+    ))}
+  </div>
+</div>
 
-      <div className="flex flex-col md:flex-row gap-1 w-full items-start justify-center">
+      <div className="px-4 md:px-6">
+       <div className="flex flex-col md:flex-row gap-1 w-full items-start justify-center">
         {columns.map((colWorks, colIndex) => (
           <div
             key={`col-${colIndex}`}
@@ -341,7 +344,8 @@ yToFuncs.forEach((yTo, i) => {
             })}
           </div>
         ))}
-      </div>
+            </div>
     </div>
-  );
+  </div>
+);
 };
