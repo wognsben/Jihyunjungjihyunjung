@@ -5,6 +5,7 @@ import { Resizable } from 're-resizable';
 import { createPortal } from 'react-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
+import { fetchWorkById } from '@/services/wp-api';
 import { SeoHead } from '@/app/components/seo/SeoHead';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
@@ -40,6 +41,9 @@ export const WorkDetail = ({
   const [hoveredArticleId, setHoveredArticleId] = useState<string | null>(null);
   const [hoveredArticleImg, setHoveredArticleImg] = useState<string | null>(null);
   const cursorImgRef = useRef<HTMLDivElement>(null);
+  const [localWork, setLocalWork] = useState<any | null>(null);
+  const [loadingWork, setLoadingWork] = useState(false);
+  const [loadWorkError, setLoadWorkError] = useState<string | null>(null);
 
   // Check if mobile
   useEffect(() => {
@@ -106,7 +110,51 @@ export const WorkDetail = ({
     return () => window.removeEventListener('mousemove', handleWindowMouseMove);
   }, [hoveredArticleImg]);
 
-  const work = works.find((w) => w.id === workId);
+   const contextWork = works.find((w) => w.id === workId);
+  const work = localWork || contextWork;
+
+  useEffect(() => {
+    if (!workId) {
+      setLocalWork(null);
+      setLoadingWork(false);
+      setLoadWorkError(null);
+      return;
+    }
+
+    const hasFullWorkContent = !!(
+      contextWork?.content_rendered ||
+      contextWork?.content_en ||
+      contextWork?.content_jp
+    );
+
+    if (hasFullWorkContent && contextWork) {
+      setLocalWork(contextWork);
+      setLoadingWork(false);
+      setLoadWorkError(null);
+      return;
+    }
+
+    const loadSingleWork = async () => {
+  setLocalWork(null);
+  setLoadingWork(true);
+  setLoadWorkError(null);
+
+  try {
+        const fetched = await fetchWorkById(workId, lang);
+        if (fetched) {
+          setLocalWork(fetched);
+        } else {
+          setLoadWorkError('Work not found on server');
+        }
+      } catch (_err) {
+        setLoadWorkError('Failed to load work');
+      } finally {
+        setLoadingWork(false);
+      }
+    };
+
+    loadSingleWork();
+  }, [workId, contextWork, lang]);
 
   // ESC Key
   useEffect(() => {
@@ -121,7 +169,27 @@ export const WorkDetail = ({
     return () => window.removeEventListener('keydown', handleEscKey);
   }, [selectedArticleId]);
 
-  if (!work) return null;
+        if (loadWorkError && !work) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 text-center">
+        <div>
+          <h1 className="text-lg font-light">Content Unavailable</h1>
+          <p className="text-[10px] text-muted-foreground font-mono mt-2">
+            ID: {workId}
+          </p>
+          <p className="text-[10px] text-red-400/60 mt-2">{loadWorkError}</p>
+        </div>
+      </div>
+    );
+  }
+
+    if (!work) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleClose = () => {
     window.history.back();
@@ -168,7 +236,7 @@ export const WorkDetail = ({
         />
 
         {/* Content Container */}
-        <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1000px] mx-auto">
+        <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1100px] mx-auto">
           {/* Back Button - Fixed below header, always visible */}
           <div className="fixed top-[72px] md:top-[88px] left-6 md:left-12 z-[99999999] pointer-events-none">
             <button

@@ -16,6 +16,7 @@ type NavItem = 'work' | 'text' | 'about';
 
 export const Header = ({ currentView, onNavigate, isDarkBackground = true, detailTitle }: HeaderProps) => {
   const { lang, setLang } = useLanguage();
+  const { ensureWorksLoaded, ensureTextsLoaded } = useWorks();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   
@@ -202,26 +203,46 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
             {/* Bottom Row: Navigation */}
             <nav className="flex items-center gap-6 md:gap-10">
               <SplitTextLink
-                text="work"
-                onClick={() => handleNavClick('work')}
-                isActive={currentView === 'work'}
-                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
-              />
+  text="work"
+  onMouseEnter={() => {
+    ensureWorksLoaded().catch((error) => {
+      console.error('Failed to preload works on hover:', error);
+    });
+  }}
+  onFocus={() => {
+    ensureWorksLoaded().catch((error) => {
+      console.error('Failed to preload works on focus:', error);
+    });
+  }}
+  onClick={() => handleNavClick('work')}
+  isActive={currentView === 'work'}
+  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+  inactiveColor={inactiveColor}
+  hoverColor={hoverColor}
+  underlineColor={borderColor}
+/>
 
               <SplitTextLink
-                text="text"
-                onClick={() => handleNavClick('text')}
-                isActive={currentView === 'text'}
-                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-                inactiveColor={inactiveColor}
-                hoverColor={hoverColor}
-                underlineColor={borderColor}
-              />
+  text="text"
+  onMouseEnter={() => {
+    ensureTextsLoaded().catch((error) => {
+      console.error('Failed to preload texts on hover:', error);
+    });
+  }}
+  onFocus={() => {
+    ensureTextsLoaded().catch((error) => {
+      console.error('Failed to preload texts on focus:', error);
+    });
+  }}
+  onClick={() => handleNavClick('text')}
+  isActive={currentView === 'text'}
+  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+  inactiveColor={inactiveColor}
+  hoverColor={hoverColor}
+  underlineColor={borderColor}
+/>
 
               <SplitTextLink
   text="about"

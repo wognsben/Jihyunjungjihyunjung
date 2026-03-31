@@ -10,6 +10,11 @@ const api = axios.create({
   baseURL: API_BASE_URL,
 });
 
+const workDetailCache = new Map<string, Work>();
+const makeWorkDetailCacheKey = (id: string, lang: string) => {
+  return `${id}_${lang}`;
+};
+
 // Interfaces
 export interface AboutData {
   title: string;
@@ -1144,28 +1149,327 @@ const transformHistoryItem = (post: WPPost): HistoryItem => {
   };
 };
 
-export const fetchWorks = async (lang: string = 'ko'): Promise<Work[]> => {
+const transformWorkListItem = (post: WPPost): Work => {
+  const rawFeaturedImage =
+    post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+  let featuredImage = getFullSizeUrl(rawFeaturedImage);
+
+  const acf = post.acf || {};
+
+  const title_ko = decode(post.title.rendered);
+  const title_en = acf['제목_en'] ? decode(acf['제목_en']) : title_ko;
+  const title_jp = acf['제목_jp'] ? decode(acf['제목_jp']) : title_ko;
+
+  const oneLineInfo_ko = decode(
+    post.excerpt?.rendered?.replace(/<[^>]+>/g, '').trim() || ''
+  );
+  const oneLineInfo_en = acf.one_line_info_en
+    ? decode(acf.one_line_info_en)
+    : oneLineInfo_ko;
+  const oneLineInfo_jp = acf.one_line_info_jp
+    ? decode(acf.one_line_info_jp)
+    : oneLineInfo_ko;
+
+  let yearFromCategory: number | undefined;
+  const terms = post._embedded?.['wp:term'];
+
+  if (terms) {
+    for (const taxonomyTerms of terms) {
+      if (
+        taxonomyTerms.length > 0 &&
+        taxonomyTerms[0].taxonomy === 'work_category'
+      ) {
+        taxonomyTerms.forEach((t: any) => {
+          const name = t.name;
+          if (/^\d{4}/.test(name)) {
+            const match = name.match(/^(\d{4})/);
+            if (match) {
+              yearFromCategory = parseInt(match[1], 10);
+            }
+          }
+        });
+        break;
+      }
+    }
+  }
+
+  const yearCaption_ko = acf.year_caption_ko || acf.year_caption || '';
+  const yearCaption_en = acf.year_caption_en || yearCaption_ko;
+  const yearCaption_jp = acf.year_caption_jp || yearCaption_ko;
+
+  const commission_ko = acf.commission_ko || acf.commission || '';
+  const commission_en = acf.commission_en || commission_ko;
+  const commission_jp = acf.commission_jp || commission_ko;
+
+  const credits_ko = acf.credits_ko || acf.credits || '';
+  const credits_en = acf.credits_en || credits_ko;
+  const credits_jp = acf.credits_jp || credits_ko;
+
+  const additional_ko = acf.work_additional_ko || '';
+  const additional_en = acf.work_additional_en || additional_ko;
+  const additional_jp = acf.work_additional_jp || additional_ko;
+
+  const medium = acf['작품_medium'] || '';
+  const medium_ko = medium;
+  const medium_en = medium;
+  const medium_jp = medium;
+
+  const rawCategory = acf['카테고리'] || '';
+  const workCategory =
+    typeof rawCategory === 'string'
+      ? rawCategory
+      : Array.isArray(rawCategory)
+      ? rawCategory.join(', ')
+      : rawCategory?.label || String(rawCategory);
+
+  const enImageRaw = acf.EN_image || acf.en_image || acf['EN_image'];
+  const jpImageRaw = acf.JP_image || acf.jp_image || acf['JP_image'];
+
+  const thumbnail_en = enImageRaw
+    ? getFullSizeUrl(
+        typeof enImageRaw === 'string'
+          ? enImageRaw
+          : enImageRaw.url ||
+              enImageRaw.sizes?.large ||
+              enImageRaw.sizes?.full ||
+              ''
+      )
+    : undefined;
+
+  const thumbnail_jp = jpImageRaw
+    ? getFullSizeUrl(
+        typeof jpImageRaw === 'string'
+          ? jpImageRaw
+          : jpImageRaw.url ||
+              jpImageRaw.sizes?.large ||
+              jpImageRaw.sizes?.full ||
+              ''
+      )
+    : undefined;
+
+  let youtubeUrl: string | undefined;
+  if ((post as any).acf?.youtube_url) {
+    youtubeUrl = (post as any).acf.youtube_url;
+  } else if ((post as any).meta?.youtube_url) {
+    youtubeUrl = (post as any).meta.youtube_url;
+  }
+
+  let vimeoUrl: string | undefined;
+  if ((post as any).acf?.vimeo_url) {
+    vimeoUrl = (post as any).acf.vimeo_url;
+  } else if ((post as any).meta?.vimeo_url) {
+    vimeoUrl = (post as any).meta.vimeo_url;
+  }
+
+  let relatedArticles: Work['relatedArticles'] = undefined;
+  if (
+    (post as any).acf?.related_texts &&
+    Array.isArray((post as any).acf.related_texts) &&
+    (post as any).acf.related_texts.length > 0
+  ) {
+    relatedArticles = (post as any).acf.related_texts
+      .map((item: any) => {
+        if (typeof item === 'number') {
+          const embeddedPosts = post._embedded?.['acf:post'];
+          if (embeddedPosts && Array.isArray(embeddedPosts)) {
+            const textPost = embeddedPosts.find((p: any) => p.id === item);
+            if (textPost) {
+              return {
+                id: String(textPost.id),
+                title: textPost.title?.rendered
+                  ? decode(textPost.title.rendered)
+                  : 'Untitled',
+                author: 'Ji Hyun Jung',
+                summary: textPost.excerpt?.rendered
+                  ? decode(
+                      textPost.excerpt.rendered.replace(/<[^>]+>/g, '').trim()
+                    )
+                  : '',
+                thumbnail: textPost._embedded?.['wp:featuredmedia']?.[0]?.source_url
+                  ? getFullSizeUrl(
+                      textPost._embedded['wp:featuredmedia'][0].source_url
+                    )
+                  : '',
+                link: textPost.link || '',
+              };
+            }
+          }
+          return {
+            id: String(item),
+            title: '',
+            author: 'Ji Hyun Jung',
+            summary: '',
+            thumbnail: '',
+            link: '',
+          };
+        } else {
+          const textTitle = item.title?.rendered
+            ? decode(item.title.rendered)
+            : item.post_title || item.title || 'Untitled';
+
+          const textSummary = item.excerpt?.rendered
+            ? decode(item.excerpt.rendered.replace(/<[^>]+>/g, '').trim())
+            : item.post_excerpt || '';
+
+          const textThumbnail = item._embedded?.['wp:featuredmedia']?.[0]?.source_url
+            ? getFullSizeUrl(item._embedded['wp:featuredmedia'][0].source_url)
+            : '';
+
+          const textId = item.ID || item.id || '';
+          const textLink = item.guid?.rendered || item.link || item.url || '';
+
+          return {
+            id: String(textId),
+            title: textTitle,
+            author: 'Ji Hyun Jung',
+            summary: textSummary,
+            thumbnail: textThumbnail,
+            link: textLink,
+          };
+        }
+      })
+      .filter((article: any) => article && article.id);
+  }
+
+  if (!featuredImage) {
+    const firstImageFromContent = extractImagesFromContent(post.content?.rendered || '')[0];
+    if (firstImageFromContent) {
+      featuredImage = firstImageFromContent;
+    }
+  }
+
+  return {
+    id: String(post.id),
+
+    title_ko,
+    title_en,
+    title_jp,
+
+    year: yearFromCategory || new Date(post.date).getFullYear(),
+
+    yearCaption_ko: yearCaption_ko || undefined,
+    yearCaption_en: yearCaption_en || undefined,
+    yearCaption_jp: yearCaption_jp || undefined,
+
+    medium_ko,
+    medium_en,
+    medium_jp,
+
+    thumbnail: featuredImage,
+    thumbnail_en: thumbnail_en || undefined,
+    thumbnail_jp: thumbnail_jp || undefined,
+
+    oneLineInfo_ko,
+    oneLineInfo_en,
+    oneLineInfo_jp,
+
+    description_ko: '',
+    description_en: '',
+    description_jp: '',
+
+    commission_ko: commission_ko || undefined,
+    commission_en: commission_en || undefined,
+    commission_jp: commission_jp || undefined,
+
+    credits_ko: credits_ko || undefined,
+    credits_en: credits_en || undefined,
+    credits_jp: credits_jp || undefined,
+
+    additional_ko: additional_ko || undefined,
+    additional_en: additional_en || undefined,
+    additional_jp: additional_jp || undefined,
+
+    galleryImages: featuredImage ? [featuredImage] : [],
+    imageCredits: undefined,
+    category: workCategory || undefined,
+    youtubeUrl,
+    vimeoUrl,
+    content_rendered: undefined,
+    content_en: undefined,
+    content_jp: undefined,
+    gallery_image_map: undefined,
+    relatedArticles,
+    selected: false,
+    order: 0,
+  };
+};
+
+export const fetchWorks = async (): Promise<Work[]> => {
   try {
-    const response = await api.get('/work', {
+    console.log('[fetchWorks] START (paged mode)');
+
+    const perPage = 30;
+    let page = 1;
+    let allPosts: WPPost[] = [];
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await api.get('/work', {
+        params: {
+          per_page: perPage,
+          page,
+        },
+      });
+
+      const posts = response.data as WPPost[];
+      console.log(`[fetchWorks] page ${page} -> ${posts.length}`);
+
+      allPosts = [...allPosts, ...posts];
+
+      if (posts.length < perPage) {
+        hasMore = false;
+      } else {
+        page += 1;
+      }
+    }
+
+    console.log('[fetchWorks] ALL POSTS:', allPosts.length);
+
+    const works = allPosts.map((post: WPPost, index: number) => {
+      const work = transformWorkListItem(post);
+
+      return {
+        ...work,
+        order: index + 1,
+      };
+    });
+
+    console.log('[fetchWorks] DONE:', works.length);
+
+    return works;
+  } catch (error) {
+    console.error('fetchWorks ERROR:', error);
+    return [];
+  }
+};
+
+export const fetchWorkById = async (
+  id: string,
+  lang: string = 'ko'
+): Promise<Work | null> => {
+  try {
+    const cacheKey = makeWorkDetailCacheKey(id, lang);
+
+    // ✅ 캐시 확인 (언어 포함)
+    if (workDetailCache.has(cacheKey)) {
+      return workDetailCache.get(cacheKey)!;
+    }
+
+    const response = await api.get(`/work/${id}`, {
       params: {
         _embed: 1,
-        per_page: 100,
       },
     });
 
-    return await Promise.all(
-      response.data.map(async (post: WPPost, index: number) => {
-        const work = await transformWork(post, lang);
+    const work = await transformWork(response.data, lang);
 
-        return {
-          ...work,
-          order: index + 1,
-        };
-      })
-    );
+    // ✅ 캐시 저장 (언어 포함)
+    workDetailCache.set(cacheKey, work);
+
+    return work;
   } catch (error) {
-    console.error(`Error fetching works:`, error);
-    return [];
+    console.error(`Error fetching work by id ${id}:`, error);
+    return null;
   }
 };
 

@@ -338,11 +338,9 @@ const rawHtml = hasLangContent
         </>
       )}
 
-      <div
-        className={`px-6 md:px-12 max-w-5xl mx-auto ${
-          isPage ? 'pt-4 md:pt-40 pb-32' : 'py-8 md:py-10'
-        }`}
-      >
+      <div className={`px-6 md:px-12 max-w-[1100px] mx-auto ${
+  isPage ? 'pt-4 md:pt-40 pb-32' : 'py-8 md:py-10'
+}`}>
         <article>
           <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-mono">

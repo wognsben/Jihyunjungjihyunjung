@@ -72,6 +72,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
   // Mobile Floating Bar State
   const [showFloatingBar, setShowFloatingBar] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   // Bottom Sheet drag state
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -86,6 +87,16 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const imagePreviewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+  const checkMobile = () => {
+    setIsMobile(window.innerWidth < 768);
+  };
+
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  return () => window.removeEventListener('resize', checkMobile);
+}, [isMobile]);
 
   // Filter Logic
   const filteredData = useMemo(() => {
@@ -123,12 +134,12 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
       const scrollY = window.scrollY;
       
       // 1. Mobile Floating Bar Logic
-      if (scrollY > 100) {
-        setShowFloatingBar(true);
-      } else {
-        setShowFloatingBar(false);
-        if (scrollY < 50) setIsMobileMenuOpen(false);
-      }
+      if (isMobile && scrollY > 100) {
+  setShowFloatingBar(true);
+} else {
+  setShowFloatingBar(false);
+  if (scrollY < 50) setIsMobileMenuOpen(false);
+}
 
       // 2. Desktop Fade Out Logic
       if (footerRef.current) {
@@ -154,11 +165,11 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
-        if (window.innerWidth < 1025) {
-           setIsMobileMenuOpen(true);
-        } else {
-           inputRef.current?.focus();
-        }
+        if (window.innerWidth < 768) {
+   setIsMobileMenuOpen(true);
+} else {
+   inputRef.current?.focus();
+}
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -225,7 +236,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                min-[1025px]:w-1/4 min-[1025px]:h-[calc(100vh-5rem)] 
                min-[1025px]:sticky min-[1025px]:top-32 z-30 flex flex-col gap-6 min-[1025px]:gap-12 
                transition-all duration-300 ease-out
-               ${showFloatingBar ? 'opacity-0 pointer-events-none min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto' : 'opacity-100'}
+               ${showFloatingBar && isMobile ? 'opacity-0 pointer-events-none min-[1025px]:opacity-100 min-[1025px]:pointer-events-auto' : 'opacity-100'}
             `}
         >
           {/* SEARCH BAR */}
@@ -367,7 +378,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
              animate={{ y: 0, opacity: 1, scale: 1 }}
              exit={{ y: 80, opacity: 0, scale: 0.8 }}
              transition={{ type: "spring", stiffness: 400, damping: 28 }}
-             className="fixed bottom-8 left-0 right-0 z-50 flex justify-center min-[1025px]:hidden pointer-events-none"
+             className="fixed bottom-8 left-0 right-0 z-50 flex justify-center md:hidden pointer-events-none"
            >
               <button
                  onClick={() => setIsMobileMenuOpen(true)}
@@ -400,7 +411,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-[60] bg-black/30 min-[1025px]:hidden"
+              className="fixed inset-0 z-[60] bg-black/30 md:hidden"
               onClick={() => setIsMobileMenuOpen(false)}
             />
             
@@ -410,7 +421,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 32, stiffness: 350 }}
-              className="fixed bottom-0 left-0 right-0 z-[61] min-[1025px]:hidden"
+              className="fixed bottom-0 left-0 right-0 z-[61] md:hidden"
             >
               <div className="bg-background rounded-t-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] max-h-[70vh] overflow-hidden">
                 <div className="flex justify-center pt-3 pb-2">

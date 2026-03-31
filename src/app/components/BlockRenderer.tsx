@@ -181,10 +181,8 @@ const sanitizeHtml = (html: string): string => {
   });
 
   cleaned = cleaned.replace(/<p[^>]*>\s*(&nbsp;\s*)+<\/p>/gi, '');
-  cleaned = cleaned.replace(/<p[^>]*>\s*(<br\s*\/?\s*>\s*)+<\/p>/gi, '');
-  cleaned = cleaned.replace(/(<br\s*\/?\s*>\s*){3,}/gi, '<br><br>');
   cleaned = cleaned.replace(/<p[^>]*>\s*<\/p>/gi, '');
-  // 🔥 anchor가 단독 block으로 떨어진 경우 앞뒤 문장과 합치기
+  // anchor가 단독 block으로 떨어진 경우 앞뒤 문장과 합치기
 cleaned = cleaned.replace(
   /<\/p>\s*(<a[^>]+>.*?<\/a>)\s*<p>/gi,
   ' $1 '
@@ -416,8 +414,7 @@ const isSliderbergHtml = (html: string): boolean => {
 const parseOrphanHtml = (html: string): ParsedBlock[] => {
   const blocks: ParsedBlock[] = [];
   const parser = new DOMParser();
-  const normalizedHtml = html
-  .replace(/<p>\s*<\/p>/gi, '[[PARA_BREAK]]');
+  const normalizedHtml = html;
 
 const doc = parser.parseFromString(normalizedHtml, 'text/html');
 
@@ -429,26 +426,10 @@ const doc = parser.parseFromString(normalizedHtml, 'text/html');
     return;
   }
 
-  const normalized = joined
-    .replace(/(?:<br\s*\/?>\s*){2,}/gi, '[[PARA_BREAK]]')
-    .replace(/\[\[PARA_BREAK\]\]/g, '[[PARA_BREAK]]');
-
-  const parts = normalized
-    .split('[[PARA_BREAK]]')
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (parts.length === 0) {
-    buffer.length = 0;
-    return;
-  }
-
-  parts.forEach((part) => {
-    blocks.push({
-      type: 'paragraph',
-      html: `<p>${part}</p>`,
-      align: detectAlign(part),
-    });
+  blocks.push({
+    type: 'paragraph',
+    html: joined,
+    align: detectAlign(joined),
   });
 
   buffer.length = 0;
@@ -463,15 +444,11 @@ const doc = parser.parseFromString(normalizedHtml, 'text/html');
   const text = node.textContent || '';
 
   const normalizedText = text
-    // CRLF / LF 정리
-    .replace(/\r\n/g, '\n')
-    // NBSP만 있는 빈 줄도 문단 구분으로 살린다
-    .replace(/\n[\s\u00a0]*\n+/g, '[[PARA_BREAK]]')
-    // 일반 줄바꿈은 <br>로
-    .replace(/\n/g, '<br>');
+  .replace(/\r\n/g, '\n')
+  .replace(/\n/g, '<br>');
 
   // 진짜 아무 내용도 없고 문단 구분도 없으면 버림
-  if (!normalizedText.trim() || normalizedText === '<br>') continue;
+  if (!normalizedText.trim()) continue;
 
   inlineBuffer.push(normalizedText);
   continue;
@@ -490,14 +467,7 @@ const doc = parser.parseFromString(normalizedHtml, 'text/html');
     const inlineTags = ['A', 'SPAN', 'STRONG', 'B', 'EM', 'I', 'U', 'MARK', 'SUP', 'SUB', 'SMALL'];
 
 if (tag === 'BR') {
-  const prev = inlineBuffer[inlineBuffer.length - 1] || '';
-
-  // 연속 줄바꿈이면 문단 구분 토큰으로 사용
-  if (/<br\s*\/?>$/i.test(prev)) {
-    inlineBuffer.push('[[PARA_BREAK]]');
-  } else {
-    inlineBuffer.push('<br>');
-  }
+  inlineBuffer.push('<br>');
   continue;
 }
 
@@ -594,13 +564,13 @@ if (inlineTags.includes(tag)) {
       !/<(p|div|figure|blockquote|ul|ol|li|h[1-6]|hr|section|article|iframe|video)\b/i.test(inner);
 
     if (hasOnlyInlineContent) {
-      blocks.push({
-        type: 'paragraph',
-        html: `<p>${inner}</p>`,
-        align: detectAlign(inner),
-      });
-      continue;
-    }
+  blocks.push({
+    type: 'paragraph',
+    html: inner,
+    align: detectAlign(inner),
+  });
+  continue;
+}
 
     // 14. Unknown fallback
     if (outer.replace(/<[^>]+>/g, '').trim()) {
@@ -900,8 +870,10 @@ const ParagraphBlock = ({
   const text = html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
   if (!text) return null;
 
+  const normalizedHtml = /<p[\s>]/i.test(html) ? html : `<p>${html}</p>`;
+
   return (
-    <div className="max-w-4xl mx-auto px-6 md:px-12">
+    <div className="w-full px-6 md:px-12">
       <div
         className={`${
           lang === 'jp'
@@ -909,10 +881,17 @@ const ParagraphBlock = ({
             : lang === 'en'
             ? 'font-[Petrona]'
             : 'font-[var(--font-body-ko)]'
-        } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-100 ${textAlignClass(
-          align
-        )} ${wpContentStyles}`}
-        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+        } text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
+          [&_p]:my-0
+          [&_p+p]:mt-4
+          [&_br]:leading-[1.8]
+          [&_strong]:font-semibold
+          [&_em]:italic
+          [&_ul]:my-3
+          [&_ol]:my-3
+          [&_li]:my-1
+          ${textAlignClass(align)} ${wpContentStyles}`}
+        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(normalizedHtml) }}
       />
     </div>
   );
@@ -927,7 +906,7 @@ const HeadingBlock = ({
   lang: string;
   align?: ParsedBlock['align'];
 }) => (
-  <div className="max-w-3xl mx-auto px-6 md:px-12">
+  <div className="max-w-5xl mx-auto px-6 md:px-12">
     <div
       className={`${
         lang === 'jp'
@@ -1198,18 +1177,18 @@ const VideoEmbedRenderer = ({
   align?: ParsedBlock['align'];
 }) => {
   const alignWrapper =
-    align === 'left'
-      ? 'max-w-xl mr-auto'
-      : align === 'right'
-      ? 'max-w-xl ml-auto'
-      : align === 'full'
-      ? 'w-full'
-      : 'max-w-4xl mx-auto';
+  align === 'left'
+    ? 'max-w-5xl mr-auto'
+    : align === 'right'
+    ? 'max-w-5xl ml-auto'
+    : align === 'full'
+    ? 'w-full'
+    : 'max-w-5xl mx-auto';
 
   return (
-    <div className="mb-40 md:mb-64 px-6 md:px-12">
-      <div className={alignWrapper}>
-        <div className="relative w-full aspect-video bg-black/5 overflow-hidden">
+  <div className="mb-40 md:mb-64 -mx-6 md:-mx-12">
+    <div className={alignWrapper}>
+      <div className="relative w-full aspect-video bg-black/5 overflow-hidden">
           {isIframe ? (
             <iframe
               src={src}
@@ -1222,7 +1201,7 @@ const VideoEmbedRenderer = ({
             <video
               src={src}
               controls
-              className="absolute inset-0 w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-cover"
             />
           )}
         </div>

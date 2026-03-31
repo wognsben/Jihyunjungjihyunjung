@@ -7,17 +7,25 @@ import { fetchMainIndexPage } from '@/services/wp-api';
 import { MainIndexSlide } from '@/data/works';
 import { WorkGrid } from '@/app/components/WorkGrid';
 import { WorkDetail } from '@/app/components/WorkDetail';
-import { About, preloadAboutData } from '@/app/components/About';
+import { About } from '@/app/components/About';
 import { Text } from '@/app/components/Text';
 import { TextDetail } from '@/app/components/TextDetail';
 import { PageTransition } from '@/app/components/ui/PageTransition';
 import { SeoHead } from '@/app/components/seo/SeoHead';
+import { preloadAboutData } from '@/app/components/About';
 
 type View = 'index' | 'work' | 'work-detail' | 'about' | 'text' | 'text-detail';
 
 export const AppContent = () => {
   const { lang } = useLanguage();
-  const { works, isLoading, texts } = useWorks();
+  const {
+  works,
+  texts,
+  isWorksLoading,
+  isTextsLoading,
+  ensureWorksLoaded,
+  ensureTextsLoaded,
+} = useWorks();
 
   const [currentView, setCurrentView] = useState<View>('index');
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null);
@@ -94,12 +102,35 @@ export const AppContent = () => {
     };
   }, [lang]);
 
-  // ✅ app 시작 시 About 데이터 미리 로드
   useEffect(() => {
-    preloadAboutData().catch((error) => {
-      console.error('Failed to preload About data:', error);
+  preloadAboutData();
+}, []);
+  
+  useEffect(() => {
+  ensureWorksLoaded().catch((error) => {
+    console.error('Failed to preload works:', error);
+  });
+
+  ensureTextsLoaded().catch((error) => {
+    console.error('Failed to preload texts:', error);
+  });
+}, [ensureWorksLoaded, ensureTextsLoaded]);
+
+  useEffect(() => {
+  if (currentView === 'work' || currentView === 'work-detail') {
+    ensureWorksLoaded().catch((error) => {
+      console.error('Failed to ensure works loaded:', error);
     });
-  }, []);
+  }
+
+  if (currentView === 'text' || currentView === 'text-detail') {
+    ensureTextsLoaded().catch((error) => {
+      console.error('Failed to ensure texts loaded:', error);
+    });
+  }
+}, [currentView, ensureWorksLoaded, ensureTextsLoaded]);
+
+  // ✅ app 시작 시 About 데이터 미리 로드
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -154,7 +185,7 @@ export const AppContent = () => {
         setSelectedTextId(textId);
 setSelectedWorkId(null);
 setCurrentView('text-detail');
-
+        
 // 🔥 fresh일 때만 top
 if (!isReturningToTextDetail) {
   window.scrollTo(0, 0);
@@ -413,16 +444,6 @@ if (currentViewRef.current === 'about') {
   return null;
 }, []);
 
-  const shouldBlockEntireApp = currentView !== 'index' && isLoading;
-
-  if (shouldBlockEntireApp) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-        <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const currentWork = selectedWorkId ? works.find((w) => w.id === selectedWorkId) : null;
   const currentWorkTitle = currentWork
     ? lang === 'ko'
@@ -531,12 +552,18 @@ if (currentViewRef.current === 'about') {
       ) : currentView === 'work-detail' ? (
         <PageTransition className="min-h-screen">
           <ScrollRestorer />
-          <WorkDetail
-            workId={selectedWorkId}
-            shouldRestoreGrid={
-              selectedWorkId ? !!workDetailRestoreMap[selectedWorkId] : false
-            }
-          />
+          {isWorksLoading && !currentWork ? (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+  </div>
+) : (
+  <WorkDetail
+    workId={selectedWorkId}
+    shouldRestoreGrid={
+      selectedWorkId ? !!workDetailRestoreMap[selectedWorkId] : false
+    }
+  />
+)}
         </PageTransition>
       ) : currentView === 'about' ? (
         <PageTransition className="min-h-screen">
@@ -546,22 +573,40 @@ if (currentViewRef.current === 'about') {
       ) : currentView === 'text' ? (
         <PageTransition className="min-h-screen">
   <ScrollRestorer />
+  {isTextsLoading && texts.length === 0 ? (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+  </div>
+) : (
   <Text
     activeCategory={textFilter}
     onCategoryChange={setTextFilter}
   />
+)}
 </PageTransition>
       ) : currentView === 'text-detail' ? (
         <PageTransition className="min-h-screen">
-          <TextDetail textId={selectedTextId} isPage />
+          {isTextsLoading && !currentText ? (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+  </div>
+) : (
+  <TextDetail textId={selectedTextId} isPage />
+)}
         </PageTransition>
       ) : (
         <PageTransition className="min-h-screen">
   <ScrollRestorer />
+  {isWorksLoading && works.length === 0 ? (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+  </div>
+) : (
   <WorkGrid
     currentFilter={workFilter}
     onFilterChange={setWorkFilter}
   />
+)}
 </PageTransition>
       )}
     </div>

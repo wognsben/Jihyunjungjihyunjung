@@ -5,7 +5,7 @@ export const Footer = () => {
         className="text-left md:text-center tracking-wider text-[12px] font-[SansSerif]"
         style={{
           color: 'var(--premium-black)',
-          opacity:0.75,
+          opacity:0.5,
           letterSpacing: '0.05em',
         }}
       >

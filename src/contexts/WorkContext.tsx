@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useRef,
+} from 'react';
 import { fetchWorks, fetchTexts } from '@/services/wp-api';
 import { Work } from '@/data/works';
 import { TextItem } from '@/data/texts';
@@ -8,23 +15,26 @@ type Language = 'ko' | 'en' | 'jp';
 interface WorkContextType {
   works: Work[];
   texts: TextItem[];
-  isLoading: boolean;
+  isWorksLoading: boolean;
+  isTextsLoading: boolean;
   error: string | null;
   getWorkById: (id: string) => Work | undefined;
-  // Keep these for backward compatibility, but they now do nothing
-  // since all multilingual data comes directly from WordPress ACF fields
+  ensureWorksLoaded: () => Promise<void>;
+  ensureTextsLoaded: () => Promise<void>;
   translateWorksByIds: (ids: string[], lang: Language) => Promise<void>;
   translateTextsByIds: (ids: string[], lang: Language) => Promise<void>;
   currentLang: Language;
 }
 
-// Default fallback values to prevent crashes during HMR/hot reload
 const defaultContextValue: WorkContextType = {
   works: [],
   texts: [],
-  isLoading: true,
+  isWorksLoading: false,
+  isTextsLoading: false,
   error: null,
   getWorkById: () => undefined,
+  ensureWorksLoaded: async () => {},
+  ensureTextsLoaded: async () => {},
   translateWorksByIds: async () => {},
   translateTextsByIds: async () => {},
   currentLang: 'ko',
@@ -35,67 +45,106 @@ const WorkContext = createContext<WorkContextType>(defaultContextValue);
 export const WorkProvider = ({ children }: { children: ReactNode }) => {
   const [works, setWorks] = useState<Work[]>([]);
   const [texts, setTexts] = useState<TextItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isWorksLoading, setIsWorksLoading] = useState(false);
+  const [isTextsLoading, setIsTextsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentLang, setCurrentLang] = useState<Language>('ko');
 
-  // Fetch data only once - all multilingual data is already in ACF fields
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadData = async () => {
-      console.log('[WorkProvider] Fetching WordPress data (all languages from ACF fields)...');
-      setIsLoading(true);
+  const worksLoadedRef = useRef(false);
+  const textsLoadedRef = useRef(false);
+
+  const worksPromiseRef = useRef<Promise<void> | null>(null);
+  const textsPromiseRef = useRef<Promise<void> | null>(null);
+
+  const ensureWorksLoaded = useCallback(async () => {
+    if (worksLoadedRef.current) return;
+    if (worksPromiseRef.current) return worksPromiseRef.current;
+
+    worksPromiseRef.current = (async () => {
+      console.log('[WorkProvider] Loading works...');
+      setIsWorksLoading(true);
+      setError(null);
+
       try {
-        const [fetchedWorks, fetchedTexts] = await Promise.all([
-          fetchWorks('ko'),
-          fetchTexts('ko')
-        ]);
-        
-        if (isMounted) {
-          setWorks(fetchedWorks);
-          setTexts(fetchedTexts);
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Failed to load data', err);
-          setError('Failed to load data');
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
+  const fetchedWorks = await fetchWorks();
+  console.log('[WorkProvider] fetchedWorks:', fetchedWorks);
+  console.log('[WorkProvider] fetchedWorks.length:', fetchedWorks?.length);
 
-    loadData();
+  setWorks(fetchedWorks);
+  worksLoadedRef.current = true;
 
-    return () => { isMounted = false; };
+  console.log('[WorkProvider] works loaded complete');
+} catch (err) {
+  console.error('Failed to load works', err);
+  setError('Failed to load works');
+} finally {
+  setIsWorksLoading(false);
+  worksPromiseRef.current = null;
+}
+    })();
+
+    return worksPromiseRef.current;
   }, []);
 
-  const getWorkById = (id: string) => works.find(w => w.id === id);
+  const ensureTextsLoaded = useCallback(async () => {
+    if (textsLoadedRef.current) return;
+    if (textsPromiseRef.current) return textsPromiseRef.current;
 
-  // No-op: All multilingual data is already fetched from ACF fields
-  // These functions are kept for backward compatibility with existing components
+    textsPromiseRef.current = (async () => {
+      console.log('[WorkProvider] Loading texts...');
+      setIsTextsLoading(true);
+      setError(null);
+
+      try {
+  const fetchedTexts = await fetchTexts('ko');
+  console.log('[WorkProvider] fetchedTexts:', fetchedTexts);
+  console.log('[WorkProvider] fetchedTexts.length:', fetchedTexts?.length);
+
+  setTexts(fetchedTexts);
+  textsLoadedRef.current = true;
+
+  console.log('[WorkProvider] texts loaded complete');
+} catch (err) {
+  console.error('Failed to load texts', err);
+  setError('Failed to load texts');
+} finally {
+  setIsTextsLoading(false);
+  textsPromiseRef.current = null;
+}
+    })();
+
+    return textsPromiseRef.current;
+  }, []);
+
+  const getWorkById = useCallback(
+    (id: string) => works.find((w) => w.id === id),
+    [works]
+  );
+
   const translateWorksByIds = useCallback(async (_ids: string[], lang: Language) => {
     setCurrentLang(lang);
-    // No translation needed - data already contains _ko, _en, _jp from ACF
   }, []);
 
   const translateTextsByIds = useCallback(async (_ids: string[], lang: Language) => {
     setCurrentLang(lang);
-    // No translation needed - data already contains ko, en, jp from ACF
   }, []);
 
   return (
-    <WorkContext.Provider value={{ 
-      works, 
-      texts, 
-      isLoading, 
-      error, 
-      getWorkById,
-      translateWorksByIds,
-      translateTextsByIds,
-      currentLang
-    }}>
+    <WorkContext.Provider
+      value={{
+        works,
+        texts,
+        isWorksLoading,
+        isTextsLoading,
+        error,
+        getWorkById,
+        ensureWorksLoaded,
+        ensureTextsLoaded,
+        translateWorksByIds,
+        translateTextsByIds,
+        currentLang,
+      }}
+    >
       {children}
     </WorkContext.Provider>
   );
