@@ -324,7 +324,7 @@ const rawHtml = hasLangContent
             </button>
           </div>
 
-          <div className="hidden md:block fixed top-32 left-16 z-40 mix-blend-difference text-white dark:text-white">
+          <div className="hidden md:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
             <button
               onClick={() => window.history.back()}
               className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
