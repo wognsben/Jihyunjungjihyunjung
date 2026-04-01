@@ -254,7 +254,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
         {/* Image Counter - Left Top */}
         {images.length > 1 && (
           <div className="absolute top-3 left-3 px-2 py-1 bg-background/80 backdrop-blur-sm rounded-full border border-border/20 pointer-events-none">
-            <span className="text-[8px] font-mono text-foreground/70 tabular-nums">
+            <span className="text-[8px] font-[var(--font-ui)] text-foreground/70 tabular-nums">
               {currentImageIndex + 1}/{images.length}
             </span>
           </div>
@@ -269,7 +269,15 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
             {/* Title / selected work / Year Row */}
             <div className="flex items-baseline justify-between gap-3">
               <div className="flex items-baseline gap-2 min-w-0 flex-1">
-                <h3 className="text-sm md:text-base font-serif font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate">
+               <h3
+  className={`text-sm md:text-base font-light text-foreground leading-tight tracking-tight transition-all duration-300 group-hover:text-foreground/80 truncate ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                   {lang === 'en'
                     ? activeWork.title_en || activeWork.title_ko || activeWork.title
                     : lang === 'jp'
@@ -277,7 +285,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
                     : activeWork.title_ko || activeWork.title}
                 </h3>
               </div>
-              <span className="text-[10px] font-mono text-muted-foreground/60 tracking-wider shrink-0">
+              <span className="text-[10px] font-[var(--font-ui)] text-muted-foreground/60 tracking-wider shrink-0">
                 {activeWork.year}
               </span>
             </div>
@@ -285,7 +293,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
             {/* Medium if available */}
             {activeWork.medium && (
               <div className="flex items-center gap-2">
-                <span className="text-[9px] text-muted-foreground/40 font-mono">
+                <span className="text-[9px] text-muted-foreground/40 font-[var(--font-ui)]">
                   {activeWork.medium}
                 </span>
               </div>
@@ -302,7 +310,7 @@ export const TooltipTransition: React.FC<TooltipTransitionProps> = ({
             }}
             className="tooltip-action w-full px-5 py-3 border-t border-border/10 bg-gradient-to-b from-transparent to-muted/10 flex items-center justify-between transition-all duration-300 cursor-pointer hover:bg-muted/30 active:bg-muted/40 select-none"
           >
-            <span className="text-[9px] font-mono tracking-[0.2em] text-foreground/70 transition-colors duration-300">
+            <span className="text-[9px] font-[var(--font-ui)] tracking-[0.2em] text-foreground/70 transition-colors duration-300">
               open
             </span>
             {/* Arrow */}

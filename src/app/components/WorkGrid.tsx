@@ -256,7 +256,7 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
 
                         await Promise.race([
                           fetchPromise,
-                          new Promise((res) => setTimeout(res, 200)),
+                          new Promise((res) => setTimeout(res, 240)),
                         ]);
                       } catch (e) {
                         console.error('prefetch failed', e);

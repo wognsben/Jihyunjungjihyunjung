@@ -277,7 +277,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
 
           {/* Category Filter */}
           <div className="flex flex-col gap-2 min-[1025px]:gap-4">
-            <span className="text-[10px] font-mono lowercase tracking-widest text-muted-foreground/60 hidden min-[1025px]:block">
+            <span className="text-[10px] font-[var(--font-ui)] lowercase tracking-widest text-muted-foreground/60 hidden min-[1025px]:block">
               {sectionLabels.category[lang]}
             </span>
             <div className="flex flex-wrap gap-3">
@@ -331,27 +331,35 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                   <div className="flex flex-col min-[1025px]:flex-row min-[1025px]:items-baseline gap-2 min-[1025px]:gap-8 order-1">
                     {/* Mobile + Tablet: Category & Year in same row */}
                     <div className="flex min-[1025px]:hidden items-center justify-between w-full mb-2">
-                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
+                      <span className="text-[10px] font-[var(--font-ui)] text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {categoryLabels[item.category.toLowerCase()]?.[lang] || item.category.toLowerCase()}
                       </span>
-                      <span className="text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
+                      <span className="text-[10px] font-[var(--font-ui)] text-muted-foreground/60 group-hover/item:text-black/70 transition-colors duration-300">
                          {item.year}
                       </span>
                     </div>
                     
                     {/* Desktop: Category Label */}
-                    <span className="hidden min-[1025px]:block text-[10px] font-mono text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
+                    <span className="hidden min-[1025px]:block text-[10px] font-[var(--font-ui)] text-muted-foreground/60 group-hover/item:text-black/70 w-16 shrink-0 transition-colors duration-300">
                        {categoryLabels[item.category.toLowerCase()]?.[lang] || item.category.toLowerCase()}
                     </span>
                     
-                    <h3 className="font-serif text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-black text-foreground">
-                      <FormattedTitle text={item.title[lang]} />
-                    </h3>
+                    <h3
+  className={`text-sm font-light leading-snug group-hover/item:translate-x-1 transition-all duration-300 group-hover/item:text-black text-foreground ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
+  <FormattedTitle text={item.title[lang]} />
+</h3>
                   </div>
 
                   {/* Desktop Layout - Year Only */}
                   <div className="hidden min-[1025px]:block order-2 mt-1 min-[1025px]:mt-0 min-[1025px]:text-right min-[1025px]:group-hover/item:translate-x-1 transition-transform duration-300 delay-100">
-                    <span className="text-xs font-mono text-muted-foreground group-hover/item:text-black transition-colors duration-300">
+                    <span className="text-xs font-[var(--font-ui)] text-muted-foreground group-hover/item:text-black transition-colors duration-300">
                       {item.year}
                     </span>
                   </div>
@@ -385,13 +393,13 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                  className="pointer-events-auto flex items-center gap-3 bg-foreground/90 backdrop-blur-md text-background px-6 py-3 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.25),0_2px_8px_rgba(0,0,0,0.15)] border border-white/[0.08] active:scale-[0.96] transition-transform duration-150"
               >
                   <motion.span 
-                    className="text-lg font-serif italic"
+                    className="text-lg font-[var(--font-ui)]"
                     animate={{ rotate: [0, 180, 360] }}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                   >
                     *
                   </motion.span>
-                  <span className="text-xs font-mono uppercase tracking-widest">Search</span>
+                  <span className="text-xs font-[var(--font-ui)] uppercase tracking-widest">Search</span>
                   {(activeCategory !== 'All' || searchQuery) && (
                     <span className="w-1.5 h-1.5 rounded-full bg-background animate-pulse" />
                   )}
@@ -431,7 +439,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                 <div className="px-6 pb-8 pt-2 flex flex-col gap-6">
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">Search</span>
+                      <span className="text-[10px] font-[var(--font-ui)] uppercase tracking-widest text-muted-foreground/60">Search</span>
                       <button 
                         onClick={() => setIsMobileMenuOpen(false)}
                         className="text-muted-foreground hover:text-foreground transition-colors p-1"
@@ -465,7 +473,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">
+                    <span className="text-[10px] font-[var(--font-ui)] uppercase tracking-widest text-muted-foreground/60">
                       {sectionLabels.category[lang]}
                     </span>
                     <div className="flex flex-wrap gap-2">
@@ -492,12 +500,12 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-foreground/5">
-                    <span className="text-xs font-mono text-muted-foreground/50">
+                    <span className="text-xs font-[var(--font-ui)] text-muted-foreground/50">
                       {filteredData.length} {filteredData.length === 1 ? 'result' : 'results'}
                     </span>
                     <button
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-xs font-mono text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1.5"
+                      className="text-xs font-[var(--font-ui)] text-foreground/70 hover:text-foreground transition-colors flex items-center gap-1.5"
                     >
                       <span>Done</span>
                       <span className="text-foreground/30">↓</span>

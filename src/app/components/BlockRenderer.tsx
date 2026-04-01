@@ -876,12 +876,12 @@ const ParagraphBlock = ({
     <div className="w-full px-6 md:px-12">
       <div
         className={`${
-          lang === 'jp'
-            ? 'font-[var(--font-body-jp)]'
-            : lang === 'en'
-            ? 'font-[Petrona]'
-            : 'font-[var(--font-body-ko)]'
-        } text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+} text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
           [&_p]:my-0
           [&_p+p]:mt-4
           [&_br]:leading-[1.8]
@@ -909,14 +909,14 @@ const HeadingBlock = ({
   <div className="max-w-5xl mx-auto px-6 md:px-12">
     <div
       className={`${
-        lang === 'jp'
-          ? 'font-[var(--font-body-jp)]'
-          : lang === 'en'
-          ? 'font-[var(--font-display-latin)]'
-          : 'font-[var(--font-body-Petrona)]'
-      } text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(
-        align
-      )} ${wpContentStyles}`}
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+} text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(
+  align
+)} ${wpContentStyles}`}
       dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>
@@ -943,8 +943,14 @@ const SingleImageBlock = ({
       <ImageFrame image={image} alt={image.caption || 'Image'} />
       {image.caption && (
         <p
-          className={`text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans mt-3 ${captionAlignClass}`}
-        >
+  className={`text-[10px] md:text-[11px] text-muted-foreground/50 mt-3 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  } ${captionAlignClass}`}
+>
           {image.caption}
         </p>
       )}
@@ -1024,7 +1030,15 @@ const ImageSliderBlock = ({
 
         <div className="mt-5 h-6 flex items-center justify-center">
           {currentCaption && (
-            <p className="text-center text-[10px] md:text-[11px] tracking-wide text-muted-foreground/50 font-sans">
+            <p
+  className={`text-center text-[10px] md:text-[11px] text-muted-foreground/50 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
               {currentCaption}
             </p>
           )}
@@ -1302,10 +1316,14 @@ const QuoteBlock = ({
   <div className="max-w-3xl mx-auto px-6 md:px-12">
     <blockquote
       className={`border-l-2 border-foreground/10 pl-6 ${
-        lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
-      } text-foreground/70 text-sm md:text-base leading-[1.8] italic ${textAlignClass(
-        align
-      )} ${wpContentStyles}`}
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+} text-foreground/70 text-sm md:text-base leading-[1.8] italic ${textAlignClass(
+  align
+)} ${wpContentStyles}`}
       dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>

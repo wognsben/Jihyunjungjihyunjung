@@ -101,7 +101,15 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
           return (
             <span className="flex items-baseline gap-2">
               {/* Italiana 폰트 적용: 우아함을 강조 */}
-              <span className="font-['Petrona'] text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block">
+              <span
+  className={`text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                 {detailTitle}
               </span>
             </span>
@@ -118,7 +126,15 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
 
           return (
             <span className="flex items-baseline gap-2">
-              <span className="font-['Petrona'] opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px]">
+              <span
+  className={`opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px] ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                 {hasAuthor ? (
                   <>
                     {titlePart}
@@ -310,24 +326,24 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
               className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
             >
               <svg className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'stroke-foreground' : ''}`} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              <span className={`font-mono text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-                back
-              </span>
+              <span className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
+  back
+</span>
             </button>
             {/* Tablet/Desktop: 기존 context label (제목) */}
             <div className="hidden md:flex items-center gap-3">
               <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
-              <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-                {renderContextLabel()}
-              </span>
+              <span className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
+  {renderContextLabel()}
+</span>
             </div>
           </>
         ) : (
           <div className="flex items-center gap-3">
             <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
-            <span className={`font-mono text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-              {renderContextLabel()}
-            </span>
+            <span className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
+  {renderContextLabel()}
+</span>
           </div>
         )}
       </div>

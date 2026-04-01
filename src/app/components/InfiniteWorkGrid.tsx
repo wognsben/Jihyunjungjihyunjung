@@ -53,12 +53,20 @@ const WorkCard = memo(
         </div>
 
         <div className={widthClass}>
-          <h3 className="text-sm md:text-base font-serif font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300">
-            {title}
-          </h3>
-          <p className="text-[10px] text-muted-foreground/60 tracking-[0.1em] font-[Ojuju]">
-            {work.year}
-          </p>
+          <h3
+  className={`text-sm md:text-base font-light text-foreground/90 leading-tight mb-1 group-hover:text-foreground transition-colors duration-300 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
+  {title}
+</h3>
+          <p className="text-[10px] text-muted-foreground/60 tracking-[0.1em] font-[var(--font-ui)]">
+  {work.year}
+</p>
         </div>
       </div>
     );
@@ -540,12 +548,12 @@ export const InfiniteWorkGrid = ({
       <div className="relative w-full bg-background py-24">
         <div className="px-6 mb-8 flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-4">
-            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-mono">
-              other works
-            </h2>
-            <span className="text-[10px] font-mono text-muted-foreground/70">
-              {works.length} {works.length === 1 ? 'work' : 'works'}
-            </span>
+            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-[var(--font-ui)]">
+  other works
+</h2>
+            <span className="text-[10px] font-[var(--font-ui)] text-muted-foreground/70">
+  {works.length} {works.length === 1 ? 'work' : 'works'}
+</span>
           </div>
         </div>
 
@@ -573,12 +581,20 @@ export const InfiniteWorkGrid = ({
                   </div>
 
                   <div className="mt-4">
-                    <h3 className="text-sm font-serif font-light text-foreground/90 leading-tight mb-1">
-                      {getLocalizedTitle(work)}
-                    </h3>
-                    <p className="text-[10px] font-mono text-muted-foreground/60 tracking-[0.1em]">
-                      {work.year}
-                    </p>
+                    <h3
+  className={`text-sm font-light text-foreground/90 leading-tight mb-1 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
+  {getLocalizedTitle(work)}
+</h3>
+                    <p className="text-[10px] font-[var(--font-ui)] text-muted-foreground/60 tracking-[0.1em]">
+  {work.year}
+</p>
                   </div>
                 </div>
               ))}
@@ -586,7 +602,7 @@ export const InfiniteWorkGrid = ({
           </div>
 
           <div className="mt-6 pr-6 flex justify-center">
-            <span className="text-[12px] font-mono text-muted-foreground/60 tracking-wider tabular-nums">
+            <span className="text-[12px] font-[var(--font-ui)] text-muted-foreground/60 tracking-wider tabular-nums">
               {String(currentSlide + 1).padStart(2, '0')} / {String(works.length).padStart(2, '0')}
             </span>
           </div>
@@ -603,10 +619,10 @@ export const InfiniteWorkGrid = ({
 
         <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-4">
-            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif]">
+            <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[var(--font-ui)]">
               other works
             </h2>
-            <span className="text-muted-foreground/80 text-[10px] font-[Ojuju]">
+            <span className="text-muted-foreground/80 text-[10px] font-[var(--font-ui)]">
               {works.length} {works.length === 1 ? 'work' : 'works'}
             </span>
           </div>
@@ -618,7 +634,7 @@ export const InfiniteWorkGrid = ({
                 style={{ width: `${scrollProgress * 100}%` }}
               />
             </div>
-            <span className="text-[9px] text-muted-foreground/80 tabular-nums font-[Ojuju]">
+            <span className="text-[9px] text-muted-foreground/80 tabular-nums font-[var(--font-ui)]">
               {Math.round(scrollProgress * 100)}%
             </span>
           </div>
@@ -834,10 +850,10 @@ export const InfiniteWorkGrid = ({
 
       <div className="relative z-20 pt-12 md:pt-16 px-6 md:px-12 mb-8 md:mb-12 flex items-end justify-between gap-4">
         <div className="flex items-baseline gap-4">
-          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[Sans_Serif_Collection]">
+          <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/90 font-[var(--font-ui)]">
             other works
           </h2>
-          <span className="text-muted-foreground/80 font-[Ojuju] text-[10px]">
+          <span className="text-muted-foreground/80 font-[var(--font-ui)] text-[10px]">
             {works.length} {works.length === 1 ? 'work' : 'works'}
           </span>
         </div>
@@ -849,7 +865,7 @@ export const InfiniteWorkGrid = ({
               style={{ width: `${scrollProgress * 100}%` }}
             />
           </div>
-          <span className="text-muted-foreground/80 tabular-nums text-[10px] font-[Ojuju]">
+          <span className="text-muted-foreground/80 tabular-nums text-[10px] font-[var(--font-ui)]">
             {Math.round(scrollProgress * 100)}%
           </span>
         </div>
@@ -1019,12 +1035,20 @@ export const InfiniteWorkGrid = ({
                     className="px-2.5 py-1.5"
                     style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(12px)' }}
                   >
-                    <p className="text-[8px] sans-serif text-white/85 whitespace-nowrap tracking-[0.08em] uppercase">
-                      {getLocalizedTitle(works[hoverIndex])}
-                    </p>
-                    <p className="text-[7px] sans-serif text-white/40 tracking-[0.12em] mt-0.5">
-                      {works[hoverIndex].year}
-                    </p>
+                    <p
+  className={`text-[8px] text-white/85 whitespace-nowrap tracking-[0.08em] uppercase ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
+  {getLocalizedTitle(works[hoverIndex])}
+</p>
+<p className="text-[7px] font-[var(--font-ui)] text-white/40 tracking-[0.12em] mt-0.5">
+  {works[hoverIndex].year}
+</p>
                   </div>
                 </motion.div>
               )}

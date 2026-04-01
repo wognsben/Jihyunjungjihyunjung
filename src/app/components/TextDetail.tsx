@@ -251,7 +251,7 @@ const rawHtml = hasLangContent
     return (
       <div className="h-full w-full flex flex-col items-center justify-center p-8 space-y-4 text-center">
         <h1 className="text-lg font-light">Content Unavailable</h1>
-        <p className="text-[10px] text-muted-foreground font-mono">ID: {textId}</p>
+        <p className="text-[10px] text-muted-foreground font-[var(--font-ui)]">ID: {textId}</p>
         {error && <p className="text-[10px] text-red-400/50">{error}</p>}
       </div>
     );
@@ -318,7 +318,7 @@ const rawHtml = hasLangContent
               className="group flex items-center gap-3 px-0 py-2 bg-transparent focus:outline-none"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-50 group-hover:opacity-80" />
-              <span className="text-[10px] tracking-[0.25em] lowercase font-light opacity-50 group-hover:opacity-80 transition-opacity duration-300">
+              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-50 group-hover:opacity-80 transition-opacity duration-300">
                 back
               </span>
             </button>
@@ -330,7 +330,7 @@ const rawHtml = hasLangContent
               className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.25em] lowercase font-light opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
                 back
               </span>
             </button>
@@ -343,9 +343,9 @@ const rawHtml = hasLangContent
 }`}>
         <article>
           <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
-            <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-mono">
+            <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
               <div className="flex items-center gap-3">
-                <span className="font-[SansSerif]">{text.category.toLowerCase()}</span>
+                <span className="font-[var(--font-ui)]">{text.category.toLowerCase()}</span>
                 <span className="opacity-30">/</span>
                 <span>{text.year}</span>
               </div>
@@ -361,7 +361,13 @@ const rawHtml = hasLangContent
   leading-tight
   text-center
   text-[18px] md:text-[20px] lg:text-[24px]
-  ${lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'}
+  ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }
 `}
             >
               {cleanText(title)}
@@ -403,8 +409,12 @@ const rawHtml = hasLangContent
                     ease: 'easeOut',
                   }}
                   className={`text-sm md:text-[0.95rem] leading-[1.8] text-foreground/80 text-justify [&_a]:text-foreground/60 [&_a]:underline [&_a]:underline-offset-4 [&_a]:decoration-foreground/20 [&_a]:transition-all [&_a]:duration-300 hover:[&_a]:text-foreground/90 hover:[&_a]:decoration-foreground/40 ${
-                    lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
-                  }`}
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+}`}
                   dangerouslySetInnerHTML={{ __html: sanitizeHtml(paragraph) }}
                 />
               ))
@@ -413,7 +423,7 @@ const rawHtml = hasLangContent
 
           {allRelatedWorks.length > 0 && (
             <div className="mt-24 pt-12 border-t border-foreground/5">
-              <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/60 font-mono mb-8">
+              <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/60 font-[var(--font-ui)] mb-8">
                 related
               </h2>
 
@@ -445,12 +455,20 @@ const rawHtml = hasLangContent
                         </div>
 
                         <div className="space-y-1">
-                          <div className="text-[11px] tracking-wide font-medium leading-tight group-hover:underline underline-offset-4 decoration-foreground/30">
-                            {cleanText(work.title)}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground/60 font-mono">
-                            <span>{work.year}</span>
-                          </div>
+                          <div
+  className={`text-[11px] tracking-wide font-medium leading-tight group-hover:underline underline-offset-4 decoration-foreground/30 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
+  {cleanText(work.title)}
+</div>
+                          <div className="text-[10px] text-muted-foreground/60 font-[var(--font-ui)]">
+  <span>{work.year}</span>
+</div>
                         </div>
                       </a>
                     );

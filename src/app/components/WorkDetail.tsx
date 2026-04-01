@@ -245,7 +245,7 @@ export const WorkDetail = ({
               className="group flex items-center gap-2 py-1.5 bg-transparent focus:outline-none cursor-pointer pointer-events-auto"
             >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 text-muted-foreground/60 group-hover:text-foreground/80" />
-              <span className="text-[10px] tracking-[0.25em] lowercase font-sans text-muted-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">
+              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] text-muted-foreground/60 group-hover:text-foreground/80 transition-colors duration-300">
                 back
               </span>
             </button>
@@ -256,7 +256,15 @@ export const WorkDetail = ({
             <div className="max-w-4xl mx-auto">
               {/* Classic Gallery Caption: Title, Year */}
               <div className="text-center pb-6 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
-                <h1 className="text-[18px] md:text-[20px] lg:text-[24px] font-serif font-light text-foreground/90 leading-tight">
+                <h1
+  className={`text-[18px] md:text-[20px] lg:text-[24px] font-light text-foreground/90 leading-tight ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                   {cleanText(title)}
                   {work.year && `, ${work.year}`}
                 </h1>
@@ -274,7 +282,7 @@ export const WorkDetail = ({
 
                   if (commission) {
                     return (
-                      <div className="text-sm md:text-base font-mono text-foreground/70">
+                      <div className="text-sm md:text-base font-[var(--font-ui)] text-foreground/70">
                         {cleanText(commission)}
                       </div>
                     );
@@ -293,7 +301,15 @@ export const WorkDetail = ({
                   if (!yearCaption) return null;
 
                   return (
-                    <p className="mt-3 text-[10px] text-muted-foreground/50 font-serif italic">
+                    <p
+  className={`mt-3 text-[10px] text-muted-foreground/50 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                       {cleanText(yearCaption)}
                     </p>
                   );
@@ -325,7 +341,7 @@ export const WorkDetail = ({
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
                   {/* Left: Section Label */}
                   <div className="md:col-span-3 min-[1025px]:col-span-3">
-                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 sticky top-40 font-[SansSerif]">
+                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 sticky top-40 font-[var(--font-ui)]">
                       {lang === 'ko' ? 'Artist Note' : lang === 'jp' ? 'Artist Note' : 'Artist Note'}
                     </h2>
                   </div>
@@ -337,8 +353,12 @@ export const WorkDetail = ({
                         <p
                           key={`additional-${lang}-${index}`}
                           className={`${
-                            lang === 'jp' ? 'font-[Shippori_Mincho]' : 'font-serif'
-                          } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+} text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80`}
                         >
                           <span dangerouslySetInnerHTML={{ __html: paragraph.trim() }} />
                         </p>
@@ -366,18 +386,22 @@ export const WorkDetail = ({
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
                   {/* Left: Section Title */}
                   <div className="md:col-span-3 min-[1025px]:col-span-3">
-                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-mono sticky top-40">
-                      Credits & Notes
-                    </h2>
+                    <h2 className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/70 font-[var(--font-ui)] sticky top-40">
+  Credits & Notes
+</h2>
                   </div>
 
                   {/* Right: Content */}
                   <div className="md:col-span-8 md:col-start-5 min-[1025px]:col-span-7 min-[1025px]:col-start-5">
                     <div
-                      className={`prose prose-sm md:prose-base dark:prose-invert prose-headings:font-light prose-p:text-foreground/80 prose-p:leading-relaxed prose-li:text-foreground/80 prose-strong:text-foreground/90 prose-strong:font-medium max-w-none ${
-                        lang === 'jp'
-                          ? 'prose-headings:font-[Shippori_Mincho] prose-p:font-[Shippori_Mincho] prose-ul:font-[Shippori_Mincho]'
-                          : 'prose-headings:font-serif prose-p:font-serif prose-ul:font-serif'
+                      className={`prose prose-sm md:prose-base dark:prose-invert prose-headings:font-light prose-p:text-foreground/80 prose-p:leading-relaxed prose-li:text-foreground/80 prose-strong:text-foreground/90 prose-strong:font-medium max-w-none 
+                      ${
+  lang === 'jp'
+    ? 'prose-headings:font-[var(--font-body-jp)] prose-p:font-[var(--font-body-jp)] prose-ul:font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'prose-headings:font-[var(--font-body-en)] prose-p:font-[var(--font-body-en)] prose-ul:font-[var(--font-body-en)]'
+    : 'prose-headings:font-[var(--font-body-ko)] prose-p:font-[var(--font-body-ko)] prose-ul:font-[var(--font-body-ko)]'
+}
                       }`}
                       dangerouslySetInnerHTML={{ __html: credits }}
                     />
@@ -405,14 +429,20 @@ export const WorkDetail = ({
                 <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
                   <div className="md:col-span-4 min-[1025px]:col-span-3">
                     <div className="sticky top-40">
-                      <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 mb-6 font-[SansSerif]">
+                      <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/70 mb-6 font-[var(--font-ui)]">
                         related
                       </h2>
                       <div className="hidden md:block min-h-[100px]">
                         {hoveredArticleId && (
                           <div
                             key={hoveredArticleId}
-                            className="text-sm font-serif leading-relaxed text-foreground/80 italic animate-in fade-in duration-500"
+                            className={`text-sm leading-relaxed text-foreground/80 animate-in fade-in duration-500 ${
+  lang === 'jp'
+    ? 'font-[var(--font-body-jp)]'
+    : lang === 'en'
+    ? 'font-[var(--font-body-en)]'
+    : 'font-[var(--font-body-ko)]'
+}`}
                           >
                             {(() => {
                               const article = filteredRelatedArticles.find(
@@ -513,7 +543,15 @@ export const WorkDetail = ({
                               <span className="shrink-0 text-[10px] text-muted-foreground/60 font-[Ojuju]">
                                 {String(index + 1).padStart(2, '0')}
                               </span>
-                              <h3 className="font-serif font-light tracking-tight text-foreground/90 text-[14px] md:text-[16px] leading-snug m-0">
+                              <h3
+  className={`font-light tracking-tight text-foreground/90 text-[14px] md:text-[16px] leading-snug m-0 ${
+    lang === 'jp'
+      ? 'font-[var(--font-body-jp)]'
+      : lang === 'en'
+      ? 'font-[var(--font-body-en)]'
+      : 'font-[var(--font-body-ko)]'
+  }`}
+>
                                 {cleanText(displayTitle)}
                               </h3>
                             </div>

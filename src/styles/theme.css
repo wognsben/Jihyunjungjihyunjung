@@ -129,23 +129,27 @@
   --color-bg-shift: #1e2227;
   --color-link: #fbae4e;
   
-  /* Fonts - All Unified to Pretendard for Clean Minimal Look */
+    /* Typography System */
 
---font-sans: "Pretendard", "Noto Sans JP", "Space Grotesk",
-  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-  "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Pretendard", "Noto Sans JP",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 
---font-serif: "Pretendard", "Noto Sans JP", "Space Grotesk", serif;
+  --font-ui: "Pretendard", "Noto Sans JP",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 
---font-mono: "Anonymous Pro", "Courier New", monospace;
+  --font-serif: "Petrona", "Shippori Mincho", serif;
 
---font-serif-jp: "Shippori Mincho", "Noto Serif", serif;
+  --font-mono: "Anonymous Pro", "Courier New", monospace;
 
---font-body-ko: "Pretendard", sans-serif;
-  
---font-body-en: "Space Grotesk", "Pretendard", sans-serif;
-  
---font-body-jp: "IBM Plex Sans JP", "Noto Sans JP", sans-serif;
+  --font-number: "Ojuju", serif;
+
+  --font-body-ko: "Pretendard", "Noto Sans KR", sans-serif;
+
+  --font-body-en: "Petrona", serif;
+
+  --font-body-jp: "Shippori Mincho", "Noto Serif JP", serif;
 }
 
 @layer base {
