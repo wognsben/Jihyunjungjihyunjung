@@ -924,8 +924,10 @@ const HeadingBlock = ({
 
 const SingleImageBlock = ({
   block,
+  lang,
 }: {
   block: ParsedBlock;
+   lang: string;
 }) => {
   const images = extractImagesFromBlocks([block]);
   if (images.length === 0) return null;
@@ -1419,7 +1421,7 @@ export const BlockRenderer = ({
               />
             );
           case 'image':
-            return <SingleImageBlock key={blockKey} block={block} />;
+            return <SingleImageBlock key={blockKey} block={block} lang={lang} />;
           case 'video':
             return <VideoBlock key={blockKey} html={block.html} align={block.align} />;
           case 'embed':

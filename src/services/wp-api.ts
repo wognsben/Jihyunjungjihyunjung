@@ -447,56 +447,48 @@ const transformWork = async (post: WPPost, lang: string): Promise<Work> => {
   // ACF fields for multilingual support
   const acf = post.acf || {};
 
-  // 🖼️ ACF Gallery Field - Primary source for images and captions
+  const raw_content_en = acf['작품_설명_en'] || '';
+  const raw_content_jp = acf['작품_설명_jp'] || '';
+
+  // ACF Gallery Field - Primary source for images and captions
   let galleryImages: string[] = [];
   let imageCredits: string[] = [];
 
   // Check for ACF gallery field (field name: gallery_images or similar)
   const acfGalleryKo =
-  acf.gallery_images ||
-  acf.gallery ||
-  acf['갤러리_이미지'];
+    acf.gallery_images ||
+    acf.gallery ||
+    acf['갤러리_이미지'];
 
-const acfGalleryEn =
-  acf.gallery_images_en ||
-  acf.gallery_en ||
-  acf['갤러리_이미지_en'] ||
-  acf['EN_갤러리_이미지'];
+  const acfGalleryEn =
+    acf.gallery_images_en ||
+    acf.gallery_en ||
+    acf['갤러리_이미지_en'] ||
+    acf['EN_갤러리_이미지'];
 
-const acfGalleryJp =
-  acf.gallery_images_jp ||
-  acf.gallery_jp ||
-  acf['갤러리_이미지_jp'] ||
-  acf['JP_갤러리_이미지'];
+  const acfGalleryJp =
+    acf.gallery_images_jp ||
+    acf.gallery_jp ||
+    acf['갤러리_이미지_jp'] ||
+    acf['JP_갤러리_이미지'];
 
-const acfGallery = acfGalleryKo;
+  const acfGallery =
+    lang === 'en'
+      ? acfGalleryEn || acfGalleryKo
+      : lang === 'jp'
+      ? acfGalleryJp || acfGalleryKo
+      : acfGalleryKo;
 
-  // 🔍 DEBUG: Log gallery data
-  console.log(
-    '🖼️ [transformWork Debug] Post ID:',
-    post.id,
-    'Title:',
-    decode(post.title.rendered)
-  );
-  console.log('🖼️ [transformWork Debug] ACF Gallery Field:', acfGallery);
-  console.log(
-    '🖼️ [transformWork Debug] Gallery is array?',
-    Array.isArray(acfGallery)
-  );
-  if (acfGallery && Array.isArray(acfGallery)) {
-    console.log(
-      '🖼️ [transformWork Debug] Gallery length:',
-      acfGallery.length
-    );
-    console.log(
-      '🖼️ [transformWork Debug] First image object:',
-      acfGallery[0]
-    );
-  }
+  const activeGallery =
+  lang === 'en'
+    ? acfGalleryEn
+    : lang === 'jp'
+    ? acfGalleryJp
+    : acfGalleryKo;
 
-  if (acfGallery && Array.isArray(acfGallery) && acfGallery.length > 0) {
+if (activeGallery && Array.isArray(activeGallery) && activeGallery.length > 0) {
     // ACF Gallery exists - use it as primary source
-    acfGallery.forEach((imageObj: any, index: number) => {
+    activeGallery.forEach((imageObj: any, index: number) => {
       if (imageObj) {
         // Handle both Image Object and Image Array return formats
         const imageUrl =
@@ -507,11 +499,6 @@ const acfGallery = acfGalleryKo;
         const caption =
           typeof imageObj === 'object' ? imageObj.caption || '' : '';
 
-        console.log(`🖼️ [transformWork Debug] Image ${index}:`, {
-          imageUrl,
-          caption,
-        });
-
         if (imageUrl) {
           galleryImages.push(getFullSizeUrl(imageUrl));
           imageCredits.push(caption ? decode(caption) : '');
@@ -519,20 +506,17 @@ const acfGallery = acfGalleryKo;
       }
     });
 
-    console.log(
-      '🖼️ [transformWork Debug] Final galleryImages:',
-      galleryImages.length
-    );
-    console.log(
-      '🖼️ [transformWork Debug] Final imageCredits:',
-      imageCredits
-    );
   } else {
-    console.log(
-      '🖼️ [transformWork Debug] No ACF gallery - using fallback content extraction'
-    );
+
     // Fallback: Extract images and captions together from content
-    const imagesAndCaptions = extractImagesAndCaptions(post.content.rendered);
+    const fallbackContent =
+  lang === 'en'
+    ? (raw_content_en || post.content.rendered)
+    : lang === 'jp'
+    ? (raw_content_jp || post.content.rendered)
+    : post.content.rendered;
+
+const imagesAndCaptions = extractImagesAndCaptions(fallbackContent);
 
     // Separate into arrays
     galleryImages = imagesAndCaptions.map((item) => item.url);
@@ -547,15 +531,10 @@ const acfGallery = acfGalleryKo;
     }
 
     console.log(
-      '🖼️ [transformWork Debug] Extracted from content:',
+      '[transformWork Debug] Extracted from content:',
       galleryImages.length,
       'images'
-    );
-    console.log('🖼 [transformWork Debug] Raw captions:', rawCaptions);
-    console.log(
-      '🖼️ [transformWork Debug] Parsed captions (lang=' + lang + '):',
-      imageCredits
-    );
+    );  
   }
 
   // Try to find "Year" from work_category taxonomy
@@ -593,10 +572,6 @@ const acfGallery = acfGalleryKo;
   const oneLineInfo_ko = decode(
     post.excerpt.rendered.replace(/<[^>]+>/g, '').trim()
   );
-
-  // EN/JP raw ACF html
-  const raw_content_en = acf['작품_설명_en'] || '';
-  const raw_content_jp = acf['작품_설명_jp'] || '';
 
   // EN/JP gallery map
   const galleryIds = [
@@ -812,9 +787,14 @@ const content_jp = raw_content_jp
     medium_en,
     medium_jp,
 
-    thumbnail: featuredImage,
-    thumbnail_en: thumbnail_en || undefined,
-    thumbnail_jp: thumbnail_jp || undefined,
+    thumbnail:
+  lang === 'en'
+    ? thumbnail_en || featuredImage
+    : lang === 'jp'
+    ? thumbnail_jp || featuredImage
+    : featuredImage,
+thumbnail_en: thumbnail_en || undefined,
+thumbnail_jp: thumbnail_jp || undefined,
 
     oneLineInfo_ko,
     oneLineInfo_en,
@@ -836,7 +816,16 @@ const content_jp = raw_content_jp
     additional_en: additional_en || undefined,
     additional_jp: additional_jp || undefined,
 
-    galleryImages: galleryImages.length > 0 ? galleryImages : [featuredImage],
+    galleryImages:
+  galleryImages.length > 0
+    ? galleryImages
+    : [
+        lang === 'en'
+          ? thumbnail_en || featuredImage
+          : lang === 'jp'
+          ? thumbnail_jp || featuredImage
+          : featuredImage,
+      ],
     imageCredits: imageCredits.length > 0 ? imageCredits : undefined,
     category: workCategory || undefined,
     youtubeUrl,
@@ -866,26 +855,6 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
 
   // ACF multilingual fields
   const acf = post.acf || {};
-
-  // 🔍 DEBUG: Log ACF data to console
-  console.log('🔍 [transformText Debug] Post ID:', post.id);
-  console.log('🔍 [transformText Debug] ACF Keys:', Object.keys(acf));
-  console.log('🔍 [transformText Debug] ACF EN fields:', {
-    text_제목en: acf['text_제목en'],
-    text_제목_en: acf['text_제목_en'],
-    TEXT_작품_설명en: acf['TEXT_작품_설명en'],
-    TEXT_작품_설명_en: acf['TEXT_작품_설명_en'],
-    content_en: acf.content_en,
-    summary_en: acf.summary_en,
-  });
-  console.log('🔍 [transformText Debug] ACF JP fields:', {
-    text_제목jp: acf['text_제목jp'],
-    text_제목_jp: acf['text_제목_jp'],
-    TEXT_작품_설명jp: acf['TEXT_작품_설명jp'],
-    TEXT_작품_설명_jp: acf['TEXT_작품_설명_jp'],
-    content_jp: acf.content_jp,
-    summary_jp: acf.summary_jp,
-  });
 
   // EN
  const title_en = acf['text_제목en']
@@ -930,8 +899,8 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
   ? decode(stripHtmlToText(content_jp_raw))
   : '';
 
-  // 🔍 DEBUG: Log final values
-  console.log('🔍 [transformText Debug] Final values:', {
+  // DEBUG: Log final values
+  console.log('[transformText Debug] Final values:', {
     title_en,
     title_jp,
     content_en: content_en.substring(0, 100) + '...',
@@ -970,9 +939,47 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
           ? decode(workObj.title.rendered)
           : workObj.post_title || '';
 
-        const workThumbnail = workObj._embedded?.['wp:featuredmedia']?.[0]?.source_url
-          ? getFullSizeUrl(workObj._embedded['wp:featuredmedia'][0].source_url)
-          : workObj.featured_media_src_url || '';
+        const workAcf = workObj.acf || {};
+
+const relatedThumbnailEnRaw =
+  workAcf.EN_image || workAcf.en_image || workAcf['EN_image'];
+
+const relatedThumbnailJpRaw =
+  workAcf.JP_image || workAcf.jp_image || workAcf['JP_image'];
+
+const relatedThumbnailEn = relatedThumbnailEnRaw
+  ? getFullSizeUrl(
+      typeof relatedThumbnailEnRaw === 'string'
+        ? relatedThumbnailEnRaw
+        : relatedThumbnailEnRaw.url ||
+          relatedThumbnailEnRaw.sizes?.large ||
+          relatedThumbnailEnRaw.sizes?.full ||
+          ''
+    )
+  : '';
+
+const relatedThumbnailJp = relatedThumbnailJpRaw
+  ? getFullSizeUrl(
+      typeof relatedThumbnailJpRaw === 'string'
+        ? relatedThumbnailJpRaw
+        : relatedThumbnailJpRaw.url ||
+          relatedThumbnailJpRaw.sizes?.large ||
+          relatedThumbnailJpRaw.sizes?.full ||
+          ''
+    )
+  : '';
+
+const relatedFeatured =
+  workObj._embedded?.['wp:featuredmedia']?.[0]?.source_url
+    ? getFullSizeUrl(workObj._embedded['wp:featuredmedia'][0].source_url)
+    : workObj.featured_media_src_url || '';
+
+const workThumbnail =
+  lang === 'en'
+    ? relatedThumbnailEn || relatedFeatured
+    : lang === 'jp'
+    ? relatedThumbnailJp || relatedFeatured
+    : relatedFeatured;
 
         let workYear = String(new Date(workObj.date).getFullYear());
         let workMedium = '';
@@ -1450,7 +1457,7 @@ export const fetchWorkById = async (
   try {
     const cacheKey = makeWorkDetailCacheKey(id, lang);
 
-    // ✅ 캐시 확인 (언어 포함)
+    // 캐시 확인 (언어 포함)
     if (workDetailCache.has(cacheKey)) {
       return workDetailCache.get(cacheKey)!;
     }
@@ -1463,7 +1470,7 @@ export const fetchWorkById = async (
 
     const work = await transformWork(response.data, lang);
 
-    // ✅ 캐시 저장 (언어 포함)
+    // 캐시 저장 (언어 포함)
     workDetailCache.set(cacheKey, work);
 
     return work;
