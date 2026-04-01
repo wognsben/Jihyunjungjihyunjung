@@ -250,15 +250,15 @@ export const WorkDetail = ({
 </div>
 
 {/* Content Container */}
-<div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1100px] mx-auto">
+<div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1000px] mx-auto">
 
           {/* Back Button - desktop (match TextDetail vertical position) */}
-          <div className="hidden md:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
-            <button
-              ref={buttonRef}
-              onClick={handleClose}
-              className="group flex items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-            >
+          <div className="hidden min-[1380px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+  <button
+    ref={buttonRef}
+    onClick={handleClose}
+    className="hidden min-[1380px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+  >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
               <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
                 back

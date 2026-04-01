@@ -19,10 +19,17 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   const { ensureWorksLoaded, ensureTextsLoaded } = useWorks();
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  
+
   // Mobile About 전용 조건
   const isMobile = useIsMobile();
+  const [windowWidth, setWindowWidth] = useState<number>(
+    typeof window !== 'undefined' ? window.innerWidth : 9999
+  );
+
   const isMobileAbout = currentView === 'about' && isMobile;
+  const isNarrowDetailHeader =
+    windowWidth < 1380 &&
+    (currentView === 'work-detail' || currentView === 'text-detail');
 
   // --------------------------------------------------------------------------------
   // [Premium UX] Smart Scroll Behavior
@@ -33,7 +40,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      
+
       // 상단이거나 스크롤을 올릴 때 보임
       if (currentScrollY < 10) {
         setIsVisible(true);
@@ -55,11 +62,21 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
   const ENABLE_JP = false;
 
-const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
-  { code: 'ko', label: 'KO' },
-  { code: 'en', label: 'EN' },
-  ...(ENABLE_JP ? [{ code: 'jp', label: 'JP' as const }] : [])
-];
+  const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
+    { code: 'ko', label: 'KO' },
+    { code: 'en', label: 'EN' },
+    ...(ENABLE_JP ? [{ code: 'jp', label: 'JP' as const }] : [])
+  ];
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleNavClick = (item: NavItem) => {
     if (item === 'work') {
@@ -78,7 +95,7 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
   // 정 배경 -> 텍스트가 흰색으로 반전
   // 단, 모바일 About 페이지에서는 solid background layer로 동작합니다.
   // --------------------------------------------------------------------------------
-  
+
   // 모바일 About일 때만 foreground 계열, 나머지는 white 계열
   const baseColor = isMobileAbout ? 'text-foreground' : 'text-white';
   const inactiveColor = isMobileAbout ? 'text-foreground/60' : 'text-white/60';
@@ -94,30 +111,36 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
   // --------------------------------------------------------------------------------
   const renderContextLabel = () => {
     switch (currentView) {
-      case 'index': return 'index / overview';
-      case 'work': return 'work';
-      case 'work-detail': 
+      case 'index':
+        return 'index / overview';
+
+      case 'work':
+        return 'work';
+
+      case 'work-detail':
         if (detailTitle) {
           return (
             <span className="flex items-baseline gap-2">
-              {/* Italiana 폰트 적용: 우아함을 강조 */}
               <span
-  className={`text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block ${
-    lang === 'jp'
-      ? 'font-[var(--font-body-jp)]'
-      : lang === 'en'
-      ? 'font-[var(--font-body-en)]'
-      : 'font-[var(--font-body-ko)]'
-  }`}
->
+                className={`text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block ${
+                  lang === 'jp'
+                    ? 'font-[var(--font-body-jp)]'
+                    : lang === 'en'
+                    ? 'font-[var(--font-body-en)]'
+                    : 'font-[var(--font-body-ko)]'
+                }`}
+              >
                 {detailTitle}
               </span>
             </span>
           );
         }
         return 'detail view';
-      case 'text': return 'text';
-      case 'text-detail': 
+
+      case 'text':
+        return 'text';
+
+      case 'text-detail':
         if (detailTitle) {
           const parts = detailTitle.split('_');
           const hasAuthor = parts.length > 1;
@@ -127,14 +150,14 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
           return (
             <span className="flex items-baseline gap-2">
               <span
-  className={`opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px] ${
-    lang === 'jp'
-      ? 'font-[var(--font-body-jp)]'
-      : lang === 'en'
-      ? 'font-[var(--font-body-en)]'
-      : 'font-[var(--font-body-ko)]'
-  }`}
->
+                className={`opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px] ${
+                  lang === 'jp'
+                    ? 'font-[var(--font-body-jp)]'
+                    : lang === 'en'
+                    ? 'font-[var(--font-body-en)]'
+                    : 'font-[var(--font-body-ko)]'
+                }`}
+              >
                 {hasAuthor ? (
                   <>
                     {titlePart}
@@ -148,15 +171,65 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
           );
         }
         return 'reading';
-      case 'about': return 'about';
-      default: return '';
+
+      case 'about':
+        return 'about';
+
+      default:
+        return '';
     }
+  };
+
+  const renderNarrowDetailTitle = () => {
+    if (!detailTitle) return null;
+
+    if (currentView === 'text-detail') {
+      const parts = detailTitle.split('_');
+      const hasAuthor = parts.length > 1;
+      const titlePart = parts[0].trim();
+      const authorPart = hasAuthor ? parts.slice(1).join('_').trim() : '';
+
+      return (
+        <span
+          className={`block text-right text-[11px] leading-[1.3] break-words max-w-[220px] ${
+            lang === 'jp'
+              ? 'font-[var(--font-body-jp)]'
+              : lang === 'en'
+              ? 'font-[var(--font-body-en)]'
+              : 'font-[var(--font-body-ko)]'
+          }`}
+        >
+          {hasAuthor ? (
+            <>
+              {titlePart}
+              <span className="block mt-0.5">_{authorPart}</span>
+            </>
+          ) : (
+            detailTitle
+          )}
+        </span>
+      );
+    }
+
+    return (
+      <span
+        className={`block text-right text-[11px] leading-[1.3] break-words max-w-[220px] ${
+          lang === 'jp'
+            ? 'font-[var(--font-body-jp)]'
+            : lang === 'en'
+            ? 'font-[var(--font-body-en)]'
+            : 'font-[var(--font-body-ko)]'
+        }`}
+      >
+        {detailTitle}
+      </span>
+    );
   };
 
   return (
     <>
       {/* 1. Main Navigation (Disappears on Scroll Down) */}
-      <header 
+      <header
         className={`
           fixed top-0 left-0 right-0 z-[9999999] pointer-events-none
           transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
@@ -168,9 +241,11 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
           borderBottom: 'none',
         }}
       >
-        <div className={`px-6 md:px-12 py-4 md:py-6 pointer-events-auto relative z-[9999999] ${
-          isMobileAbout ? 'text-foreground' : 'text-white'
-        }`}>
+        <div
+          className={`px-6 md:px-12 py-4 md:py-6 pointer-events-auto relative z-[9999999] ${
+            isMobileAbout ? 'text-foreground' : 'text-white'
+          }`}
+        >
           {/* Logo + Navigation */}
           <div className="flex flex-col gap-3 md:gap-4">
             {/* Top Row: Logo + Language */}
@@ -219,67 +294,67 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
             {/* Bottom Row: Navigation */}
             <nav className="flex items-center gap-6 md:gap-10">
               <SplitTextLink
-  text="work"
-  onMouseEnter={() => {
-    ensureWorksLoaded().catch((error) => {
-      console.error('Failed to preload works on hover:', error);
-    });
-  }}
-  onFocus={() => {
-    ensureWorksLoaded().catch((error) => {
-      console.error('Failed to preload works on focus:', error);
-    });
-  }}
-  onClick={() => handleNavClick('work')}
-  isActive={currentView === 'work'}
-  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-  inactiveColor={inactiveColor}
-  hoverColor={hoverColor}
-  underlineColor={borderColor}
-/>
+                text="work"
+                onMouseEnter={() => {
+                  ensureWorksLoaded().catch((error) => {
+                    console.error('Failed to preload works on hover:', error);
+                  });
+                }}
+                onFocus={() => {
+                  ensureWorksLoaded().catch((error) => {
+                    console.error('Failed to preload works on focus:', error);
+                  });
+                }}
+                onClick={() => handleNavClick('work')}
+                isActive={currentView === 'work'}
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
+              />
 
               <SplitTextLink
-  text="text"
-  onMouseEnter={() => {
-    ensureTextsLoaded().catch((error) => {
-      console.error('Failed to preload texts on hover:', error);
-    });
-  }}
-  onFocus={() => {
-    ensureTextsLoaded().catch((error) => {
-      console.error('Failed to preload texts on focus:', error);
-    });
-  }}
-  onClick={() => handleNavClick('text')}
-  isActive={currentView === 'text'}
-  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-  inactiveColor={inactiveColor}
-  hoverColor={hoverColor}
-  underlineColor={borderColor}
-/>
+                text="text"
+                onMouseEnter={() => {
+                  ensureTextsLoaded().catch((error) => {
+                    console.error('Failed to preload texts on hover:', error);
+                  });
+                }}
+                onFocus={() => {
+                  ensureTextsLoaded().catch((error) => {
+                    console.error('Failed to preload texts on focus:', error);
+                  });
+                }}
+                onClick={() => handleNavClick('text')}
+                isActive={currentView === 'text'}
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
+              />
 
               <SplitTextLink
-  text="about"
-  onMouseEnter={() => {
-    preloadAboutData().catch((error) => {
-      console.error('Failed to preload About data on hover:', error);
-    });
-  }}
-  onFocus={() => {
-    preloadAboutData().catch((error) => {
-      console.error('Failed to preload About data on focus:', error);
-    });
-  }}
-  onClick={() => handleNavClick('about')}
-  isActive={currentView === 'about'}
-  className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
-  activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
-  inactiveColor={inactiveColor}
-  hoverColor={hoverColor}
-  underlineColor={borderColor}
-/>
+                text="about"
+                onMouseEnter={() => {
+                  preloadAboutData().catch((error) => {
+                    console.error('Failed to preload About data on hover:', error);
+                  });
+                }}
+                onFocus={() => {
+                  preloadAboutData().catch((error) => {
+                    console.error('Failed to preload About data on focus:', error);
+                  });
+                }}
+                onClick={() => handleNavClick('about')}
+                isActive={currentView === 'about'}
+                className="text-xs md:text-sm tracking-[0.15em] font-light cursor-pointer"
+                activeColor={isMobileAbout ? 'text-foreground' : 'text-white'}
+                inactiveColor={inactiveColor}
+                hoverColor={hoverColor}
+                underlineColor={borderColor}
+              />
             </nav>
           </div>
         </div>
@@ -310,41 +385,124 @@ const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
       </header>
 
       {/* 2. Context Indicator (Appears when Main Nav is gone) */}
-      <div 
+      <div
         className={`
-          fixed top-0 left-0 z-40 px-6 md:px-12 py-4 md:py-6 pointer-events-none
+          fixed top-0 left-0 right-0 z-40 px-6 md:px-12 py-4 md:py-6 pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
           ${isMobileAbout ? '' : 'mix-blend-difference'}
           ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
         `}
       >
-        {currentView === 'text-detail' ? (
-          <>
-            {/* Mobile: ← back 버튼 */}
-            <button
-              onClick={() => { window.location.hash = '#/text'; }}
-              className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
-            >
-              <svg className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'stroke-foreground' : ''}`} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-              <span className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-  back
-</span>
-            </button>
-            {/* Tablet/Desktop: 기존 context label (제목) */}
-            <div className="hidden md:flex items-center gap-3">
-              <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
-              <span className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-  {renderContextLabel()}
-</span>
-            </div>
-          </>
+        {isNarrowDetailHeader ? (
+          <div className="flex items-start justify-between gap-4">
+  <div
+    className={`pointer-events-none text-left opacity-90 ${
+      isMobileAbout ? 'text-foreground' : 'text-white'
+    }`}
+  >
+    {renderNarrowDetailTitle()}
+  </div>
+
+  <button
+    onClick={() => {
+      if (currentView === 'work-detail') {
+        window.history.back();
+      } else if (currentView === 'text-detail') {
+        window.history.back();
+      }
+    }}
+    className="flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group shrink-0"
+  >
+    <svg
+      className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+        isMobileAbout ? 'stroke-foreground' : ''
+      }`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </svg>
+    <span
+      className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+        isMobileAbout ? 'text-foreground' : 'text-white'
+      }`}
+    >
+      back
+    </span>
+  </button>
+</div>
         ) : (
-          <div className="flex items-center gap-3">
-            <div className={`w-[3px] h-[3px] rounded-none ${isMobileAbout ? 'bg-foreground' : 'bg-white'}`} />
-            <span className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${isMobileAbout ? 'text-foreground' : 'text-white'}`}>
-  {renderContextLabel()}
-</span>
-          </div>
+          <>
+            {currentView === 'text-detail' ? (
+              <>
+                {/* Mobile: ← back 버튼 */}
+                <button
+                  onClick={() => {
+                    window.location.hash = '#/text';
+                  }}
+                  className="flex md:hidden items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+                >
+                  <svg
+                    className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                      isMobileAbout ? 'stroke-foreground' : ''
+                    }`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M19 12H5" />
+                    <path d="m12 19-7-7 7-7" />
+                  </svg>
+                  <span
+                    className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                      isMobileAbout ? 'text-foreground' : 'text-white'
+                    }`}
+                  >
+                    back
+                  </span>
+                </button>
+
+                {/* Tablet/Desktop: 기존 context label (제목) */}
+                <div className="hidden md:flex items-center gap-3">
+                  <div
+                    className={`w-[3px] h-[3px] rounded-none ${
+                      isMobileAbout ? 'bg-foreground' : 'bg-white'
+                    }`}
+                  />
+                  <span
+                    className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${
+                      isMobileAbout ? 'text-foreground' : 'text-white'
+                    }`}
+                  >
+                    {renderContextLabel()}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-[3px] h-[3px] rounded-none ${
+                    isMobileAbout ? 'bg-foreground' : 'bg-white'
+                  }`}
+                />
+                <span
+                  className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${
+                    isMobileAbout ? 'text-foreground' : 'text-white'
+                  }`}
+                >
+                  {renderContextLabel()}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>
