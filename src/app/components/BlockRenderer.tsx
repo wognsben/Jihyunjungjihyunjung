@@ -557,13 +557,51 @@ if (inlineTags.includes(tag)) {
       continue;
     }
 
-    // 13. div/section/article인데 내부가 사실상 인라인 텍스트만이면 paragraph로 처리
-    const inner = el.innerHTML?.trim() || '';
-    const hasOnlyInlineContent =
-      inner &&
-      !/<(p|div|figure|blockquote|ul|ol|li|h[1-6]|hr|section|article|iframe|video)\b/i.test(inner);
+    // 13. div/section/article wrapper 처리 (핵심 수정)
+const inner = el.innerHTML?.trim() || '';
+if (!inner) continue;
 
-    if (hasOnlyInlineContent) {
+// 🔥 1. article-body / article-content / parsed 류 wrapper → 내부만 재귀 처리
+const className = el.className || '';
+
+const isArticleWrapper =
+  /\barticle-body\b/i.test(className) ||
+  /\barticle-content\b/i.test(className) ||
+  /\barticle-tmpl\b/i.test(className) ||
+  /\bparsed\b/i.test(className) ||
+  /\bpost-content\b/i.test(className) ||
+  /\bentry-content\b/i.test(className);
+
+if (isArticleWrapper) {
+  const innerBlocks = parseOrphanHtml(inner);
+  if (innerBlocks.length > 0) {
+    blocks.push(...innerBlocks);
+    continue;
+  }
+}
+
+// 🔥 2. wrapper인데 실제로는 single child만 있는 껍데기 div → unwrap
+const elementChildren = Array.from(el.children);
+const meaningfulTextNodes = Array.from(el.childNodes).filter(
+  (n) =>
+    n.nodeType === Node.TEXT_NODE &&
+    (n.textContent || '').replace(/\s+/g, '').trim() !== ''
+);
+
+if (elementChildren.length === 1 && meaningfulTextNodes.length === 0) {
+  const innerBlocks = parseOrphanHtml(inner);
+  if (innerBlocks.length > 0) {
+    blocks.push(...innerBlocks);
+    continue;
+  }
+}
+
+// 3. 진짜 inline-only면 paragraph 처리 (기존 유지)
+const hasOnlyInlineContent =
+  inner &&
+  !/<(p|div|figure|blockquote|ul|ol|li|h[1-6]|hr|section|article|iframe|video)\b/i.test(inner);
+
+if (hasOnlyInlineContent) {
   blocks.push({
     type: 'paragraph',
     html: inner,
@@ -572,10 +610,17 @@ if (inlineTags.includes(tag)) {
   continue;
 }
 
-    // 14. Unknown fallback
-    if (outer.replace(/<[^>]+>/g, '').trim()) {
-      blocks.push({ type: 'unknown', html: outer, align });
-    }
+// 4. 마지막 fallback → 내부 재귀 시도
+const innerBlocks = parseOrphanHtml(inner);
+if (innerBlocks.length > 0) {
+  blocks.push(...innerBlocks);
+  continue;
+}
+
+// 14. Unknown fallback (최후)
+if (outer.replace(/<[^>]+>/g, '').trim()) {
+  blocks.push({ type: 'unknown', html: outer, align });
+}
   }
 
   // 마지막에 남은 inline 버퍼 flush
@@ -883,7 +928,7 @@ const ParagraphBlock = ({
     : 'font-[var(--font-body-ko)]'
 } text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
           [&_p]:my-0
-          [&_p+p]:mt-4
+          [&_p+p]:mt-2
           [&_br]:leading-[1.8]
           [&_strong]:font-semibold
           [&_em]:italic
@@ -1382,7 +1427,7 @@ export const BlockRenderer = ({
 
   return (
     <div
-      className="space-y-8 md:space-y-12 min-[1025px]:space-y-16"
+      className="space-y-8 md:space-y-8 min-[1025px]:space-y-10"
       onClick={handleLinkClick}
     >
       {groups.map((group, index) => {

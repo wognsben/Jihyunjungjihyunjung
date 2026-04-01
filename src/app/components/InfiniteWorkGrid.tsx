@@ -12,6 +12,29 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { motion, AnimatePresence, useMotionValue, animate } from 'motion/react';
 
+const extractFirstImageFromHtml = (html: string): string => {
+  if (!html) return '';
+
+  const match = html.match(/<img[^>]+src="([^">]+)"/i);
+  return match?.[1]?.trim() || '';
+};
+
+const getLocalizedGridImage = (work: any, lang: 'ko' | 'en' | 'jp'): string => {
+  const koContent = work.content_rendered || '';
+
+  const localizedContent =
+    lang === 'en'
+      ? (work.content_en?.trim() || koContent)
+      : lang === 'jp'
+      ? (work.content_jp?.trim() || koContent)
+      : koContent;
+
+  const firstImage = extractFirstImageFromHtml(localizedContent);
+  if (firstImage) return firstImage;
+
+  return getLocalizedThumbnail(work, lang) || '';
+};
+
 interface InfiniteWorkGridProps {
   works: Work[];
   onWorkClick?: (workId: number) => void;
@@ -44,7 +67,7 @@ const WorkCard = memo(
           className={`${widthClass} aspect-[4/3] overflow-hidden bg-muted/10 mb-4 relative`}
         >
           <ImageWithFallback
-            src={getLocalizedThumbnail(work, lang) || ''}
+            src={getLocalizedGridImage(work, lang) || ''}
             alt={work.title_en}
             className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700 ease-out"
             loading={imagePriority ? 'eager' : 'lazy'}
@@ -573,7 +596,7 @@ export const InfiniteWorkGrid = ({
                 >
                   <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/10">
                     <ImageWithFallback
-                      src={getLocalizedThumbnail(work, lang) || ''}
+                      src={getLocalizedGridImage(work, lang) || ''}
                       alt={work.title_en}
                       className="w-full h-full object-cover"
                       loading={index < 2 ? 'eager' : 'lazy'}
@@ -991,7 +1014,7 @@ export const InfiniteWorkGrid = ({
                 }}
               />
             </div>
-
+            
             <AnimatePresence>
               {hoverProgress !== null && (
                 <motion.div
