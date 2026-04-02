@@ -229,7 +229,7 @@ export const Header = ({
 
     return (
       <span
-        className={`block text-left text-[11px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
+        className={`block text-left text-[14px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
           isMobileAbout ? 'text-foreground' : 'text-white'
         } ${
           lang === 'jp'
@@ -428,7 +428,7 @@ export const Header = ({
             ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
           `}
         >
-          <div className="h-[68px] md:h-[75px] bg-white border-b border-black/5" />
+          <div className="h-[58px] md:h-[70px] bg-white border-b border-black/5" />
         </div>
       )}
 
