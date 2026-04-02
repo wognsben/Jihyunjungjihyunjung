@@ -409,7 +409,7 @@ export const Header = ({
         <div
           aria-hidden="true"
           className={`
-            fixed top-0 left-0 right-0 z-30 pointer-events-none
+            fixed top-0 left-0 right-0 z-30 pointer-events-auto
             transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
             ${isVisible ? 'translate-y-0' : '-translate-y-full'}
           `}
@@ -423,7 +423,7 @@ export const Header = ({
         <div
           aria-hidden="true"
           className={`
-            fixed top-0 left-0 right-0 z-30 pointer-events-none
+            fixed top-0 left-0 right-0 z-30 pointer-events-auto
             transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
             ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
           `}
