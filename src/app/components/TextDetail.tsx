@@ -6,7 +6,6 @@ import { TextItem } from '@/data/texts';
 import { getLocalizedThumbnail } from '@/utils/getLocalizedImage';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Footer } from '@/app/components/Footer';
 import { BlockRenderer } from '@/app/components/BlockRenderer';
 
 interface TextDetailProps {
@@ -502,8 +501,7 @@ const rawHtml = hasLangContent
           <div className="mt-16 pt-8 border-t border-foreground/5 flex justify-center opacity-30" />
         </article>
       </div>
-
-      {isPage && <Footer />}
+    
     </div>
   );
 };

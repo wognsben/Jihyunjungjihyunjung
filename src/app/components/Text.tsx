@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
-import { Footer } from '@/app/components/Footer';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorks } from '@/contexts/WorkContext';
 import { motion, AnimatePresence } from 'motion/react';
@@ -366,10 +365,6 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
                 </div>
               </a>
             ))}
-          </div>
-
-          <div ref={footerRef} className="mt-24 pt-12 border-t border-foreground/10">
-             <Footer />
           </div>
 
         </div>
