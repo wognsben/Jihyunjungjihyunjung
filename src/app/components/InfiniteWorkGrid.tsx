@@ -568,8 +568,8 @@ export const InfiniteWorkGrid = ({
   // Mobile
   if (isMobile) {
     return (
-      <div className="relative w-full bg-background py-24">
-        <div className="px-6 mb-8 flex items-end justify-between gap-4">
+      <div className="relative w-full bg-background">
+        <div className="px-6 mb-4 flex items-end justify-between gap-4">
           <div className="flex items-baseline gap-4">
             <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground font-[var(--font-ui)]">
   other works
@@ -666,7 +666,7 @@ export const InfiniteWorkGrid = ({
         <div ref={tabletViewportRef} className="px-8 lg:px-12 overflow-hidden">
           <motion.div
             ref={tabletTrackRef}
-            className="flex gap-5 lg:gap-6 pb-16 cursor-grab active:cursor-grabbing"
+            className="flex gap-5 lg:gap-6 pb-10 cursor-grab active:cursor-grabbing"
             drag="x"
             dragMomentum={false}
             dragConstraints={tabletBounds}

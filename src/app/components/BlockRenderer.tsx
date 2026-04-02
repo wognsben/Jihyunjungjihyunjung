@@ -986,7 +986,7 @@ const SingleImageBlock = ({
       : 'text-center';
 
   return (
-    <div className="max-w-5xl mx-auto px-6 md:px-12">
+    <div className="max-w-5xl mx-auto px-1 md:px-12">
       <ImageFrame image={image} alt={image.caption || 'Image'} />
       {image.caption && (
         <p
@@ -1063,7 +1063,7 @@ const ImageSliderBlock = ({
     return (
       <div
         className={`${
-          compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'
+          compact ? 'mb-8 md:mb-12' : 'mb-1 md:mb-20 min-[1025px]:mb-24'
         } -mx-6 md:-mx-12`}
       >
         <div className="w-full overflow-hidden">
@@ -1097,7 +1097,7 @@ const ImageSliderBlock = ({
   return (
     <div
       className={`${
-        compact ? 'mb-8 md:mb-12' : 'mb-32 md:mb-48 min-[1025px]:mb-64'
+        compact ? 'mb-8 md:mb-12' : 'mb-10 md:mb-10 min-[1025px]:mb-10'//단일 이미지,갤러리에 영향//
       } -mx-6 md:-mx-12`}
     >
       <div className="flex w-full flex-col items-center gap-5 md:gap-6">
@@ -1247,7 +1247,7 @@ const VideoEmbedRenderer = ({
     : 'max-w-5xl mx-auto';
 
   return (
-  <div className="mb-40 md:mb-64 -mx-6 md:-mx-12">
+  <div className="mb-12 md:mb-20 -mx-6 md:-mx-12">
     <div className={alignWrapper}>
       <div className="relative w-full aspect-video bg-black/5 overflow-hidden">
           {isIframe ? (
@@ -1427,7 +1427,7 @@ export const BlockRenderer = ({
 
   return (
     <div
-      className="space-y-8 md:space-y-8 min-[1025px]:space-y-10"
+      className="space-y-4 md:space-y-4 min-[1025px]:space-y-6"//work,text 본문 텍스트 단락 간격에 영향//
       onClick={handleLinkClick}
     >
       {groups.map((group, index) => {

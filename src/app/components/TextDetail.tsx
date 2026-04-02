@@ -321,7 +321,7 @@ const rawHtml = hasLangContent
       </button>
     </div>
 
-   <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1000px] mx-auto">
+   <div className="pt-32 md:pt-40 px-6 md:px-12 pb-12 max-w-[1000px] mx-auto">
         <article>
           <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
@@ -498,7 +498,7 @@ const rawHtml = hasLangContent
             </div>
           )}
 
-          <div className="mt-16 pt-8 border-t border-foreground/5 flex justify-center opacity-30" />
+          
         </article>
       </div>
     
