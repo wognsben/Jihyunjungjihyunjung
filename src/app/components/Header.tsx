@@ -14,7 +14,12 @@ interface HeaderProps {
 
 type NavItem = 'work' | 'text' | 'about';
 
-export const Header = ({ currentView, onNavigate, isDarkBackground = true, detailTitle }: HeaderProps) => {
+export const Header = ({
+  currentView,
+  onNavigate,
+  isDarkBackground = true,
+  detailTitle,
+}: HeaderProps) => {
   const { lang, setLang } = useLanguage();
   const { ensureWorksLoaded, ensureTextsLoaded } = useWorks();
   const [isVisible, setIsVisible] = useState(true);
@@ -26,26 +31,42 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
     typeof window !== 'undefined' ? window.innerWidth : 9999
   );
 
-  const isMobileAbout = currentView === 'about' && isMobile;
-  const isNarrowDetailHeader =
-    windowWidth < 1380 &&
-    (currentView === 'work-detail' || currentView === 'text-detail');
+  const isMobileAbout = false;
+  const isNarrowViewport = windowWidth < 1320;
+  const isDetailView =
+    currentView === 'work-detail' || currentView === 'text-detail';
+  const isNarrowDetailHeader = isNarrowViewport && isDetailView;
+  const shouldAlwaysShowMainHeader = false;
+
+  // 1319 이하에서 글로벌 헤더에도 white layer 적용
+  const showMainHeaderWhiteLayer =
+    isNarrowViewport &&
+    (currentView === 'about' ||
+      currentView === 'work-detail' ||
+      currentView === 'text-detail');
+
+  // 1319 이하 detail에서는 context indicator에도 white layer 적용
+  const showContextWhiteLayer = isNarrowDetailHeader;
 
   // --------------------------------------------------------------------------------
   // [Premium UX] Smart Scroll Behavior
-  // 스크롤을 내릴 때는 작품에 집중하도록 헤더를 숨기고(Retreat),
-  // 올릴 때는 네비게이션을 위해 다시 드러냅니다(Reveal).
-  // 최상단에서는 항상 보입니다.
   // --------------------------------------------------------------------------------
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
+      // About은 항상 글로벌 헤더 유지
+      if (shouldAlwaysShowMainHeader) {
+        setIsVisible(true);
+        setLastScrollY(currentScrollY);
+        return;
+      }
+
       // 상단이거나 스크롤을 올릴 때 보임
       if (currentScrollY < 10) {
         setIsVisible(true);
       } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // 내리는 중 (100px 이상 내려갔을 때부터 숨김 시작)
+        // 내리는 중
         setIsVisible(false);
       } else if (currentScrollY < lastScrollY) {
         // 올리는 중
@@ -55,17 +76,16 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
       setLastScrollY(currentScrollY);
     };
 
-    // 성능 최적화를 위한 Passive Event Listener
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, [lastScrollY, shouldAlwaysShowMainHeader]);
 
   const ENABLE_JP = false;
 
   const languages: Array<{ code: 'ko' | 'en' | 'jp'; label: string }> = [
     { code: 'ko', label: 'KO' },
     { code: 'en', label: 'EN' },
-    ...(ENABLE_JP ? [{ code: 'jp', label: 'JP' as const }] : [])
+    ...(ENABLE_JP ? [{ code: 'jp', label: 'JP' as const }] : []),
   ];
 
   useEffect(() => {
@@ -88,27 +108,17 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
     }
   };
 
-  // --------------------------------------------------------------------------------
-  // [Architect's Solution] Smart Contrast System
-  // Mix-blend-mode: difference를 사용하여 배경색에 관계없이 항상 최적의 대비를 확보합니다.
-  // 흰 배경 -> 텍스트가 검정으로 반전
-  // 정 배경 -> 텍스트가 흰색으로 반전
-  // 단, 모바일 About 페이지에서는 solid background layer로 동작합니다.
-  // --------------------------------------------------------------------------------
-
   // 모바일 About일 때만 foreground 계열, 나머지는 white 계열
   const baseColor = isMobileAbout ? 'text-foreground' : 'text-white';
   const inactiveColor = isMobileAbout ? 'text-foreground/60' : 'text-white/60';
-  const hoverColor = isMobileAbout ? 'hover:text-foreground' : 'hover:text-white';
+  const hoverColor = isMobileAbout
+    ? 'hover:text-foreground'
+    : 'hover:text-white';
   const borderColor = isMobileAbout ? 'bg-foreground' : 'bg-white';
-  const separatorColor = isMobileAbout ? 'text-foreground/30' : 'text-white/30';
+  const separatorColor = isMobileAbout
+    ? 'text-foreground/30'
+    : 'text-white/30';
 
-  // --------------------------------------------------------------------------------
-  // [Cynical Detail] Context Label Generator (Render Function)
-  // 현재 뷰에 따라 라벨을 렌더링합니다.
-  // work-detail의 경우, 제목에 우아한 Serif 폰트(Italiana)를 적용하여
-  // 데이터(Mono)와 본질(Serif)을 시각적으로 분리합니다.
-  // --------------------------------------------------------------------------------
   const renderContextLabel = () => {
     switch (currentView) {
       case 'index':
@@ -126,8 +136,8 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                   lang === 'jp'
                     ? 'font-[var(--font-body-jp)]'
                     : lang === 'en'
-                    ? 'font-[var(--font-body-en)]'
-                    : 'font-[var(--font-body-ko)]'
+                      ? 'font-[var(--font-body-en)]'
+                      : 'font-[var(--font-body-ko)]'
                 }`}
               >
                 {detailTitle}
@@ -145,23 +155,27 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           const parts = detailTitle.split('_');
           const hasAuthor = parts.length > 1;
           const titlePart = parts[0].trim();
-          const authorPart = hasAuthor ? parts.slice(1).join('_').trim() : '';
+          const authorPart = hasAuthor
+            ? parts.slice(1).join('_').trim()
+            : '';
 
           return (
             <span className="flex items-baseline gap-2">
               <span
-                className={`opacity-100 relative top-[1px] max-w-[100px] min-[1000px]:max-w-[200px] leading-tight break-words block text-[12px] ${
+                className={`opacity-100 relative top-[1px] max-w-[100px] min-[1200px]:max-w-[190px] leading-tight break-words block ${
                   lang === 'jp'
                     ? 'font-[var(--font-body-jp)]'
                     : lang === 'en'
-                    ? 'font-[var(--font-body-en)]'
-                    : 'font-[var(--font-body-ko)]'
-                }`}
+                      ? 'font-[var(--font-body-en)]'
+                      : 'font-[var(--font-body-ko)]'
+                } text-[10px]`}
               >
                 {hasAuthor ? (
                   <>
                     {titlePart}
-                    <span className="block opacity-100 mt-1">_{authorPart}</span>
+                    <span className="block opacity-100 mt-1">
+                      _{authorPart}
+                    </span>
                   </>
                 ) : (
                   detailTitle
@@ -191,12 +205,14 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
       return (
         <span
-          className={`block text-right text-[11px] leading-[1.3] break-words max-w-[220px] ${
+          className={`block text-left text-[11px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
+            isMobileAbout ? 'text-foreground' : 'text-white'
+          } ${
             lang === 'jp'
               ? 'font-[var(--font-body-jp)]'
               : lang === 'en'
-              ? 'font-[var(--font-body-en)]'
-              : 'font-[var(--font-body-ko)]'
+                ? 'font-[var(--font-body-en)]'
+                : 'font-[var(--font-body-ko)]'
           }`}
         >
           {hasAuthor ? (
@@ -213,12 +229,14 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
     return (
       <span
-        className={`block text-right text-[11px] leading-[1.3] break-words max-w-[220px] ${
+        className={`block text-left text-[11px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
+          isMobileAbout ? 'text-foreground' : 'text-white'
+        } ${
           lang === 'jp'
             ? 'font-[var(--font-body-jp)]'
             : lang === 'en'
-            ? 'font-[var(--font-body-en)]'
-            : 'font-[var(--font-body-ko)]'
+              ? 'font-[var(--font-body-en)]'
+              : 'font-[var(--font-body-ko)]'
         }`}
       >
         {detailTitle}
@@ -228,7 +246,7 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
 
   return (
     <>
-      {/* 1. Main Navigation (Disappears on Scroll Down) */}
+      {/* 1. Main Navigation (Disappears on Scroll Down, except About) */}
       <header
         className={`
           fixed top-0 left-0 right-0 z-[9999999] pointer-events-none
@@ -271,20 +289,28 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                   <span key={language.code} className="flex items-center gap-2">
                     <button
                       onClick={() => {
-                        console.log(`[UI Interaction] Language button clicked: ${language.code}`);
+                        console.log(
+                          `[UI Interaction] Language button clicked: ${language.code}`
+                        );
                         setLang(language.code);
                       }}
                       className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
                         lang === language.code
-                          ? (isMobileAbout ? 'text-foreground' : 'text-white')
-                          : (isMobileAbout ? 'text-foreground/50 hover:text-foreground' : 'text-white/50 hover:text-white')
+                          ? isMobileAbout
+                            ? 'text-foreground'
+                            : 'text-white'
+                          : isMobileAbout
+                            ? 'text-foreground/50 hover:text-foreground'
+                            : 'text-white/50 hover:text-white'
                       }`}
                       style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       {language.label}
                     </button>
                     {index < languages.length - 1 && (
-                      <span className={`text-[10px] md:text-xs ${separatorColor}`}>/</span>
+                      <span className={`text-[10px] md:text-xs ${separatorColor}`}>
+                        /
+                      </span>
                     )}
                   </span>
                 ))}
@@ -339,12 +365,18 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
                 text="about"
                 onMouseEnter={() => {
                   preloadAboutData().catch((error) => {
-                    console.error('Failed to preload About data on hover:', error);
+                    console.error(
+                      'Failed to preload About data on hover:',
+                      error
+                    );
                   });
                 }}
                 onFocus={() => {
                   preloadAboutData().catch((error) => {
-                    console.error('Failed to preload About data on focus:', error);
+                    console.error(
+                      'Failed to preload About data on focus:',
+                      error
+                    );
                   });
                 }}
                 onClick={() => handleNavClick('about')}
@@ -359,30 +391,46 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
           </div>
         </div>
 
-        {/* Gradient Fade Overlay - Mobile About only */}
-        {isMobileAbout && (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-0 right-0 bottom-[-12px] h-3"
-            style={{
-              background: 'linear-gradient(to bottom, var(--background) 0%, transparent 100%)',
-            }}
-          />
-        )}
-
         <style>{`
           header {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
           }
-          /* Mobile/Tablet: Hide header when contact modal is open */
-          @media (max-width: 1024px) {
+          @media (max-width: 1320px) {
             body.contact-modal-open header {
               display: none !important;
             }
           }
         `}</style>
       </header>
+
+      {/* Global Header White Layer - 1319 이하에서 헤더가 보일 때 */}
+      {showMainHeaderWhiteLayer && (
+        <div
+          aria-hidden="true"
+          className={`
+            fixed top-0 left-0 right-0 z-30 pointer-events-none
+            transition-transform duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+            ${isVisible ? 'translate-y-0' : '-translate-y-full'}
+          `}
+        >
+          <div className="h-[100px] md:h-[100px] bg-white border-b border-black/5" />
+        </div>
+      )}
+
+      {/* Context White Layer - 1319 이하 detail에서 스크롤 내렸을 때 */}
+      {showContextWhiteLayer && (
+        <div
+          aria-hidden="true"
+          className={`
+            fixed top-0 left-0 right-0 z-30 pointer-events-none
+            transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] delay-100
+            ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
+          `}
+        >
+          <div className="h-[68px] md:h-[75px] bg-white border-b border-black/5" />
+        </div>
+      )}
 
       {/* 2. Context Indicator (Appears when Main Nav is gone) */}
       <div
@@ -394,48 +442,38 @@ export const Header = ({ currentView, onNavigate, isDarkBackground = true, detai
         `}
       >
         {isNarrowDetailHeader ? (
-          <div className="flex items-start justify-between gap-4">
-  <div
-    className={`pointer-events-none text-left opacity-90 ${
-      isMobileAbout ? 'text-foreground' : 'text-white'
-    }`}
-  >
-    {renderNarrowDetailTitle()}
-  </div>
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0 pr-4">{renderNarrowDetailTitle()}</div>
 
-  <button
-    onClick={() => {
-      if (currentView === 'work-detail') {
-        window.history.back();
-      } else if (currentView === 'text-detail') {
-        window.history.back();
-      }
-    }}
-    className="flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group shrink-0"
-  >
-    <svg
-      className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
-        isMobileAbout ? 'stroke-foreground' : ''
-      }`}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M19 12H5" />
-      <path d="m12 19-7-7 7-7" />
-    </svg>
-    <span
-      className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
-        isMobileAbout ? 'text-foreground' : 'text-white'
-      }`}
-    >
-      back
-    </span>
-  </button>
-</div>
+            <button
+              onClick={() => {
+                window.history.back();
+              }}
+              className="shrink-0 flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+            >
+              <svg
+                className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isMobileAbout ? 'stroke-foreground' : ''
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 12H5" />
+                <path d="m12 19-7-7 7-7" />
+              </svg>
+              <span
+                className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                  isMobileAbout ? 'text-foreground' : 'text-white'
+                }`}
+              >
+                back
+              </span>
+            </button>
+          </div>
         ) : (
           <>
             {currentView === 'text-detail' ? (

@@ -309,38 +309,20 @@ const rawHtml = hasLangContent
   });
 
   return (
-    <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
-      {isPage && (
-        <>
-          <div className="block md:hidden px-6 pt-24 mb-2">
-            <button
-              onClick={() => window.history.back()}
-              className="group flex items-center gap-3 px-0 py-2 bg-transparent focus:outline-none"
-            >
-              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-50 group-hover:opacity-80" />
-              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-50 group-hover:opacity-80 transition-opacity duration-300">
-                back
-              </span>
-            </button>
-          </div>
+  <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
+    <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+      <button
+        onClick={() => window.history.back()}
+        className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+      >
+        <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
+        <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+          back
+        </span>
+      </button>
+    </div>
 
-          <div className="hidden min-[1380px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
-  <button
-    onClick={() => window.history.back()}
-    className="hidden min-[1380px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-  >
-              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                back
-              </span>
-            </button>
-          </div>
-        </>
-      )}
-
-      <div className={`px-6 md:px-12 max-w-[1000px] mx-auto ${
-  isPage ? 'pt-4 md:pt-40 pb-32' : 'py-8 md:py-10'
-}`}>
+   <div className="pt-32 md:pt-40 px-6 md:px-12 pb-32 max-w-[1000px] mx-auto">
         <article>
           <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
             <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">

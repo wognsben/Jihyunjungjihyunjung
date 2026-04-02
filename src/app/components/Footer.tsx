@@ -1,6 +1,6 @@
 export const Footer = () => {
   return (
-    <footer className="py-16 md:py-20">
+    <footer className="py-2 md:py-6">
       <p 
         className="text-left md:text-center tracking-wider text-[12px] font-[SansSerif]"
         style={{

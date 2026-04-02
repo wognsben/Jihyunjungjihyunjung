@@ -561,7 +561,7 @@ if (inlineTags.includes(tag)) {
 const inner = el.innerHTML?.trim() || '';
 if (!inner) continue;
 
-// 🔥 1. article-body / article-content / parsed 류 wrapper → 내부만 재귀 처리
+// 1. article-body / article-content / parsed 류 wrapper → 내부만 재귀 처리
 const className = el.className || '';
 
 const isArticleWrapper =
@@ -580,7 +580,7 @@ if (isArticleWrapper) {
   }
 }
 
-// 🔥 2. wrapper인데 실제로는 single child만 있는 껍데기 div → unwrap
+// 2. wrapper인데 실제로는 single child만 있는 껍데기 div → unwrap
 const elementChildren = Array.from(el.children);
 const meaningfulTextNodes = Array.from(el.childNodes).filter(
   (n) =>

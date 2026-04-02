@@ -235,29 +235,15 @@ export const WorkDetail = ({
           image={getLocalizedThumbnail(work, lang)}
         />
 
-                {/* Back Button - mobile */}
-<div className="block md:hidden px-6 pt-24 mb-2">
-  <button
-    ref={buttonRef}
-    onClick={handleClose}
-    className="group flex items-center gap-3 px-0 py-2 bg-transparent focus:outline-none"
-  >
-    <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-50 group-hover:opacity-80" />
-    <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-50 group-hover:opacity-80 transition-opacity duration-300">
-      back
-    </span>
-  </button>
-</div>
-
 {/* Content Container */}
 <div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1000px] mx-auto">
 
           {/* Back Button - desktop (match TextDetail vertical position) */}
-          <div className="hidden min-[1380px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+          <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
   <button
     ref={buttonRef}
     onClick={handleClose}
-    className="hidden min-[1380px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+    className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
   >
               <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
               <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
@@ -335,7 +321,7 @@ export const WorkDetail = ({
 
           {/* Block Content: 언어별 HTML 하나만 선택해서 그대로 렌더 */}
           {localizedContent && (
-            <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
+            <div className="mb-16 md:mb-48 min-[1025px]:mb-64">
               <BlockRenderer html={localizedContent} lang={lang} />
             </div>
           )}
@@ -352,7 +338,7 @@ export const WorkDetail = ({
             if (!additional) return null;
 
             return (
-              <div className="mb-32 md:mb-48 min-[1025px]:mb-64">
+              <div className="mb-16 md:mb-48 min-[1025px]:mb-64">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
                   {/* Left: Section Label */}
                   <div className="md:col-span-3 min-[1025px]:col-span-3">
@@ -397,7 +383,7 @@ export const WorkDetail = ({
             if (!credits) return null;
 
             return (
-              <div className="mb-40 md:mb-64 pt-12 border-t border-black/5 dark:border-white/5">
+              <div className="mb-16 md:mb-64 pt-12 border-t border-black/5 dark:border-white/5">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12">
                   {/* Left: Section Title */}
                   <div className="md:col-span-3 min-[1025px]:col-span-3">
@@ -440,7 +426,7 @@ export const WorkDetail = ({
             if (filteredRelatedArticles.length === 0) return null;
 
             return (
-              <div className="mb-40 pt-12 border-t border-black/5 dark:border-white/5">
+              <div className="mb-12 pt-12 border-t border-black/5 dark:border-white/5">
                 <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
                   <div className="md:col-span-4 min-[1025px]:col-span-3">
                     <div className="sticky top-40">
@@ -582,7 +568,7 @@ export const WorkDetail = ({
         </div>
 
         {otherWorks.length > 0 && (
-          <div className="mt-16 md:mt-20 border-t border-white/5">
+          <div className="mt-0 md:mt-2 min-[1320px]:mt-10 border-t border-white/5">
             <InfiniteWorkGrid
   works={otherWorks}
   onWorkClick={handleWorkClick}

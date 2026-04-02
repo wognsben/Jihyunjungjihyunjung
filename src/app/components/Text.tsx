@@ -90,7 +90,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
 
   useEffect(() => {
   const checkMobile = () => {
-    setIsMobile(window.innerWidth < 768);
+    setIsMobile(window.innerWidth <= 430);
   };
 
   checkMobile();
@@ -380,7 +380,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
       {/* MOBILE/TABLET FLOATING ACTION BUTTON                     */}
       {/* ------------------------------------------------------- */}
       <AnimatePresence>
-        {showFloatingBar && (
+        {showFloatingBar && isMobile && (
            <motion.div 
              initial={{ y: 80, opacity: 0, scale: 0.8 }}
              animate={{ y: 0, opacity: 1, scale: 1 }}
