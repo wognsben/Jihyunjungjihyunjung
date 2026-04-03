@@ -918,7 +918,7 @@ const ParagraphBlock = ({
   const normalizedHtml = /<p[\s>]/i.test(html) ? html : `<p>${html}</p>`;
 
   return (
-    <div className="w-full px-6 md:px-12">
+    <div className="w-full px-4 md:px-4">
       <div
         className={`${
   lang === 'jp'
@@ -926,10 +926,10 @@ const ParagraphBlock = ({
     : lang === 'en'
     ? 'font-[var(--font-body-en)]'
     : 'font-[var(--font-body-ko)]'
-} text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
+} text-foreground/80 text-sm md:text-[16px] leading-[1.4] opacity-100
           [&_p]:my-0
           [&_p+p]:mt-2
-          [&_br]:leading-[1.8]
+          [&_br]:leading-[1.4]
           [&_strong]:font-semibold
           [&_em]:italic
           [&_ul]:my-3
@@ -1065,7 +1065,7 @@ const ImageSliderBlock = ({
         className={`${
           compact ? 'mb-8 md:mb-12' : 'mb-1 md:mb-20 min-[1025px]:mb-24'
         } -mx-6 md:-mx-12`}
-      >
+      > /공백에 영향이 없음, 아무 역할을 못함/
         <div className="w-full overflow-hidden">
           <ImageFrame
             image={images[0]}

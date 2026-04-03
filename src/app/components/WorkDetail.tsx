@@ -236,7 +236,7 @@ export const WorkDetail = ({
         />
 
 {/* Content Container */}
-<div className="pt-32 md:pt-40 px-6 md:px-12 pb-16 max-w-[1000px] mx-auto">
+<div className="pt-32 md:pt-40 px-6 md:px-12 pb-6 max-w-[1000px] mx-auto">
 
           {/* Back Button - desktop (match TextDetail vertical position) */}
           <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
@@ -256,7 +256,7 @@ export const WorkDetail = ({
           <div className="mb-16 md:mb-24 min-[1025px]:mb-32">
             <div className="max-w-4xl mx-auto">
               {/* Classic Gallery Caption: Title, Year */}
-              <div className="text-center pb-6 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
+              <div className="text-center pb-4 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
                 <h1
   className={`text-[18px] md:text-[20px] lg:text-[24px] font-light text-foreground/90 leading-tight ${
     lang === 'jp'
@@ -318,10 +318,11 @@ export const WorkDetail = ({
               </div>
             </div>
           </div>
-
+  
+          {/*이미지,슬라이더에 여백 수정가능*/}
           {/* Block Content: 언어별 HTML 하나만 선택해서 그대로 렌더 */}
           {localizedContent && (
-            <div className="mb-16 md:mb-48 min-[1025px]:mb-64">
+            <div className="mb-4 md:mb-6 min-[1025px]:mb-8">
               <BlockRenderer html={localizedContent} lang={lang} />
             </div>
           )}
@@ -426,7 +427,7 @@ export const WorkDetail = ({
             if (filteredRelatedArticles.length === 0) return null;
 
             return (
-              <div className="mb-12 pt-12 border-t border-black/5 dark:border-white/5">
+              <div className="mb-4 pt-10 border-t border-black/5 dark:border-white/5">
                 <div className="grid grid-cols-1 min-[1025px]:grid-cols-12 gap-12">
                   <div className="md:col-span-4 min-[1025px]:col-span-3">
                     <div className="sticky top-40">
