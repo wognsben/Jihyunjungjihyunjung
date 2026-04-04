@@ -89,7 +89,7 @@ export const Text = ({ activeCategory, onCategoryChange }: TextProps) => {
 
   useEffect(() => {
   const checkMobile = () => {
-    setIsMobile(window.innerWidth <= 430);
+    setIsMobile(window.innerWidth < 431);
   };
 
   checkMobile();
