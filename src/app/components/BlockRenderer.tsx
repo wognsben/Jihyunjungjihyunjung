@@ -917,6 +917,7 @@ const ParagraphBlock = ({
 
   const normalizedHtml = /<p[\s>]/i.test(html) ? html : `<p>${html}</p>`;
 
+  /* textdetail en,jp에 영향*/
   return (
     <div className="w-full px-4 md:px-4">
       <div
@@ -926,14 +927,14 @@ const ParagraphBlock = ({
     : lang === 'en'
     ? 'font-[var(--font-body-en)]'
     : 'font-[var(--font-body-ko)]'
-} text-foreground/80 text-sm md:text-[16px] leading-[1.4] opacity-100
+} text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
           [&_p]:my-0
-          [&_p+p]:mt-2
-          [&_br]:leading-[1.4]
+          [&_p+p]:mt-1
+          [&_br]:leading-[1.8]
           [&_strong]:font-semibold
           [&_em]:italic
-          [&_ul]:my-3
-          [&_ol]:my-3
+          [&_ul]:my-1
+          [&_ol]:my-1
           [&_li]:my-1
           ${textAlignClass(align)} ${wpContentStyles}`}
         dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(normalizedHtml) }}
@@ -951,17 +952,67 @@ const HeadingBlock = ({
   lang: string;
   align?: ParsedBlock['align'];
 }) => (
-  <div className="max-w-5xl mx-auto px-6 md:px-12">
+  <div className="w-full px-4 md:px-4">
     <div
       className={`${
-  lang === 'jp'
-    ? 'font-[var(--font-body-jp)]'
-    : lang === 'en'
-    ? 'font-[var(--font-body-en)]'
-    : 'font-[var(--font-body-ko)]'
-} text-foreground/90 [&_h1]:text-xl [&_h1]:md:text-2xl [&_h2]:text-lg [&_h2]:md:text-xl [&_h3]:text-base [&_h3]:md:text-lg ${textAlignClass(
-  align
-)} ${wpContentStyles}`}
+        lang === 'jp'
+          ? 'font-[var(--font-body-jp)]'
+          : lang === 'en'
+          ? 'font-[var(--font-body-en)]'
+          : 'font-[var(--font-body-ko)]'
+      } text-foreground/90
+        [&_h1]:text-[18px]
+        [&_h1]:md:text-[22px]
+        [&_h1]:leading-[1.45]
+        [&_h1]:font-normal
+        [&_h1]:tracking-[-0.01em]
+        [&_h1]:text-left
+        [&_h1]:mt-0
+        [&_h1]:mb-3
+
+        [&_h2]:text-[16px]
+        [&_h2]:md:text-[19px]
+        [&_h2]:leading-[1.5]
+        [&_h2]:font-normal
+        [&_h2]:tracking-[-0.01em]
+        [&_h2]:text-left
+        [&_h2]:mt-0
+        [&_h2]:mb-3
+
+        [&_h3]:text-[14px]
+        [&_h3]:md:text-[16px]
+        [&_h3]:leading-[1.55]
+        [&_h3]:font-normal
+        [&_h3]:tracking-[-0.005em]
+        [&_h3]:text-left
+        [&_h3]:mt-0
+        [&_h3]:mb-2
+
+        [&_h4]:text-[13px]
+        [&_h4]:md:text-[14px]
+        [&_h4]:leading-[1.6]
+        [&_h4]:font-normal
+        [&_h4]:text-left
+        [&_h4]:mt-0
+        [&_h4]:mb-2
+
+        [&_h5]:text-[12px]
+        [&_h5]:md:text-[13px]
+        [&_h5]:leading-[1.6]
+        [&_h5]:font-normal
+        [&_h5]:text-left
+        [&_h5]:mt-0
+        [&_h5]:mb-2
+
+        [&_h6]:text-[12px]
+        [&_h6]:md:text-[12px]
+        [&_h6]:leading-[1.6]
+        [&_h6]:font-normal
+        [&_h6]:text-left
+        [&_h6]:mt-0
+        [&_h6]:mb-2
+
+        ${wpContentStyles}`}
       dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
     />
   </div>
@@ -1427,7 +1478,7 @@ export const BlockRenderer = ({
 
   return (
     <div
-      className="space-y-4 md:space-y-4 min-[1025px]:space-y-6"//work,text 본문 텍스트 단락 간격에 영향//
+      className="space-y-4 md:space-y-4 min-[1025px]:space-y-6"//(ko)work,text 본문 텍스트 단락 간격에 영향//
       onClick={handleLinkClick}
     >
       {groups.map((group, index) => {

@@ -671,7 +671,7 @@ export const WorkDetail = ({
                 </button>
 
                 <div className="w-full h-full overflow-hidden relative bg-background">
-                  <TextDetail textId={selectedArticleId} />
+                  <TextDetail textId={selectedArticleId} isPopup={true}/>
                 </div>
               </Resizable>
             </motion.div>

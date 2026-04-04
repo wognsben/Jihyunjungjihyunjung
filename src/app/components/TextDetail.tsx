@@ -11,6 +11,7 @@ import { BlockRenderer } from '@/app/components/BlockRenderer';
 interface TextDetailProps {
   textId: string | null;
   isPage?: boolean;
+  isPopup?: boolean;
 }
 
 const extractFirstImageFromHtml = (html: string): string => {
@@ -94,7 +95,7 @@ const stripHtmlToText = (html: string) => {
     .trim();
 };
 
-export const TextDetail = ({ textId, isPage = false }: TextDetailProps) => {
+export const TextDetail = ({ textId, isPage = false, isPopup = false }: TextDetailProps) => {
   const { lang } = useLanguage();
   const { texts, works, translateTextsByIds, currentLang } = useWorks();
 
@@ -309,21 +310,23 @@ const rawHtml = hasLangContent
 
   return (
   <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
-    <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
-      <button
-        onClick={() => window.history.back()}
-        className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-      >
-        <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-        <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-          back
-        </span>
-      </button>
-    </div>
+    {!isPopup && (
+  <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+    <button
+      onClick={() => window.history.back()}
+      className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+    >
+      <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
+      <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+        back
+      </span>
+    </button>
+  </div>
+)}
 
-   <div className="pt-32 md:pt-40 px-6 md:px-12 pb-12 max-w-[1000px] mx-auto">
+   <div className="pt-28 md:pt-32 px-10 md:px-8 pb-12 max-w-[1000px] mx-auto">
         <article>
-          <header className="mb-12 md:mb-16 space-y-6 max-w-3xl mx-auto text-center">
+          <header className="mb-10 md:mb-10 space-y-6 max-w-5xl mx-auto text-center">
             <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
               <div className="flex items-center gap-3">
                 <span className="font-[var(--font-ui)]">{text.category.toLowerCase()}</span>
@@ -369,7 +372,7 @@ const rawHtml = hasLangContent
               </motion.div>
             )}
 
-            <div className="h-px w-full bg-foreground/5 mt-8" />
+            <div className="h-px w-full bg-foreground/5 mt-6" />
           </header>
 
           <div className="space-y-6">
@@ -403,7 +406,7 @@ const rawHtml = hasLangContent
           </div>
 
           {allRelatedWorks.length > 0 && (
-            <div className="mt-24 pt-12 border-t border-foreground/5">
+            <div className="mt-16 pt-12 border-t border-foreground/5">
               <h2 className="text-[12px] lowercase tracking-[0.2em] text-muted-foreground/60 font-[var(--font-ui)] mb-8">
                 related
               </h2>
