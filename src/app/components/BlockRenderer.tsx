@@ -54,8 +54,100 @@ const handleLinkClick = (e: React.MouseEvent) => {
 
   const href = anchor.getAttribute('href') || '';
 
-  // 라우터 링크는 그대로
+  const normalizeCustomFootnotePath = (value: string): string => {
+    if (!value) return '';
+
+    // 1) 원문 href 그대로 먼저 검사
+    let raw = value.trim();
+
+    // 2) 절대 URL이면 pathname으로 변환
+    if (
+      raw.startsWith('http://') ||
+      raw.startsWith('https://') ||
+      raw.startsWith('//')
+    ) {
+      try {
+        const url = new URL(raw, window.location.origin);
+        raw = decodeURIComponent(url.pathname || '');
+      } catch {
+        return '';
+      }
+    }
+
+    // 3) query/hash 제거
+    raw = raw.split('#')[0].split('?')[0].trim();
+
+    // 4) 끝 슬래시 정리
+    if (!raw.startsWith('/')) raw = `/${raw}`;
+    raw = raw.replace(/\/+$/, '/');
+
+    return raw;
+  };
+
+  const normalizedHref = normalizeCustomFootnotePath(href);
+
+  const customFootnoteRefMatch = href.match(/^\/상단\s*각주(\d+)\/?$/);
+const customFootnoteBodyMatch = href.match(/^\/하단\s*각주(\d+)\/?$/);
+
+const scrollToCustomFootnote = (targetHref: string, number: string) => {
+  const footnoteAnchor = Array.from(document.querySelectorAll('a')).find(
+    (el) => {
+      const value = el.getAttribute('href') || '';
+      return value === targetHref || value === targetHref.replace(/\/$/, '');
+    }
+  ) as HTMLAnchorElement | undefined;
+
+  const footnoteContainer =
+    footnoteAnchor?.closest('li, p, div') ||
+    document.getElementById(`fn${number}`) ||
+    document.querySelector(`[data-footnote="${number}"]`);
+
+  if (footnoteContainer instanceof HTMLElement) {
+    footnoteContainer.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    return true;
+  }
+
+  return false;
+};
+
+// 1) 상단 각주 클릭 → 하단 각주로 이동
+if (customFootnoteRefMatch) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const number = customFootnoteRefMatch[1];
+  scrollToCustomFootnote(`/하단 각주${number}/`, number);
+  return;
+}
+
+// 2) 하단 각주 클릭 → 상단 각주로 이동
+if (customFootnoteBodyMatch) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const number = customFootnoteBodyMatch[1];
+  scrollToCustomFootnote(`/상단 각주${number}/`, number);
+  return;
+}
+
+  // 3) 라우터 링크는 그대로
   if (href.startsWith('#/')) return;
+
+  const isFootnoteHash = (value: string) => {
+    return (
+      value.startsWith('#footnote') ||
+      value.startsWith('#fn') ||
+      value.startsWith('#note') ||
+      value.startsWith('#_ftn') ||
+      value.startsWith('#_edn') ||
+      value.startsWith('#fnref') ||
+      value.startsWith('#footnote-ref') ||
+      /^#\d+$/.test(value)
+    );
+  };
 
   const scrollToFootnote = (rawId: string) => {
     const id = rawId.replace(/^#/, '');
@@ -74,7 +166,12 @@ const handleLinkClick = (e: React.MouseEvent) => {
       document.getElementById(numeric) ||
       document.getElementById(`footnote-${numeric}`) ||
       document.getElementById(`fn-${numeric}`) ||
-      document.getElementById(`note-${numeric}`);
+      document.getElementById(`note-${numeric}`) ||
+      document.querySelector(`[name="_ftn${numeric}"]`) ||
+      document.querySelector(`[name="_edn${numeric}"]`) ||
+      document.querySelector(`[name="fn${numeric}"]`) ||
+      document.querySelector(`[name="note${numeric}"]`) ||
+      document.querySelector(`[name="${numeric}"]`);
 
     if (el) {
       e.preventDefault();
@@ -89,24 +186,46 @@ const handleLinkClick = (e: React.MouseEvent) => {
     return false;
   };
 
-  // 상대 해시 링크
-  if (href.startsWith('#')) {
-    scrollToFootnote(href);
+  // 4) 기존 hash footnote도 계속 지원
+  if (href.startsWith('#') && isFootnoteHash(href)) {
+    const handled = scrollToFootnote(href);
+
+    if (!handled) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     return;
   }
 
-  // 절대경로 + hash 링크도 footnote면 내부 스크롤 처리
-  if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+  // 5) 일반 상대 hash는 그대로
+  if (href.startsWith('#')) {
+    return;
+  }
+
+  // 6) 절대경로 + hash footnote도 계속 지원
+  if (
+    href.startsWith('http://') ||
+    href.startsWith('https://') ||
+    href.startsWith('//')
+  ) {
     try {
       const url = new URL(href, window.location.origin);
-      if (url.hash) {
-        const handled = scrollToFootnote(url.hash);
-        if (handled) return;
+      const hash = url.hash || '';
+
+      if (hash && isFootnoteHash(hash)) {
+        const handled = scrollToFootnote(hash);
+
+        if (!handled) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        return;
       }
     } catch {
       return;
     }
 
+    // 일반 외부 링크는 그대로 브라우저 기본 동작 사용
     return;
   }
 };
@@ -180,8 +299,10 @@ const sanitizeHtml = (html: string): string => {
     return `<figure class="wp-block-embed"><div class="wp-block-embed__wrapper"><iframe src="${trimmedUrl}" width="100%" height="100%" frameborder="0" allowfullscreen></iframe></div></figure>`;
   });
 
-  cleaned = cleaned.replace(/<p[^>]*>\s*(&nbsp;\s*)+<\/p>/gi, '');
-  cleaned = cleaned.replace(/<p[^>]*>\s*<\/p>/gi, '');
+    cleaned = cleaned.replace(
+    /<p([^>]*)>\s*(&nbsp;|\u00a0|\s)*<\/p>/gi,
+    '<p$1><br></p>'
+  );
   // anchor가 단독 block으로 떨어진 경우 앞뒤 문장과 합치기
 cleaned = cleaned.replace(
   /<\/p>\s*(<a[^>]+>.*?<\/a>)\s*<p>/gi,
@@ -258,7 +379,10 @@ const withExternalLinkTarget = (html: string): string => {
   return html.replace(
     /<a\s+([^>]*?)href=["']([^"']+)["']([^>]*)>/gi,
     (_match, beforeHref, href, afterHref) => {
-      const attrs = `${beforeHref} href="${href}" ${afterHref}`
+      let normalizedHref = href;
+
+      const attrsBase = `${beforeHref} ${afterHref}`
+        .replace(/\shref=["'][^"']*["']/gi, '')
         .replace(/\starget=["'][^"']*["']/gi, '')
         .replace(/\srel=["'][^"']*["']/gi, '')
         .trim();
@@ -268,41 +392,69 @@ const withExternalLinkTarget = (html: string): string => {
         href.startsWith('https://') ||
         href.startsWith('//');
 
-      // footnote / same-page anchor
-      if (href.startsWith('#')) {
-        return `<a ${attrs}>`;
+      const isFootnoteHash = (value: string) => {
+        return (
+          value.startsWith('#footnote') ||
+          value.startsWith('#fn') ||
+          value.startsWith('#note') ||
+          value.startsWith('#_ftn') ||
+          value.startsWith('#_edn') ||
+          value.startsWith('#fnref') ||
+          value.startsWith('#footnote-ref') ||
+          /^#\d+$/.test(value)
+        );
+      };
+
+      const isCustomFootnotePath = (value: string) => {
+        return (
+          /^\/상단\s*각주\d+\/?$/i.test(value) ||
+          /^\/하단\s*각주\d+\/?$/i.test(value)
+        );
+      };
+
+      // 1) 이미 상대 hash인 footnote는 그대로 유지
+      if (href.startsWith('#') && isFootnoteHash(href)) {
+        return `<a ${attrsBase} href="${href}">`;
       }
 
-      // 절대경로인데 hash 포함 + 같은 페이지 footnote 계열이면 내부 링크로 취급
+      // 2) 일반 상대 hash도 그대로 유지
+      if (href.startsWith('#')) {
+        return `<a ${attrsBase} href="${href}">`;
+      }
+
+      // 3) 커스텀 상대 각주는 그대로 유지
+      if (isCustomFootnotePath(href)) {
+        return `<a ${attrsBase} href="${href}">`;
+      }
+
+      // 4) 절대 URL인 경우
       if (isAbsolute) {
         try {
           const url = new URL(href, window.location.origin);
           const hash = url.hash || '';
+          const pathname = decodeURIComponent(url.pathname || '');
 
-          const isSamePageFootnote =
-  !!hash &&
-  (
-    hash.startsWith('#footnote') ||
-    hash.startsWith('#fn') ||
-    hash.startsWith('#note') ||
-    hash.startsWith('#_ftn') ||
-    hash.startsWith('#_edn') ||
-    hash.startsWith('#fnref') ||
-    hash.startsWith('#footnote-ref') ||
-    /^#\d+$/.test(hash)
-  );
+          // hash footnote 절대 URL → 상대 hash로 정규화
+          if (hash && isFootnoteHash(hash)) {
+            normalizedHref = hash;
+            return `<a ${attrsBase} href="${normalizedHref}">`;
+          }
 
-          if (isSamePageFootnote) {
-            return `<a ${attrs}>`;
+          // 커스텀 각주 절대 URL → 상대 경로로 정규화
+          if (isCustomFootnotePath(pathname)) {
+            normalizedHref = pathname.replace(/\/+$/, '/') || pathname;
+            return `<a ${attrsBase} href="${normalizedHref}">`;
           }
         } catch {
-          // URL 파싱 실패 시 아래 외부링크 처리
+          return `<a ${attrsBase} href="${href}" target="_blank" rel="noopener noreferrer">`;
         }
 
-        return `<a ${attrs} target="_blank" rel="noopener noreferrer">`;
+        // footnote가 아닌 진짜 외부 링크는 새창 유지
+        return `<a ${attrsBase} href="${href}" target="_blank" rel="noopener noreferrer">`;
       }
 
-      return `<a ${attrs}>`;
+      // 5) 나머지 내부 링크는 그대로
+      return `<a ${attrsBase} href="${href}">`;
     }
   );
 };
@@ -320,10 +472,27 @@ const parseBlocks = (html: string): ParsedBlock[] => {
 
   let lastIndex = 0;
   let match;
+  let paragraphBuffer: string[] = [];
+
+  const flushParagraphBuffer = () => {
+    if (paragraphBuffer.length === 0) return;
+
+    const combinedParagraphHtml = paragraphBuffer
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join('\n\n');
+
+    if (combinedParagraphHtml) {
+      blocks.push(...parseOrphanHtml(combinedParagraphHtml));
+    }
+
+    paragraphBuffer = [];
+  };
 
   while ((match = blockPattern.exec(cleanHtml)) !== null) {
     const beforeContent = cleanHtml.slice(lastIndex, match.index).trim();
     if (beforeContent) {
+      flushParagraphBuffer();
       blocks.push(...parseOrphanHtml(beforeContent));
     }
 
@@ -338,13 +507,34 @@ const parseBlocks = (html: string): ParsedBlock[] => {
       } catch {}
     }
 
+    const blockType = mapBlockType(blockName);
+
+    if (blockType === 'paragraph') {
+      paragraphBuffer.push(innerHtml);
+      lastIndex = match.index + match[0].length;
+      continue;
+    }
+
+    flushParagraphBuffer();
+
     const align = detectAlign(innerHtml, attrs);
-    blocks.push({ type: mapBlockType(blockName), html: innerHtml, attrs, align });
+    blocks.push({
+      type: blockType,
+      html: innerHtml,
+      attrs,
+      align,
+    });
+
     lastIndex = match.index + match[0].length;
   }
 
   const remaining = cleanHtml.slice(lastIndex).trim();
-  if (remaining) blocks.push(...parseOrphanHtml(remaining));
+  if (remaining) {
+    flushParagraphBuffer();
+    blocks.push(...parseOrphanHtml(remaining));
+  } else {
+    flushParagraphBuffer();
+  }
 
   if (blocks.length === 0 && cleanHtml.trim()) return parseOrphanHtml(cleanHtml);
 
@@ -443,12 +633,15 @@ const doc = parser.parseFromString(normalizedHtml, 'text/html');
     if (node.nodeType === Node.TEXT_NODE) {
   const text = node.textContent || '';
 
-  const normalizedText = text
-  .replace(/\r\n/g, '\n')
-  .replace(/\n/g, '<br>');
+  // 공백/줄바꿈만 있는 텍스트 노드는 무시
+  // (HTML 소스 포맷팅용 개행을 실제 문단/줄바꿈으로 렌더하지 않기 위함)
+  if (!text.replace(/\u00a0/g, ' ').trim()) continue;
 
-  // 진짜 아무 내용도 없고 문단 구분도 없으면 버림
-  if (!normalizedText.trim()) continue;
+  const normalizedText = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\n/g, '<br>');
+
+  if (!normalizedText.replace(/<br\s*\/?>/gi, '').trim()) continue;
 
   inlineBuffer.push(normalizedText);
   continue;
@@ -521,14 +714,29 @@ if (inlineTags.includes(tag)) {
       continue;
     }
 
-    // 8. Paragraph
+        // 8. Paragraph
     if (el.tagName === 'P') {
       if (/<iframe/i.test(outer)) {
         blocks.push({ type: 'embed', html: outer, align });
       } else if (/<img/i.test(outer)) {
         blocks.push({ type: 'image', html: outer, align });
       } else {
-        blocks.push({ type: 'paragraph', html: outer, align });
+        const normalizedParagraphHtml = outer.replace(
+          /(<p[^>]*>)([\s\S]*?)(<\/p>)/i,
+          (_match, openTag, innerContent, closeTag) => {
+            const normalizedInner = innerContent
+              .replace(/\r\n/g, '\n')
+              .replace(/\n/g, '<br>');
+
+            return `${openTag}${normalizedInner}${closeTag}`;
+          }
+        );
+
+        blocks.push({
+          type: 'paragraph',
+          html: normalizedParagraphHtml,
+          align,
+        });
       }
       continue;
     }
@@ -623,7 +831,7 @@ if (outer.replace(/<[^>]+>/g, '').trim()) {
 }
   }
 
-  // 마지막에 남은 inline 버퍼 flush
+    // 마지막에 남은 inline 버퍼 flush
   flushInlineBuffer(inlineBuffer);
 
   return blocks;
@@ -903,21 +1111,30 @@ const ImageFrame = ({
 // ============================================================
 // Individual Block Renderers
 // ============================================================
-const ParagraphBlock = ({
+
+  const ParagraphBlock = ({
   html,
   lang,
-  align,
 }: {
   html: string;
   lang: string;
   align?: ParsedBlock['align'];
 }) => {
-  const text = html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
-  if (!text) return null;
-
   const normalizedHtml = /<p[\s>]/i.test(html) ? html : `<p>${html}</p>`;
 
-  /* textdetail en,jp에 영향*/
+  const textOnly = normalizedHtml
+    .replace(/<br\s*\/?>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u00a0/g, ' ')
+    .trim();
+
+  const hasVisibleLineBreakOnly =
+    /<br\s*\/?>/i.test(normalizedHtml) ||
+    /<p[^>]*>\s*<br\s*\/?>\s*<\/p>/i.test(normalizedHtml);
+
+  if (!textOnly && !hasVisibleLineBreakOnly) return null;
+
   return (
     <div className="w-full px-4 md:px-4">
       <div
@@ -927,16 +1144,16 @@ const ParagraphBlock = ({
     : lang === 'en'
     ? 'font-[var(--font-body-en)]'
     : 'font-[var(--font-body-ko)]'
-} text-foreground/80 text-sm md:text-[16px] leading-[1.8] opacity-100
-          [&_p]:my-0
+} text-foreground/80 text-sm md:text-[16px] leading-[1.6] opacity-100 text-left
+          
           [&_p+p]:mt-1
-          [&_br]:leading-[1.8]
+          [&_br]:leading-[1.6]
           [&_strong]:font-semibold
           [&_em]:italic
           [&_ul]:my-1
           [&_ol]:my-1
           [&_li]:my-1
-          ${textAlignClass(align)} ${wpContentStyles}`}
+          ${wpContentStyles}`}
         dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(normalizedHtml) }}
       />
     </div>
@@ -1478,7 +1695,7 @@ export const BlockRenderer = ({
 
   return (
     <div
-      className="space-y-4 md:space-y-4 min-[1025px]:space-y-6"//(ko)work,text 본문 텍스트 단락 간격에 영향//
+      className="space-y-4 md:space-y-8 min-[1025px]:space-y-8"
       onClick={handleLinkClick}
     >
       {groups.map((group, index) => {
