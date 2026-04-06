@@ -236,21 +236,30 @@ if (customFootnoteBodyMatch) {
 const sanitizeHtml = (html: string): string => {
   let cleaned = html;
 
-  cleaned = cleaned.replace(
-    /\[caption[^\]]*\]([\s\S]*?)\[\/caption\]/gi,
-    (_, inner) => {
-      const imgMatch = inner.match(/<img[^>]+>/i);
-      const imgTag = imgMatch ? imgMatch[0] : '';
-      const captionText = inner
-        .replace(/<img[^>]+>/i, '')
-        .replace(/<\/?a[^>]*>/gi, '')
-        .trim();
+    cleaned = cleaned.replace(
+  /\[caption([^\]]*)\]([\s\S]*?)\[\/caption\]/gi,
+  (_match, captionAttrs, inner) => {
+    const imgMatch = inner.match(/<img[^>]+>/i);
+    const imgTag = imgMatch ? imgMatch[0] : '';
 
-      return `<figure class="wp-block-image">${imgTag}${
-        captionText ? `<figcaption>${captionText}</figcaption>` : ''
-      }</figure>`;
-    }
-  );
+    const captionText = inner
+      .replace(/<img[^>]+>/i, '')
+      .replace(/<\/?a[^>]*>/gi, '')
+      .trim();
+
+    const alignMatch = captionAttrs.match(/align=["']?(alignleft|alignright|aligncenter)["']?/i);
+    const widthMatch = captionAttrs.match(/width=["']?(\d+)["']?/i);
+    const idMatch = captionAttrs.match(/id=["']?([^"'\s\]]+)["']?/i);
+
+    const alignClass = alignMatch ? alignMatch[1].toLowerCase() : '';
+    const widthAttr = widthMatch ? ` style="max-width: ${widthMatch[1]}px;"` : '';
+    const idAttr = idMatch ? ` id="${idMatch[1]}"` : '';
+
+    return `<figure class="wp-block-image${alignClass ? ` ${alignClass}` : ''}"${idAttr}${widthAttr}>${imgTag}${
+      captionText ? `<figcaption>${captionText}</figcaption>` : ''
+    }</figure>`;
+  }
+);
 
   // ============================================================
   // [gallery ids="..."] → gallery HTML 변환
@@ -1074,12 +1083,14 @@ const ImageFrame = ({
       ? 'ml-auto'
       : 'mx-auto';
 
-  const wrapperStyle: React.CSSProperties = {
-  width: image.styleWidth || undefined,
-  maxWidth:
+  const resolvedMaxWidth =
     image.styleMaxWidth ||
-    (image.width ? `${image.width}px` : image.classWidth || '100%'),
-};
+    (image.width ? `${image.width}px` : image.classWidth || undefined);
+
+  const wrapperStyle: React.CSSProperties = {
+    width: image.styleWidth || undefined,
+    maxWidth: resolvedMaxWidth,
+  };
 
   return (
     <div
@@ -1115,6 +1126,7 @@ const ImageFrame = ({
   const ParagraphBlock = ({
   html,
   lang,
+  align,
 }: {
   html: string;
   lang: string;
@@ -1135,19 +1147,21 @@ const ImageFrame = ({
 
   if (!textOnly && !hasVisibleLineBreakOnly) return null;
 
+  const paragraphAlignClass = textAlignClass(align || 'left');
+
   return (
     <div className="w-full px-4 md:px-4">
       <div
         className={`${
-  lang === 'jp'
-    ? 'font-[var(--font-body-jp)]'
-    : lang === 'en'
-    ? 'font-[var(--font-body-en)]'
-    : 'font-[var(--font-body-ko)]'
-} text-foreground/80 text-sm md:text-[16px] leading-[1.6] opacity-100 text-left
-          
+          lang === 'jp'
+            ? 'font-[var(--font-body-jp)]'
+            : lang === 'en'
+            ? 'font-[var(--font-body-en)]'
+            : 'font-[var(--font-body-ko)]'
+        } text-foreground/80 text-sm md:text-[16px] leading-[1.6] opacity-100 ${paragraphAlignClass}
+          [&_p]:my-0
           [&_p+p]:mt-1
-          [&_br]:leading-[1.6]
+          [&_br]:leading-[1.5]
           [&_strong]:font-semibold
           [&_em]:italic
           [&_ul]:my-1
@@ -1168,72 +1182,70 @@ const HeadingBlock = ({
   html: string;
   lang: string;
   align?: ParsedBlock['align'];
-}) => (
-  <div className="w-full px-4 md:px-4">
-    <div
-      className={`${
-        lang === 'jp'
-          ? 'font-[var(--font-body-jp)]'
-          : lang === 'en'
-          ? 'font-[var(--font-body-en)]'
-          : 'font-[var(--font-body-ko)]'
-      } text-foreground/90
-        [&_h1]:text-[18px]
-        [&_h1]:md:text-[22px]
-        [&_h1]:leading-[1.45]
-        [&_h1]:font-normal
-        [&_h1]:tracking-[-0.01em]
-        [&_h1]:text-left
-        [&_h1]:mt-0
-        [&_h1]:mb-3
+}) => {
+  const headingAlignClass = textAlignClass(align || 'left');
 
-        [&_h2]:text-[16px]
-        [&_h2]:md:text-[19px]
-        [&_h2]:leading-[1.5]
-        [&_h2]:font-normal
-        [&_h2]:tracking-[-0.01em]
-        [&_h2]:text-left
-        [&_h2]:mt-0
-        [&_h2]:mb-3
+  return (
+    <div className="w-full px-4 md:px-4">
+      <div
+        className={`${
+          lang === 'jp'
+            ? 'font-[var(--font-body-jp)]'
+            : lang === 'en'
+            ? 'font-[var(--font-body-en)]'
+            : 'font-[var(--font-body-ko)]'
+        } text-foreground/90 ${headingAlignClass}
+          [&_h1]:text-[18px]
+          [&_h1]:md:text-[22px]
+          [&_h1]:leading-[1.45]
+          [&_h1]:font-normal
+          [&_h1]:tracking-[-0.01em]
+          [&_h1]:mt-0
+          [&_h1]:mb-3
 
-        [&_h3]:text-[14px]
-        [&_h3]:md:text-[16px]
-        [&_h3]:leading-[1.55]
-        [&_h3]:font-normal
-        [&_h3]:tracking-[-0.005em]
-        [&_h3]:text-left
-        [&_h3]:mt-0
-        [&_h3]:mb-2
+          [&_h2]:text-[16px]
+          [&_h2]:md:text-[19px]
+          [&_h2]:leading-[1.5]
+          [&_h2]:font-normal
+          [&_h2]:tracking-[-0.01em]
+          [&_h2]:mt-0
+          [&_h2]:mb-3
 
-        [&_h4]:text-[13px]
-        [&_h4]:md:text-[14px]
-        [&_h4]:leading-[1.6]
-        [&_h4]:font-normal
-        [&_h4]:text-left
-        [&_h4]:mt-0
-        [&_h4]:mb-2
+          [&_h3]:text-[14px]
+          [&_h3]:md:text-[16px]
+          [&_h3]:leading-[1.55]
+          [&_h3]:font-normal
+          [&_h3]:tracking-[-0.005em]
+          [&_h3]:mt-0
+          [&_h3]:mb-2
 
-        [&_h5]:text-[12px]
-        [&_h5]:md:text-[13px]
-        [&_h5]:leading-[1.6]
-        [&_h5]:font-normal
-        [&_h5]:text-left
-        [&_h5]:mt-0
-        [&_h5]:mb-2
+          [&_h4]:text-[13px]
+          [&_h4]:md:text-[14px]
+          [&_h4]:leading-[1.6]
+          [&_h4]:font-normal
+          [&_h4]:mt-0
+          [&_h4]:mb-2
 
-        [&_h6]:text-[12px]
-        [&_h6]:md:text-[12px]
-        [&_h6]:leading-[1.6]
-        [&_h6]:font-normal
-        [&_h6]:text-left
-        [&_h6]:mt-0
-        [&_h6]:mb-2
+          [&_h5]:text-[12px]
+          [&_h5]:md:text-[13px]
+          [&_h5]:leading-[1.6]
+          [&_h5]:font-normal
+          [&_h5]:mt-0
+          [&_h5]:mb-2
 
-        ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
-    />
-  </div>
-);
+          [&_h6]:text-[12px]
+          [&_h6]:md:text-[12px]
+          [&_h6]:leading-[1.6]
+          [&_h6]:font-normal
+          [&_h6]:mt-0
+          [&_h6]:mb-2
+
+          ${wpContentStyles}`}
+        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+      />
+    </div>
+  );
+};
 
 const SingleImageBlock = ({
   block,

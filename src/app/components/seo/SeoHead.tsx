@@ -23,6 +23,7 @@ export const SeoHead = ({ title, description, image }: SeoHeadProps) => {
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={metaDescription} />
+      <link rel="icon" type="image/png" href="/src/public/favicon.png" />
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={metaDescription} />
       <meta property="og:image" content={metaImage} />
