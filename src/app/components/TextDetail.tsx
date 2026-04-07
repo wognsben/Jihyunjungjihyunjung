@@ -312,16 +312,16 @@ const rawHtml = hasLangContent
   <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
     {!isPopup && (
   <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
-    <button
-      onClick={() => window.history.back()}
-      className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-    >
-      <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-      <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-        back
-      </span>
-    </button>
-  </div>
+  <button
+    onClick={() => window.history.back()}
+    className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+  >
+    <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
+    <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-[0.80]">
+      back
+    </span>
+  </button>
+</div>
 )}
 
    <div className="pt-28 md:pt-32 px-10 md:px-8 pb-12 max-w-[1000px] mx-auto">

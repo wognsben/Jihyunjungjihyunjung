@@ -245,12 +245,12 @@ export const WorkDetail = ({
     onClick={handleClose}
     className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
   >
-              <ArrowLeft className="w-3 h-3 transition-transform duration-500 ease-out group-hover:-translate-x-1 opacity-70 group-hover:opacity-100" />
-              <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-                back
-              </span>
-            </button>
-          </div>
+    <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
+    <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-[0.80]">
+  back
+</span>
+  </button>
+</div>
 
           {/* 1. Header Spec Sheet */}
           <div className="mb-16 md:mb-24 min-[1025px]:mb-32">

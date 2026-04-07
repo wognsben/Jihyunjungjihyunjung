@@ -1336,6 +1336,18 @@ const ImageSliderBlock = ({
 
   if (images.length === 0) return null;
 
+  useEffect(() => {
+  if (images.length <= 1) return;
+
+  const nextIndex = (currentSlide + 1) % images.length;
+  const nextImage = images[nextIndex];
+
+  if (!nextImage?.src) return;
+
+  const preloadImg = new Image();
+  preloadImg.src = nextImage.src;
+}, [currentSlide, images]);
+
   const currentImage = images[currentSlide];
   const currentCaption = currentImage?.caption || '';
 

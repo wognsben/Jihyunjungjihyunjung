@@ -162,26 +162,18 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     lang === 'ko' ? work.medium_ko : lang === 'jp' ? work.medium_jp : work.medium_en;
 
   const prefetchWorkDetail = async (work: any) => {
-    const key = `${work.id}_${lang}`;
+  const key = `${work.id}_${lang}`;
 
-    if (prefetchedWorkIdsRef.current.has(key)) return;
-    prefetchedWorkIdsRef.current.add(key);
+  if (prefetchedWorkIdsRef.current.has(key)) return;
+  prefetchedWorkIdsRef.current.add(key);
 
-    try {
-      fetchWorkById(work.id, lang);
-
-      const mainImg = new Image();
-      mainImg.src = getLocalizedGridImage(work);
-
-      const thumb = getLocalizedThumbnail(work, lang);
-      if (thumb && thumb !== mainImg.src) {
-        const thumbImg = new Image();
-        thumbImg.src = thumb;
-      }
-    } catch (error) {
-      console.error('Failed to prefetch work detail:', error);
-    }
-  };
+  try {
+    // 데이터만 prefetch
+    fetchWorkById(work.id, lang);
+  } catch (error) {
+    console.error('Failed to prefetch work detail:', error);
+  }
+};
 
   return (
     <div
@@ -249,15 +241,7 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
                     }}
                     onClick={async () => {
                       try {
-                        const fetchPromise = fetchWorkById(work.id, lang);
-
-                        const img = new Image();
-                        img.src = getLocalizedGridImage(work);
-
-                        await Promise.race([
-                          fetchPromise,
-                          new Promise((res) => setTimeout(res, 240)),
-                        ]);
+        
                       } catch (e) {
                         console.error('prefetch failed', e);
                       }

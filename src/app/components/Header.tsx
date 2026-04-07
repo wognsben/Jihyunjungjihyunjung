@@ -446,33 +446,32 @@ export const Header = ({
             <div className="min-w-0 pr-4">{renderNarrowDetailTitle()}</div>
 
             <button
-              onClick={() => {
-                window.history.back();
-              }}
-              className="shrink-0 flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
-            >
-              <svg
-                className={`w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
-                  isMobileAbout ? 'stroke-foreground' : ''
-                }`}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M19 12H5" />
-                <path d="m12 19-7-7 7-7" />
-              </svg>
-              <span
-                className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
-                  isMobileAbout ? 'text-foreground' : 'text-white'
-                }`}
-              >
-                back
-              </span>
-            </button>
+  onClick={() => {
+    window.history.back();
+  }}
+  className="shrink-0 flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+>
+  <svg
+    className={`w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 ${
+      isMobileAbout ? 'stroke-foreground' : 'stroke-white'
+    }`}
+    viewBox="0 0 24 24"
+    fill="none"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M19 12H5" />
+    <path d="m12 19-7-7 7-7" />
+  </svg>
+  <span
+    className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase ${
+      isMobileAbout ? 'text-foreground' : 'text-white'
+    }`}
+  >
+    back
+  </span>
+</button>
           </div>
         ) : (
           <>
