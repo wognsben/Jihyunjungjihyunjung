@@ -1,4 +1,6 @@
 import { Work } from '@/data/works';
+import { toCdnUrl } from '@/utils/toCdnUrl';
+
 
 type Language = 'ko' | 'en' | 'jp';
 
@@ -8,9 +10,9 @@ type Language = 'ko' | 'en' | 'jp';
  * 없으면 기본 thumbnail을 fallback으로 사용합니다.
  */
 export const getLocalizedThumbnail = (work: Work, lang: Language): string => {
-  if (lang === 'en' && work.thumbnail_en) return work.thumbnail_en;
-  if (lang === 'jp' && work.thumbnail_jp) return work.thumbnail_jp;
-  return work.thumbnail;
+  if (lang === 'en' && work.thumbnail_en) return toCdnUrl(work.thumbnail_en);
+  if (lang === 'jp' && work.thumbnail_jp) return toCdnUrl(work.thumbnail_jp);
+  return toCdnUrl(work.thumbnail);
 };
 
 /**
@@ -19,17 +21,25 @@ export const getLocalizedThumbnail = (work: Work, lang: Language): string => {
  * (대부분의 작품은 동일한 갤러리를 사용하므로 첫 번째 이미지만 교체)
  */
 export const getLocalizedGalleryImages = (work: Work, lang: Language): string[] => {
-  const langThumbnail = lang === 'en' ? work.thumbnail_en : lang === 'jp' ? work.thumbnail_jp : undefined;
-  
-  if (!langThumbnail || work.galleryImages.length === 0) {
-    return work.galleryImages;
+  const langThumbnail =
+    lang === 'en'
+      ? work.thumbnail_en
+      : lang === 'jp'
+        ? work.thumbnail_jp
+        : undefined;
+
+  const cdnGalleryImages = work.galleryImages.map((image) => toCdnUrl(image));
+  const cdnLangThumbnail = langThumbnail ? toCdnUrl(langThumbnail) : undefined;
+
+  if (!cdnLangThumbnail || cdnGalleryImages.length === 0) {
+    return cdnGalleryImages;
   }
 
   // 언어별 이미지가 갤러리 첫 번째와 같은 경우 교체 불필요
-  if (work.galleryImages[0] === langThumbnail) {
-    return work.galleryImages;
+  if (cdnGalleryImages[0] === cdnLangThumbnail) {
+    return cdnGalleryImages;
   }
 
   // 첫 번째 이미지를 언어별 이미지로 교체
-  return [langThumbnail, ...work.galleryImages.slice(1)];
+  return [cdnLangThumbnail, ...cdnGalleryImages.slice(1)];
 };

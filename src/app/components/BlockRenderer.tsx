@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toCdnUrl } from '@/utils/toCdnUrl';
 
 // ============================================================
 // BlockRenderer: WordPress Gutenberg 블록 → React 컴포넌트
@@ -905,7 +906,7 @@ const stripWpResolutionSuffix = (url: string): string => {
 
 const getBestImageUrl = (html: string): string | null => {
   const srcMatch = html.match(/<img[^>]+src="([^"]+)"/i);
-  if (srcMatch) return stripWpResolutionSuffix(srcMatch[1]);
+  if (srcMatch) return toCdnUrl(stripWpResolutionSuffix(srcMatch[1]));
 
   const srcsetMatch = html.match(/srcset="([^"]+)"/i);
   if (srcsetMatch) {
@@ -924,16 +925,16 @@ const getBestImageUrl = (html: string): string | null => {
       }
     }
 
-    if (bestUrl) return stripWpResolutionSuffix(bestUrl);
+    if (bestUrl) return toCdnUrl(stripWpResolutionSuffix(bestUrl));
   }
 
   const aHrefMatch = html.match(
     /<a[^>]+href="([^"]+\.(?:jpe?g|png|webp|gif|avif)(?:\?[^"]*)?)"/i
   );
-  if (aHrefMatch) return aHrefMatch[1];
+  if (aHrefMatch) return toCdnUrl(aHrefMatch[1]);
 
   const dataFullMatch = html.match(/data-(?:full-url|orig-file)="([^"]+)"/i);
-  if (dataFullMatch) return dataFullMatch[1];
+  if (dataFullMatch) return toCdnUrl(dataFullMatch[1]);
 
   return null;
 };

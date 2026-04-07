@@ -12,6 +12,7 @@ import { ScrollToTop } from '@/app/components/ui/ScrollToTop';
 import { InfiniteWorkGrid } from '@/app/components/InfiniteWorkGrid';
 import { TextDetail } from '@/app/components/TextDetail';
 import { BlockRenderer } from '@/app/components/BlockRenderer';
+import { toCdnUrl } from '@/utils/toCdnUrl';
 
 interface WorkDetailProps {
   workId: string | null;
@@ -232,7 +233,7 @@ export const WorkDetail = ({
         <SeoHead
           title={work.title_en}
           description={work.description_en ? work.description_en.slice(0, 160) : undefined}
-          image={getLocalizedThumbnail(work, lang)}
+          image={toCdnUrl(getLocalizedThumbnail(work, lang))}
         />
 
 {/* Content Container */}
@@ -509,9 +510,9 @@ export const WorkDetail = ({
                         hoveredArticleImg ? 'opacity-100' : 'opacity-0'
                       }`}
                     >
-                      {hoveredArticleImg && (
+                                            {hoveredArticleImg && (
                         <img
-                          src={hoveredArticleImg}
+                          src={toCdnUrl(hoveredArticleImg)}
                           alt="Preview"
                           className="w-full h-full object-cover grayscale contrast-125"
                         />
