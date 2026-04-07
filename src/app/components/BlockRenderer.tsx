@@ -1291,9 +1291,11 @@ const SingleImageBlock = ({
 const ImageSliderBlock = ({
   blocks,
   compact,
+  lang,
 }: {
   blocks: ParsedBlock[];
   compact?: boolean;
+  lang: string;
 }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -1336,55 +1338,43 @@ const ImageSliderBlock = ({
 
   if (images.length === 0) return null;
 
-  useEffect(() => {
-  if (images.length <= 1) return;
-
-  const nextIndex = (currentSlide + 1) % images.length;
-  const nextImage = images[nextIndex];
-
-  if (!nextImage?.src) return;
-
-  const preloadImg = new Image();
-  preloadImg.src = nextImage.src;
-}, [currentSlide, images]);
-
   const currentImage = images[currentSlide];
   const currentCaption = currentImage?.caption || '';
 
   if (images.length === 1) {
-    return (
-      <div
-        className={`${
-          compact ? 'mb-8 md:mb-12' : 'mb-1 md:mb-20 min-[1025px]:mb-24'
-        } -mx-6 md:-mx-12`}
-      > /공백에 영향이 없음, 아무 역할을 못함/
-        <div className="w-full overflow-hidden">
-          <ImageFrame
-            image={images[0]}
-            alt={images[0].caption || 'Image'}
-            priority
-            compact={compact}
-          />
-        </div>
-
-        <div className="mt-5 h-6 flex items-center justify-center">
-          {currentCaption && (
-            <p
-  className={`text-center text-[10px] md:text-[11px] text-muted-foreground/50 ${
-    lang === 'jp'
-      ? 'font-[var(--font-body-jp)]'
-      : lang === 'en'
-      ? 'font-[var(--font-body-en)]'
-      : 'font-[var(--font-body-ko)]'
-  }`}
->
-              {currentCaption}
-            </p>
-          )}
-        </div>
+  return (
+    <div
+      className={`${
+        compact ? 'mb-8 md:mb-12' : 'mb-1 md:mb-20 min-[1025px]:mb-24'
+      } -mx-6 md:-mx-12`}
+    >
+      <div className="w-full overflow-hidden">
+        <ImageFrame
+          image={images[0]}
+          alt={images[0].caption || 'Image'}
+          priority
+          compact={compact}
+        />
       </div>
-    );
-  }
+
+      <div className="mt-5 h-6 flex items-center justify-center">
+        {currentCaption && (
+          <p
+            className={`text-center text-[10px] md:text-[11px] leading-[1.5] tracking-[0.02em] text-muted-foreground/65 ${
+              lang === 'jp'
+                ? 'font-[var(--font-body-jp)]'
+                : lang === 'en'
+                ? 'font-[var(--font-body-en)]'
+                : 'font-[var(--font-body-ko)]'
+            }`}
+          >
+            {currentCaption}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
   return (
     <div
@@ -1425,24 +1415,23 @@ const ImageSliderBlock = ({
 
         <div className="h-auto flex items-center justify-center">
   {currentCaption && (() => {
-   const lines = currentCaption
-  .split('//')
-  .map(p => p.trim())
-  .filter(Boolean);
+    const lines = currentCaption
+      .split('//')
+      .map((p) => p.trim())
+      .filter(Boolean);
 
     return (
-      <div className="font-sans tracking-wide text-center leading-[1.6]">
-        {lines.map((line, i) => (
-          <p
-            key={i}
-            className={`text-[10px] md:text-[14px] ${
-              i === 0
-                ? 'text-foreground/70'
-                : 'text-muted-foreground/50 mt-[2px]'
-            }`}
-          >
-            {line}
-          </p>
+      <div
+        className={`text-center text-[10px] md:text-[11px] leading-[1.5] tracking-[0.02em] text-muted-foreground/52 ${
+          lang === 'jp'
+            ? 'font-[var(--font-body-jp)]'
+            : lang === 'en'
+            ? 'font-[var(--font-body-en)]'
+            : 'font-[var(--font-body-ko)]'
+        }`}
+      >
+        {lines.map((line, idx) => (
+          <p key={idx}>{line}</p>
         ))}
       </div>
     );
@@ -1726,14 +1715,15 @@ export const BlockRenderer = ({
         const key = `group-${index}`;
 
         if (group.type === 'image-slider') {
-          return (
-            <ImageSliderBlock
-              key={key}
-              blocks={group.blocks}
-              compact={compact}
-            />
-          );
-        }
+  return (
+    <ImageSliderBlock
+      key={key}
+      blocks={group.blocks}
+      compact={compact}
+      lang={lang}
+    />
+  );
+}
 
         const block = group.blocks[0];
         const blockKey = `block-${index}-${block.type}`;

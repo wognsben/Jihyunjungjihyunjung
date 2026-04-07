@@ -127,17 +127,23 @@ export const Header = ({
       case 'work':
         return 'work';
 
-      case 'work-detail':
+            case 'work-detail':
         if (detailTitle) {
           return (
             <span className="flex items-baseline gap-2">
               <span
-                className={`text-xs md:text-sm opacity-100 relative top-[1px] max-w-[120px] md:max-w-[190px] leading-tight break-words block ${
-                  lang === 'jp'
-                    ? 'font-[var(--font-body-jp)]'
-                    : lang === 'en'
-                      ? 'font-[var(--font-body-en)]'
-                      : 'font-[var(--font-body-ko)]'
+                className={`opacity-[1] max-w-[120px] md:max-w-[190px] break-words block ${
+                  isNarrowDetailHeader
+                    ? lang === 'jp'
+                      ? 'text-[11px] leading-[1.35] tracking-[-0.01em] font-[var(--font-body-jp)]'
+                      : lang === 'en'
+                        ? 'text-[11px] leading-[1.35] tracking-[-0.01em] font-[var(--font-body-en)]'
+                        : 'text-[11px] leading-[1.35] tracking-[-0.01em] font-[var(--font-body-ko)]'
+                    : lang === 'jp'
+                      ? 'text-xs md:text-sm leading-[1.35] tracking-[-0.01em] font-[var(--font-body-jp)]'
+                      : lang === 'en'
+                        ? 'text-xs md:text-sm leading-[1.35] tracking-[-0.01em] font-[var(--font-body-en)]'
+                        : 'text-xs md:text-sm leading-[1.35] tracking-[-0.01em] font-[var(--font-body-ko)]'
                 }`}
               >
                 {detailTitle}
@@ -150,7 +156,7 @@ export const Header = ({
       case 'text':
         return 'text';
 
-      case 'text-detail':
+                  case 'text-detail':
         if (detailTitle) {
           const parts = detailTitle.split('_');
           const hasAuthor = parts.length > 1;
@@ -162,18 +168,18 @@ export const Header = ({
           return (
             <span className="flex items-baseline gap-2">
               <span
-                className={`opacity-100 relative top-[1px] max-w-[100px] min-[1200px]:max-w-[190px] leading-tight break-words block ${
+                className={`opacity-[1] max-w-[100px] min-[1200px]:max-w-[190px] leading-[1.35] tracking-[-0.01em] break-words block ${
                   lang === 'jp'
                     ? 'font-[var(--font-body-jp)]'
                     : lang === 'en'
                       ? 'font-[var(--font-body-en)]'
                       : 'font-[var(--font-body-ko)]'
-                } text-[10px]`}
+                } text-[11px]`}
               >
                 {hasAuthor ? (
                   <>
                     {titlePart}
-                    <span className="block opacity-100 mt-1">
+                    <span className="block opacity-100 mt-0.5">
                       _{authorPart}
                     </span>
                   </>
@@ -194,7 +200,7 @@ export const Header = ({
     }
   };
 
-  const renderNarrowDetailTitle = () => {
+      const renderNarrowDetailTitle = () => {
     if (!detailTitle) return null;
 
     if (currentView === 'text-detail') {
@@ -205,8 +211,8 @@ export const Header = ({
 
       return (
         <span
-          className={`block text-left text-[11px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
-            isMobileAbout ? 'text-foreground' : 'text-white'
+          className={`block text-left text-[11px] leading-[1.35] tracking-[-0.01em] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
+            isMobileAbout ? 'text-foreground' : 'text-white' /*1320 이하 상세페이지 헤더 타이틀*/
           } ${
             lang === 'jp'
               ? 'font-[var(--font-body-jp)]'
@@ -229,7 +235,7 @@ export const Header = ({
 
     return (
       <span
-        className={`block text-left text-[14px] leading-[1.2] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
+        className={`block text-left text-[11px] leading-[1.35] tracking-[-0.01em] break-words max-w-[350px] min-[768px]:max-w-[500px] min-[1320px]:max-w-[640px] ${
           isMobileAbout ? 'text-foreground' : 'text-white'
         } ${
           lang === 'jp'
@@ -243,7 +249,6 @@ export const Header = ({
       </span>
     );
   };
-
   return (
     <>
       {/* 1. Main Navigation (Disappears on Scroll Down, except About) */}
@@ -274,7 +279,7 @@ export const Header = ({
                   text="Jihyun Jung"
                   onClick={() => onNavigate('index')}
                   isActive={false}
-                  className="text-lg md:text-xl font-extralight tracking-tight cursor-pointer"
+                  className="text-lg md:text-xl font-light tracking-[-0.01em] cursor-pointer"
                   activeColor={baseColor}
                   inactiveColor={baseColor}
                   hoverColor={hoverColor}
@@ -294,7 +299,7 @@ export const Header = ({
                         );
                         setLang(language.code);
                       }}
-                      className={`text-[10px] md:text-xs uppercase tracking-[0.1em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
+                      className={`text-[10px] md:text-xs uppercase tracking-[0.06em] transition-all font-light cursor-pointer select-none p-2 -m-2 ${
                         lang === language.code
                           ? isMobileAbout
                             ? 'text-foreground'
@@ -445,40 +450,46 @@ export const Header = ({
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0 pr-4">{renderNarrowDetailTitle()}</div>
 
-            <button
-  onClick={() => {
-    window.history.back();
-  }}
-  className="shrink-0 flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
->
-  <svg
-    className={`w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 ${
-      isMobileAbout ? 'stroke-foreground' : 'stroke-white'
-    }`}
-    viewBox="0 0 24 24"
-    fill="none"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M19 12H5" />
-    <path d="m12 19-7-7 7-7" />
-  </svg>
-  <span
-    className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] lowercase ${
-      isMobileAbout ? 'text-foreground' : 'text-white'
-    }`}
-  >
-    back
-  </span>
-</button>
+                       <button
+              onClick={() => {
+                window.history.back();
+              }}
+              className="shrink-0 flex items-center gap-3 pointer-events-auto cursor-pointer bg-transparent border-none focus:outline-none group"
+            >
+              <svg
+                className={`w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 ${
+                  isMobileAbout ? 'stroke-foreground' : 'stroke-white'
+                }`}
+                viewBox="0 0 24 24"
+                fill="none"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M19 12H5" />
+                <path d="m12 19-7-7 7-7" />
+              </svg>
+              <span
+                className={`text-[11px] leading-[1.35] tracking-[-0.01em] ${
+                  lang === 'jp'
+                    ? 'font-[var(--font-body-jp)]'
+                    : lang === 'en'
+                      ? 'font-[var(--font-body-en)]'
+                      : 'font-[var(--font-body-ko)]'
+                } ${
+                  isMobileAbout ? 'text-foreground' : 'text-white'
+                }`}
+              >
+                back
+              </span>
+            </button>
           </div>
         ) : (
           <>
             {currentView === 'text-detail' ? (
               <>
                 {/* Mobile: ← back 버튼 */}
-                <button
+                                <button
                   onClick={() => {
                     window.location.hash = '#/text';
                   }}
@@ -499,7 +510,13 @@ export const Header = ({
                     <path d="m12 19-7-7 7-7" />
                   </svg>
                   <span
-                    className={`font-[var(--font-ui)] text-[10px] tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                    className={`text-[11px] leading-[1.35] tracking-[-0.01em] opacity-60 group-hover:opacity-100 transition-opacity duration-300 ${
+                      lang === 'jp'
+                        ? 'font-[var(--font-body-jp)]'
+                        : lang === 'en'
+                          ? 'font-[var(--font-body-en)]'
+                          : 'font-[var(--font-body-ko)]'
+                    } ${
                       isMobileAbout ? 'text-foreground' : 'text-white'
                     }`}
                   >
@@ -508,14 +525,20 @@ export const Header = ({
                 </button>
 
                 {/* Tablet/Desktop: 기존 context label (제목) */}
-                <div className="hidden md:flex items-center gap-3">
+                                <div className="hidden md:flex items-center gap-3">
                   <div
                     className={`w-[3px] h-[3px] rounded-none ${
                       isMobileAbout ? 'bg-foreground' : 'bg-white'
                     }`}
                   />
                   <span
-                    className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${
+                    className={`text-[11px] md:text-sm leading-[1.35] tracking-[-0.01em] opacity-80 ${
+                      lang === 'jp'
+                        ? 'font-[var(--font-body-jp)]'
+                        : lang === 'en'
+                          ? 'font-[var(--font-body-en)]'
+                          : 'font-[var(--font-body-ko)]'
+                    } ${
                       isMobileAbout ? 'text-foreground' : 'text-white'
                     }`}
                   >
@@ -531,7 +554,13 @@ export const Header = ({
                   }`}
                 />
                 <span
-                  className={`font-[var(--font-ui)] text-[10px] md:text-xs tracking-[0.2em] opacity-80 ${
+                  className={`text-[11px] md:text-sm leading-[1.35] tracking-[-0.01em] opacity-80 ${
+                    lang === 'jp'
+                      ? 'font-[var(--font-body-jp)]'
+                      : lang === 'en'
+                        ? 'font-[var(--font-body-en)]'
+                        : 'font-[var(--font-body-ko)]'
+                  } ${
                     isMobileAbout ? 'text-foreground' : 'text-white'
                   }`}
                 >

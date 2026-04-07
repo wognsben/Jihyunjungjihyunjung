@@ -239,85 +239,93 @@ export const WorkDetail = ({
 <div className="pt-32 md:pt-40 px-6 md:px-12 pb-6 max-w-[1000px] mx-auto">
 
           {/* Back Button - desktop (match TextDetail vertical position) */}
-          <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+<div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
   <button
     ref={buttonRef}
     onClick={handleClose}
     className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
   >
-    <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
-    <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-[0.80]">
-  back
-</span>
+    <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.78]" />
+    <span className="text-[10px] tracking-[0.08em] lowercase font-[var(--font-ui)] opacity-[0.78]">
+      back
+    </span>
   </button>
 </div>
 
-          {/* 1. Header Spec Sheet */}
-          <div className="mb-16 md:mb-24 min-[1025px]:mb-32">
-            <div className="max-w-4xl mx-auto">
-              {/* Classic Gallery Caption: Title, Year */}
-              <div className="text-center pb-4 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
-                <h1
-  className={`text-[18px] md:text-[20px] lg:text-[24px] font-light text-foreground/90 leading-tight ${
-    lang === 'jp'
-      ? 'font-[var(--font-body-jp)]'
-      : lang === 'en'
-      ? 'font-[var(--font-body-en)]'
-      : 'font-[var(--font-body-ko)]'
-  }`}
->
-                  {cleanText(title)}
-                  {work.year && `, ${work.year}`}
-                </h1>
-              </div>
+{/* 1. Header Spec Sheet */}
+<div className="mb-16 md:mb-24 min-[1025px]:mb-32">
+  <div className="max-w-4xl mx-auto">
+    {/* Classic Gallery Caption: Title, Year */}
+    <div className="text-center pb-4 md:pb-8 min-[1025px]:pb-10 border-b border-black/5 dark:border-white/10">
+      <h1
+        className={`text-[18px] md:text-[20px] lg:text-[24px] font-normal tracking-[-0.01em] text-foreground/88 leading-[1.35] ${
+          lang === 'jp'
+            ? 'font-[var(--font-body-jp)]'
+            : lang === 'en'
+            ? 'font-[var(--font-body-en)]'
+            : 'font-[var(--font-body-ko)]'
+        }`}
+      >
+        {cleanText(title)}
+        {work.year && `, ${work.year}`}
+      </h1>
+    </div>
 
-              {/* Metadata - Commission only */}
-              <div className="text-center mt-4 md:mt-6">
-                {(() => {
-                  const commission =
-                    lang === 'ko'
-                      ? work.commission_ko
-                      : lang === 'jp'
-                      ? work.commission_jp
-                      : work.commission_en;
+    {/* Metadata - Commission only */}
+    <div className="text-center mt-4 md:mt-6">
+      {(() => {
+        const commission =
+          lang === 'ko'
+            ? work.commission_ko
+            : lang === 'jp'
+            ? work.commission_jp
+            : work.commission_en;
 
-                  if (commission) {
-                    return (
-                      <div className="text-sm md:text-base font-[var(--font-ui)] text-foreground/70">
-                        {cleanText(commission)}
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {(() => {
-                  const yearCaption =
-                    lang === 'ko'
-                      ? work.yearCaption_ko
-                      : lang === 'jp'
-                      ? work.yearCaption_jp
-                      : work.yearCaption_en;
-
-                  if (!yearCaption) return null;
-
-                  return (
-                    <p
-  className={`mt-3 text-[10px] text-muted-foreground/50 ${
-    lang === 'jp'
-      ? 'font-[var(--font-body-jp)]'
-      : lang === 'en'
-      ? 'font-[var(--font-body-en)]'
-      : 'font-[var(--font-body-ko)]'
-  }`}
->
-                      {cleanText(yearCaption)}
-                    </p>
-                  );
-                })()}
-              </div>
+        if (commission) {
+          return (
+            <div
+              className={`text-[13px] md:text-[14px] leading-[1.6] tracking-[0em] text-foreground/68 ${
+                lang === 'jp'
+                  ? 'font-[var(--font-body-jp)]'
+                  : lang === 'en'
+                  ? 'font-[var(--font-body-en)]'
+                  : 'font-[var(--font-body-ko)]'
+              }`}
+            >
+              {cleanText(commission)}
             </div>
-          </div>
+          );
+        }
+        return null;
+      })()}
+
+      {(() => {
+        const yearCaption =
+          lang === 'ko'
+            ? work.yearCaption_ko
+            : lang === 'jp'
+            ? work.yearCaption_jp
+            : work.yearCaption_en;
+
+        if (!yearCaption) return null;
+
+        return (
+          <p
+            className={`mt-3 text-[10px] md:text-[11px] leading-[1.5] tracking-[0.02em] text-muted-foreground/52 ${
+              lang === 'jp'
+                ? 'font-[var(--font-body-jp)]'
+                : lang === 'en'
+                ? 'font-[var(--font-body-en)]'
+                : 'font-[var(--font-body-ko)]'
+            }`}
+          >
+            {cleanText(yearCaption)}
+          </p>
+        );
+      })()}
+    </div>
+  </div>
+</div>
   
           {/*이미지,슬라이더에 여백 수정가능*/}
           {/* Block Content: 언어별 HTML 하나만 선택해서 그대로 렌더 */}

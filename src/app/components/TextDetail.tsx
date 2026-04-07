@@ -317,7 +317,7 @@ const rawHtml = hasLangContent
     className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
   >
     <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
-    <span className="text-[10px] tracking-[0.2em] lowercase font-[var(--font-ui)] opacity-[0.80]">
+    <span className="text-[10px] tracking-[0.08em] lowercase font-[var(--font-ui)] opacity-[0.78]">
       back
     </span>
   </button>
@@ -327,7 +327,7 @@ const rawHtml = hasLangContent
    <div className="pt-28 md:pt-32 px-10 md:px-8 pb-12 max-w-[1000px] mx-auto">
         <article>
           <header className="mb-10 md:mb-10 space-y-6 max-w-5xl mx-auto text-center">
-            <div className="flex items-center justify-center text-[10px] tracking-[0.15em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
+            <div className="flex items-center justify-center text-[10px] tracking-[0.08em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
               <div className="flex items-center gap-3">
                 <span className="font-[var(--font-ui)]">{text.category.toLowerCase()}</span>
                 <span className="opacity-30">/</span>
@@ -340,9 +340,10 @@ const rawHtml = hasLangContent
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
               className={`
-  font-light
-  text-foreground/90
-  leading-tight
+  font-normal
+  tracking-[-0.01em]
+  text-foreground/88
+  leading-[1.35]
   text-center
   text-[18px] md:text-[20px] lg:text-[24px]
   ${
@@ -440,7 +441,7 @@ const rawHtml = hasLangContent
 
                         <div className="space-y-1">
                           <div
-  className={`text-[11px] tracking-wide font-medium leading-tight group-hover:underline underline-offset-4 decoration-foreground/30 ${
+  className={`text-[11px] leading-tight group-hover:underline underline-offset-4 decoration-foreground/30 ${
     lang === 'jp'
       ? 'font-[var(--font-body-jp)]'
       : lang === 'en'
@@ -486,13 +487,21 @@ const rawHtml = hasLangContent
                         </div>
 
                         <div className="space-y-1">
-                          <div className="text-[11px] tracking-wide font-medium leading-tight group-hover:underline underline-offset-4 decoration-foreground/30">
-                            {cleanText(work.title)}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground/60 font-mono">
-                            <span>{work.year}</span>
-                          </div>
-                        </div>
+  <div
+    className={`text-[11px] leading-tight group-hover:underline underline-offset-4 decoration-foreground/30 ${
+      lang === 'jp'
+        ? 'font-[var(--font-body-jp)]'
+        : lang === 'en'
+        ? 'font-[var(--font-body-en)]'
+        : 'font-[var(--font-body-ko)]'
+    }`}
+  >
+    {cleanText(work.title)}
+  </div>
+  <div className="text-[10px] text-muted-foreground/60 font-[var(--font-ui)]">
+    <span>{work.year}</span>
+  </div>
+</div>
                       </a>
                     );
                   })}
