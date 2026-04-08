@@ -87,14 +87,18 @@ const handleLinkClick = (e: React.MouseEvent) => {
 
   const normalizedHref = normalizeCustomFootnotePath(href);
 
-  const customFootnoteRefMatch = href.match(/^\/상단\s*각주(\d+)\/?$/);
-const customFootnoteBodyMatch = href.match(/^\/하단\s*각주(\d+)\/?$/);
+const customFootnoteRefMatch = normalizedHref.match(/^\/상단\s*각주(\d+)\/?$/);
+const customFootnoteBodyMatch = normalizedHref.match(/^\/하단\s*각주(\d+)\/?$/);
 
 const scrollToCustomFootnote = (targetHref: string, number: string) => {
   const footnoteAnchor = Array.from(document.querySelectorAll('a')).find(
     (el) => {
       const value = el.getAttribute('href') || '';
-      return value === targetHref || value === targetHref.replace(/\/$/, '');
+      const normalizedValue = normalizeCustomFootnotePath(value);
+      return (
+        normalizedValue === targetHref ||
+        normalizedValue === targetHref.replace(/\/$/, '')
+      );
     }
   ) as HTMLAnchorElement | undefined;
 
@@ -1143,7 +1147,9 @@ const ImageFrame = ({
   lang: string;
   align?: ParsedBlock['align'];
 }) => {
-  const normalizedHtml = /<p[\s>]/i.test(html) ? html : `<p>${html}</p>`;
+  const normalizedHtml = /<p[\s>]/i.test(html)
+  ? html
+  : `<p>${html.replace(/\n/g, '<br>')}</p>`;
 
   const textOnly = normalizedHtml
     .replace(/<br\s*\/?>/gi, '')
@@ -1173,7 +1179,7 @@ const ImageFrame = ({
           [&_p]:my-0
           [&_p+p]:mt-1
           [&_br]:leading-[1.1]
-          [&_strong]:font-bold
+          [&_strong]:font-bold [&_strong]:text-foreground [&_strong]:opacity-100
           [&_em]:Petrona
           [&_ul]:my-1
           [&_ol]:my-1

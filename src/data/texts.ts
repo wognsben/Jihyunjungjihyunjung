@@ -249,46 +249,4 @@ export const textData: TextItem[] = [
     link: '#/text',
     image: 'https://raw.githubusercontent.com/wognsben/gallery/main/6.jpg'
   },
-  { 
-    id: 'post-339', year: '2012', category: 'Note', 
-    author: { en: 'Jihyun Jung', ko: '정지현', jp: 'Jihyun Jung' },
-    title: { en: 'Same but Different Landscape', ko: '매일 비슷하면서 다른 풍경', jp: '毎日似ているようで違う風景' }, 
-    link: '#/text',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/7.jpg'
-  },
-  { 
-    id: 'post-338', year: '2011', category: 'Article', 
-    author: { en: 'Seulbi Lee', ko: '이슬비', jp: 'Seulbi Lee' },
-    title: { en: 'Missed Spot 2', ko: '빗나간 자리 2', jp: '外れた場所 2' }, 
-    link: '#/text',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/8.jpg'
-  },
-  { 
-    id: 'post-337', year: '2011', category: 'Article', 
-    author: { en: 'Areum Woo', ko: '우아름', jp: 'Areum Woo' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場所' }, 
-    link: '#/text',
-    image: 'https://raw.githubusercontent.com/wognsben/gallery/main/9.jpg'
-  },
-  { 
-    id: 'post-336', year: '2011', category: 'Review', 
-    author: { en: 'Young-geul Kim', ko: '김영글', jp: 'Young-geul Kim' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場소' }, 
-    link: '#/text',
-    image: ''
-  },
-  { 
-    id: 'post-334', year: '2011', category: 'Note', 
-    author: { en: 'Jihyun Jung', ko: '정지현', jp: 'Jihyun Jung' },
-    title: { en: 'Missed Spot', ko: '빗나간 자리', jp: '外れた場소' }, 
-    link: '#/text',
-    image: ''
-  },
-  { 
-    id: 'post-333', year: '2010', category: 'Review', 
-    author: { en: 'Jiyeon Kim', ko: '김지연', jp: 'Jiyeon Kim' },
-    title: { en: 'Unspoken Words', ko: '못다한 말', jp: '言えなかった言葉' }, 
-    link: '#/text',
-    image: ''
-  },
 ];

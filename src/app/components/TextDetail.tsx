@@ -164,75 +164,77 @@ export const TextDetail = ({ textId, isPage = false, isPopup = false }: TextDeta
   }, [loading, text, hasLocalizedContent]);
 
   const handleContentClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    const anchor = target.closest('a') as HTMLAnchorElement | null;
+  const target = e.target as HTMLElement;
+  const anchor = target.closest('a') as HTMLAnchorElement | null;
 
-    if (!anchor) return;
+  if (!anchor) return;
 
-    const href = anchor.getAttribute('href') || '';
+  const href = anchor.getAttribute('href') || '';
 
-    // 외부 링크는 그대로
-    if (href.startsWith('http') || href.startsWith('//')) {
-      try {
-        const url = new URL(href);
+  // ============================================================
+  // 핵심: 각주 처리 완전히 BlockRenderer에 맡김
+  // ============================================================
 
-        // 현재 페이지랑 같은 origin이면 → 내부 anchor로 처리
-        if (url.origin === window.location.origin && url.hash) {
-          const id = url.hash.replace('#', '');
+  const isFootnoteHash = (value: string) => {
+    return (
+      value.startsWith('#footnote') ||
+      value.startsWith('#fn') ||
+      value.startsWith('#note') ||
+      value.startsWith('#_ftn') ||
+      value.startsWith('#_edn') ||
+      value.startsWith('#fnref') ||
+      value.startsWith('#footnote-ref') ||
+      /^#\d+$/.test(value)
+    );
+  };
 
-          const el =
-            document.getElementById(id) ||
-            document.getElementById(`footnote-${id}`) ||
-            document.getElementById(`fn-${id}`) ||
-            document.getElementById(`note-${id}`) ||
-            document.getElementById(id.replace(/[^\d]/g, ''));
+  // 각주 관련 링크는 여기서 절대 건드리지 않음
+  if (href.startsWith('#') && isFootnoteHash(href)) {
+    return;
+  }
 
-          if (el) {
-            e.preventDefault();
-            e.stopPropagation();
+  // ============================================================
+  // 외부 링크 처리
+  // ============================================================
 
-            el.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-            });
-          }
+  if (href.startsWith('http') || href.startsWith('//')) {
+    try {
+      const url = new URL(href);
 
-          return;
-        }
-      } catch {
+      // 내부 hash 이동은 BlockRenderer가 처리하도록 넘김
+      if (url.origin === window.location.origin && url.hash) {
         return;
       }
-
+    } catch {
       return;
     }
 
-    // 라우터 링크는 그대로
-    if (href.startsWith('#/')) return;
+    return;
+  }
 
-    // footnote / in-page anchor 만 수동 처리
-    if (href.startsWith('#')) {
-      const id = href.replace(/^#/, '');
+  // 라우터 링크 그대로
+  if (href.startsWith('#/')) return;
 
-      const el =
-        document.getElementById(id) ||
-        document.getElementById(`footnote-${id}`) ||
-        document.getElementById(`fn-${id}`) ||
-        document.getElementById(`note-${id}`) ||
-        document.getElementById(id.replace(/[^\d]/g, '')) ||
-        document.getElementById(`footnote-${id.replace(/[^\d]/g, '')}`) ||
-        document.getElementById(`fn-${id.replace(/[^\d]/g, '')}`) ||
-        document.getElementById(`note-${id.replace(/[^\d]/g, '')}`);
+  // ============================================================
+  // 일반 anchor (#section 등)만 처리
+  // ============================================================
 
-      if (el) {
-        e.preventDefault();
-        e.stopPropagation();
-        el.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }
+  if (href.startsWith('#')) {
+    const id = href.replace(/^#/, '');
+
+    const el = document.getElementById(id);
+
+    if (el) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }
-  };
+  }
+};
 
   if (loading) {
     return (
