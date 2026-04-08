@@ -638,24 +638,29 @@ const doc = parser.parseFromString(normalizedHtml, 'text/html');
   const nodes = Array.from(doc.body.childNodes);
   const inlineBuffer: string[] = [];
 
-  for (const node of nodes) {
+    for (const node of nodes) {
     // 1) 텍스트 노드 → 일단 버퍼에 쌓음
     if (node.nodeType === Node.TEXT_NODE) {
-  const text = node.textContent || '';
+      const text = node.textContent || '';
 
-  // 공백/줄바꿈만 있는 텍스트 노드는 무시
-  // (HTML 소스 포맷팅용 개행을 실제 문단/줄바꿈으로 렌더하지 않기 위함)
-  if (!text.replace(/\u00a0/g, ' ').trim()) continue;
+      // 공백/줄바꿈만 있는 텍스트 노드는 무시
+      // (HTML 소스 포맷팅용 개행을 실제 문단/줄바꿈으로 렌더하지 않기 위함)
+      if (!text.replace(/\u00a0/g, ' ').trim()) continue;
 
-  const normalizedText = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\n/g, '<br>');
+      const escapedText = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 
-  if (!normalizedText.replace(/<br\s*\/?>/gi, '').trim()) continue;
+      const normalizedText = escapedText
+        .replace(/\r\n/g, '\n')
+        .replace(/\n/g, '<br>');
 
-  inlineBuffer.push(normalizedText);
-  continue;
-}
+      if (!normalizedText.replace(/<br\s*\/?>/gi, '').trim()) continue;
+
+      inlineBuffer.push(normalizedText);
+      continue;
+    }
 
     if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
@@ -1168,7 +1173,7 @@ const ImageFrame = ({
           [&_p]:my-0
           [&_p+p]:mt-1
           [&_br]:leading-[1.1]
-          [&_strong]:font-semibold
+          [&_strong]:font-bold
           [&_em]:Petrona
           [&_ul]:my-1
           [&_ol]:my-1

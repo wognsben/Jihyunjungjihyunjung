@@ -185,6 +185,26 @@ const escapeHtmlAttr = (value: string = ''): string =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
+const escapeNonHtmlAngleBrackets = (html: string): string => {
+  if (!html) return html;
+
+  return html.replace(/<([^<>]+)>/g, (match, inner) => {
+    const trimmed = inner.trim();
+
+    // 정상 HTML 태그처럼 보이면 그대로 둠
+    if (
+      /^\/?[a-zA-Z][\w:-]*(\s+[^<>]*)?$/.test(trimmed) ||
+      /^!--[\s\S]*--$/.test(trimmed) ||
+      /^\?[a-zA-Z][\s\S]*\?$/.test(trimmed)
+    ) {
+      return match;
+    }
+
+    // HTML 태그가 아닌 꺾쇠 괄호 텍스트는 escape
+    return `&lt;${inner}&gt;`;
+  });
+};
+
 const transformAcfGalleryToSliderHtml = (
   html: string,
   galleryImageMap: Record<string, string>
@@ -865,13 +885,17 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
   ? decode(acf.title_en)
   : '';
 
-  const content_en_raw = await resolveGalleryShortcodes(
+    const content_en_source =
     acf['TEXT_작품_설명en'] ||
-      acf['TEXT_작품_설명_en'] ||
-      acf['text_작품_설명_en'] ||
-      acf.content_en ||
-      ''
+    acf['TEXT_작품_설명_en'] ||
+    acf['text_작품_설명_en'] ||
+    acf.content_en ||
+    '';
+
+  const content_en_raw = escapeNonHtmlAngleBrackets(
+    await resolveGalleryShortcodes(content_en_source)
   );
+  
   const summary_en = acf.summary_en ? decode(acf.summary_en) : '';
   const content_en = content_en_raw
   ? decode(stripHtmlToText(content_en_raw))
@@ -886,13 +910,16 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
   ? decode(acf.title_jp)
   : '';
 
-  const content_jp_raw = await resolveGalleryShortcodes(
+    const content_jp_source =
     acf['TEXT_작품_설명jp'] ||
-      acf['text_작품_설명jp'] ||
-      acf['TEXT_작품_설명_jp'] ||
-      acf['text_작품_설명_jp'] ||
-      acf.content_jp ||
-      ''
+    acf['text_작품_설명jp'] ||
+    acf['TEXT_작품_설명_jp'] ||
+    acf['text_작품_설명_jp'] ||
+    acf.content_jp ||
+    '';
+
+  const content_jp_raw = escapeNonHtmlAngleBrackets(
+    await resolveGalleryShortcodes(content_jp_source)
   );
   const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : '';
   const content_jp = content_jp_raw

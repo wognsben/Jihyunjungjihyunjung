@@ -143,19 +143,16 @@ export const TextDetail = ({ textId, isPage = false, isPopup = false }: TextDeta
     }
   }, [textId, lang, currentLang, contextText, translateTextsByIds]);
 
-  const title = text?.title?.[lang]?.trim() || '';
+    const title = text?.title?.[lang]?.trim() || '';
   const content = text?.content?.[lang]?.trim() || '';
-  const hasLangContent =
-  !!text?.content?.[lang]?.trim() ||
-  !!text?.contentHtml?.[lang]?.trim();
-
-const rawHtml = hasLangContent
-  ? text?.contentHtml?.[lang]?.trim() || ''
-  : '';
+  const rawHtml = text?.contentHtml?.[lang]?.trim() || '';
   const rawHtmlText = stripHtmlToText(rawHtml);
 
+  // 상세페이지 필드는 모두 WYSIWYG 기준으로 처리
+  const hasLangContent = !!rawHtmlText;
+
   // 현재 언어에 실제 본문이 있는지 판정
-  const hasLocalizedContent = !!(content || rawHtmlText);
+  const hasLocalizedContent = !!rawHtmlText;
 
   useEffect(() => {
     if (loading) return;
@@ -261,7 +258,7 @@ const rawHtml = hasLangContent
     return null;
   }
 
-  const useBlockRenderer = !!rawHtml;
+    const useBlockRenderer = hasLangContent;
 
   const paragraphs =
     !useBlockRenderer && content
@@ -344,7 +341,7 @@ const rawHtml = hasLangContent
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
               className={`
-  font-normal
+  font-normal /* textdetail-타이틀 굵기*/
   tracking-[-0.01em]
   text-foreground/88
   leading-[1.35]
