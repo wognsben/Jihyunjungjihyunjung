@@ -90,51 +90,9 @@ const handleLinkClick = (e: React.MouseEvent) => {
 const customFootnoteRefMatch = normalizedHref.match(/^\/상단\s*각주(\d+)\/?$/);
 const customFootnoteBodyMatch = normalizedHref.match(/^\/하단\s*각주(\d+)\/?$/);
 
-const scrollToCustomFootnote = (targetHref: string, number: string) => {
-  const footnoteAnchor = Array.from(document.querySelectorAll('a')).find(
-    (el) => {
-      const value = el.getAttribute('href') || '';
-      const normalizedValue = normalizeCustomFootnotePath(value);
-      return (
-        normalizedValue === targetHref ||
-        normalizedValue === targetHref.replace(/\/$/, '')
-      );
-    }
-  ) as HTMLAnchorElement | undefined;
-
-  const footnoteContainer =
-    footnoteAnchor?.closest('li, p, div') ||
-    document.getElementById(`fn${number}`) ||
-    document.querySelector(`[data-footnote="${number}"]`);
-
-  if (footnoteContainer instanceof HTMLElement) {
-    footnoteContainer.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
-    return true;
-  }
-
-  return false;
-};
-
-// 1) 상단 각주 클릭 → 하단 각주로 이동
-if (customFootnoteRefMatch) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const number = customFootnoteRefMatch[1];
-  scrollToCustomFootnote(`/하단 각주${number}/`, number);
-  return;
-}
-
-// 2) 하단 각주 클릭 → 상단 각주로 이동
-if (customFootnoteBodyMatch) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const number = customFootnoteBodyMatch[1];
-  scrollToCustomFootnote(`/상단 각주${number}/`, number);
+// 커스텀 각주는 이제 href 자체를 해시 링크로 바꿨기 때문에
+// 여기서 별도 이동 처리하지 않음
+if (customFootnoteRefMatch || customFootnoteBodyMatch) {
   return;
 }
 
@@ -165,16 +123,20 @@ if (customFootnoteBodyMatch) {
       document.getElementById(`fn-${id}`) ||
       document.getElementById(`note-${id}`) ||
       document.getElementById(`_ftn${numeric}`) ||
+      document.getElementById(`_ftnref${numeric}`) ||
       document.getElementById(`_edn${numeric}`) ||
       document.getElementById(`fnref-${numeric}`) ||
       document.getElementById(`footnote-ref-${numeric}`) ||
       document.getElementById(numeric) ||
       document.getElementById(`footnote-${numeric}`) ||
       document.getElementById(`fn-${numeric}`) ||
+      document.getElementById(`fnref${numeric}`) ||
       document.getElementById(`note-${numeric}`) ||
       document.querySelector(`[name="_ftn${numeric}"]`) ||
+      document.querySelector(`[name="_ftnref${numeric}"]`) ||
       document.querySelector(`[name="_edn${numeric}"]`) ||
       document.querySelector(`[name="fn${numeric}"]`) ||
+      document.querySelector(`[name="fnref${numeric}"]`) ||
       document.querySelector(`[name="note${numeric}"]`) ||
       document.querySelector(`[name="${numeric}"]`);
 
@@ -419,11 +381,37 @@ const withExternalLinkTarget = (html: string): string => {
         );
       };
 
-      const isCustomFootnotePath = (value: string) => {
+            const isCustomFootnotePath = (value: string) => {
         return (
           /^\/상단\s*각주\d+\/?$/i.test(value) ||
           /^\/하단\s*각주\d+\/?$/i.test(value)
         );
+      };
+
+            const getCustomFootnoteMeta = (value: string) => {
+        const normalizedValue = value.replace(/\/+$/, '/');
+
+        const refMatch = normalizedValue.match(/^\/상단\s*각주(\d+)\/?$/i);
+        if (refMatch) {
+          return {
+            type: 'ref' as const,
+            number: refMatch[1],
+            normalizedHref: `#custom-footnote-body-${refMatch[1]}`,
+            customId: `custom-footnote-ref-${refMatch[1]}`,
+          };
+        }
+
+        const bodyMatch = normalizedValue.match(/^\/하단\s*각주(\d+)\/?$/i);
+        if (bodyMatch) {
+          return {
+            type: 'body' as const,
+            number: bodyMatch[1],
+            normalizedHref: `#custom-footnote-ref-${bodyMatch[1]}`,
+            customId: `custom-footnote-body-${bodyMatch[1]}`,
+          };
+        }
+
+        return null;
       };
 
       // 1) 이미 상대 hash인 footnote는 그대로 유지
@@ -436,8 +424,14 @@ const withExternalLinkTarget = (html: string): string => {
         return `<a ${attrsBase} href="${href}">`;
       }
 
-      // 3) 커스텀 상대 각주는 그대로 유지
+            // 3) 커스텀 상대 각주는 해시 링크 + 고정 id 부여
       if (isCustomFootnotePath(href)) {
+        const meta = getCustomFootnoteMeta(href);
+
+        if (meta) {
+          return `<a ${attrsBase} href="${meta.normalizedHref}" id="${meta.customId}" data-custom-footnote="${meta.type}" data-footnote-number="${meta.number}">`;
+        }
+
         return `<a ${attrsBase} href="${href}">`;
       }
 
@@ -454,10 +448,15 @@ const withExternalLinkTarget = (html: string): string => {
             return `<a ${attrsBase} href="${normalizedHref}">`;
           }
 
-          // 커스텀 각주 절대 URL → 상대 경로로 정규화
+          // 커스텀 각주 절대 URL → 해시 링크 + 고정 id로 정규화
           if (isCustomFootnotePath(pathname)) {
-            normalizedHref = pathname.replace(/\/+$/, '/') || pathname;
-            return `<a ${attrsBase} href="${normalizedHref}">`;
+            const meta = getCustomFootnoteMeta(pathname);
+
+            if (meta) {
+              return `<a ${attrsBase} href="${meta.normalizedHref}" id="${meta.customId}" data-custom-footnote="${meta.type}" data-footnote-number="${meta.number}">`;
+            }
+
+            return `<a ${attrsBase} href="${pathname}">`;
           }
         } catch {
           return `<a ${attrsBase} href="${href}" target="_blank" rel="noopener noreferrer">`;
@@ -1166,9 +1165,10 @@ const ImageFrame = ({
 
   const paragraphAlignClass = textAlignClass(align || 'left');
 
-  return (
+    return (
     <div className="w-full px-4 md:px-4">
       <div
+        onClickCapture={handleLinkClick}
         className={`${
           lang === 'jp'
             ? 'font-[var(--font-body-jp)]'
@@ -1745,10 +1745,10 @@ export const BlockRenderer = ({
 
   const groups = groupBlocksForRendering(blocks);
 
-  return (
+    return (
     <div
       className="space-y-2 md:space-y-4 min-[1025px]:space-y-5"
-      onClick={handleLinkClick}
+      onClickCapture={handleLinkClick}
     >
       {groups.map((group, index) => {
         const key = `group-${index}`;
@@ -1790,8 +1790,6 @@ export const BlockRenderer = ({
             return <SingleImageBlock key={blockKey} block={block} lang={lang} />;
           case 'video':
             return <VideoBlock key={blockKey} html={block.html} align={block.align} />;
-          case 'embed':
-            return <EmbedBlock key={blockKey} html={block.html} align={block.align} />;
           case 'list':
             return (
               <ListBlock
