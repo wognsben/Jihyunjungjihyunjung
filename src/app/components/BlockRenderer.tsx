@@ -1017,11 +1017,13 @@ const extractImagesFromBlocks = (blocks: ParsedBlock[]): ExtractedImage[] => {
       let bgMatch;
 
       while ((bgMatch = bgRegex.exec(block.html)) !== null) {
-        const src = bgMatch[2]?.trim();
-        if (!src) continue;
+        const rawSrc = bgMatch[2]?.trim();
+        if (!rawSrc) continue;
+
+        const normalizedSrc = toCdnUrl(stripWpResolutionSuffix(rawSrc));
 
         images.push({
-          src,
+          src: normalizedSrc,
           caption: '',
           align: block.align,
         });
@@ -1071,11 +1073,13 @@ const ImageFrame = ({
   alt,
   priority = false,
   compact = false,
+  eager = false,
 }: {
   image: ExtractedImage;
   alt: string;
   priority?: boolean;
   compact?: boolean;
+  eager?: boolean;
 }) => {
   const wrapperAlignClass =
     image.align === 'left'
@@ -1105,16 +1109,17 @@ const ImageFrame = ({
     >
       <div className={`${wrapperAlignClass}`} style={wrapperStyle}>
         <div className="flex items-center justify-center">
-  <img
-    src={image.src}
-    alt={alt}
-    width={image.width}
-    height={image.height}
-    className="block w-auto h-auto max-w-full object-contain"
-    loading={priority ? 'eager' : 'lazy'}
-    draggable={false}
-  />
-</div>
+          <img
+            src={image.src}
+            alt={alt}
+            width={image.width}
+            height={image.height}
+            className="block w-auto h-auto max-w-full object-contain"
+            loading={eager || priority ? 'eager' : 'lazy'}
+            decoding="async"
+            draggable={false}
+          />
+        </div>
       </div>
     </div>
   );
@@ -1337,12 +1342,32 @@ const ImageSliderBlock = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [images.length]);
 
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    const preloadIndexes = [
+      currentSlide,
+      (currentSlide + 1) % images.length,
+      (currentSlide - 1 + images.length) % images.length,
+    ];
+
+    const uniqueIndexes = Array.from(new Set(preloadIndexes));
+
+    uniqueIndexes.forEach((index) => {
+      const src = images[index]?.src;
+      if (!src) return;
+
+      const img = new Image();
+      img.src = src;
+    });
+  }, [currentSlide, images]);
+
   if (images.length === 0) return null;
 
   const currentImage = images[currentSlide];
   const currentCaption = currentImage?.caption || '';
 
-  if (images.length === 1) {
+ if (images.length === 1) {
   return (
     <div
       className={`${
@@ -1354,6 +1379,7 @@ const ImageSliderBlock = ({
           image={images[0]}
           alt={images[0].caption || 'Image'}
           priority
+          eager
           compact={compact}
         />
       </div>
@@ -1408,6 +1434,7 @@ const ImageSliderBlock = ({
                 image={currentImage}
                 alt={currentImage.caption || `Gallery ${currentSlide + 1}`}
                 priority
+                eager
                 compact={compact}
               />
             </div>
