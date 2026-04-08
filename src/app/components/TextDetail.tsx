@@ -311,20 +311,24 @@ const rawHtml = hasLangContent
   return (
   <div className="relative w-full h-full bg-background text-foreground overflow-y-auto selection:bg-foreground/10 custom-scrollbar">
     {!isPopup && (
-  <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
-  <button
-    onClick={() => window.history.back()}
-    className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
-  >
-    <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
-    <span className="text-[10px] tracking-[0.08em] lowercase font-[var(--font-ui)] opacity-[0.78]">
-      back
-    </span>
-  </button>
-</div>
-)}
+      <div className="hidden min-[1320px]:block fixed top-32 left-8 z-40 mix-blend-difference text-white dark:text-white">
+        <button
+          onClick={() => window.history.back()}
+          className="hidden min-[1320px]:flex group items-center gap-3 px-4 py-2 bg-transparent focus:outline-none"
+        >
+          <ArrowLeft className="w-3 h-3 transition-transform duration-300 group-hover:-translate-x-0.5 opacity-[0.80]" />
+          <span className="text-[10px] tracking-[0.08em] lowercase font-[var(--font-ui)] opacity-[0.78]">
+            back
+          </span>
+        </button>
+      </div>
+    )}
 
-   <div className="pt-28 md:pt-32 px-10 md:px-8 pb-12 max-w-[1000px] mx-auto">
+    <div
+      className={`px-10 md:px-8 pb-12 max-w-[1000px] mx-auto ${
+        isPopup ? 'pt-10 md:pt-12' : 'pt-28 md:pt-32'
+      }`}
+    >
         <article>
           <header className="mb-10 md:mb-10 space-y-6 max-w-5xl mx-auto text-center">
             <div className="flex items-center justify-center text-[10px] tracking-[0.08em] lowercase text-muted-foreground/80 font-[var(--font-ui)]">
