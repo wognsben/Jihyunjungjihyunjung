@@ -1159,12 +1159,12 @@ const ImageFrame = ({
             : lang === 'en'
             ? 'font-[var(--font-body-en)]'
             : 'font-[var(--font-body-ko)]'
-        } text-foreground/80 text-sm md:text-[16px] leading-[1.6] opacity-100 ${paragraphAlignClass}
+        } text-foreground/80 text-sm md:text-[16px] leading-[1.4] opacity-100 ${paragraphAlignClass}
           [&_p]:my-0
           [&_p+p]:mt-1
-          [&_br]:leading-[1.5]
+          [&_br]:leading-[1.1]
           [&_strong]:font-semibold
-          [&_em]:italic
+          [&_em]:Petrona
           [&_ul]:my-1
           [&_ol]:my-1
           [&_li]:my-1
@@ -1198,7 +1198,7 @@ const HeadingBlock = ({
         } text-foreground/90 ${headingAlignClass}
           [&_h1]:text-[18px]
           [&_h1]:md:text-[22px]
-          [&_h1]:leading-[1.45]
+          [&_h1]:leading-[1.3]
           [&_h1]:font-normal
           [&_h1]:tracking-[-0.01em]
           [&_h1]:mt-0
@@ -1709,7 +1709,7 @@ export const BlockRenderer = ({
 
   return (
     <div
-      className="space-y-4 md:space-y-8 min-[1025px]:space-y-8"
+      className="space-y-2 md:space-y-4 min-[1025px]:space-y-5"
       onClick={handleLinkClick}
     >
       {groups.map((group, index) => {
