@@ -621,6 +621,36 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
 
   const doc = parser.parseFromString(normalizedHtml, 'text/html');
 
+  const splitInlineHtmlToParagraphBlocks = (
+    rawHtml: string,
+    fallbackAlign?: ParsedBlock['align']
+  ): ParsedBlock[] => {
+    if (!rawHtml || !rawHtml.trim()) return [];
+
+    const normalized = rawHtml
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/(?:\n\s*){2,}/g, '<br><br>');
+
+    const parts = normalized
+      .split(/(?:<br\s*\/?>\s*){2,}/gi)
+      .map((part) =>
+        part
+          .replace(/^(?:\s|<br\s*\/?>)+/gi, '')
+          .replace(/(?:\s|<br\s*\/?>)+$/gi, '')
+          .trim()
+      )
+      .filter(Boolean);
+
+    if (parts.length === 0) return [];
+
+    return parts.map((part) => ({
+      type: 'paragraph' as const,
+      html: `<p>${part}</p>`,
+      align: detectAlign(part) || fallbackAlign,
+    }));
+  };
+
   const flushInlineBuffer = (buffer: string[]) => {
     const joined = buffer.join('').trim();
 
@@ -629,11 +659,14 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
       return;
     }
 
-    blocks.push({
-      type: 'unknown',
-      html: joined,
-      align: detectAlign(joined),
-    });
+    const paragraphBlocks = splitInlineHtmlToParagraphBlocks(
+      joined,
+      detectAlign(joined)
+    );
+
+    if (paragraphBlocks.length > 0) {
+      blocks.push(...paragraphBlocks);
+    }
 
     buffer.length = 0;
   };
@@ -822,15 +855,25 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
       }
     }
 
-    // 13-3. 진짜 inline-only면 paragraph로 강제 변환하지 않고 raw html로 유지
+                // 13-3. 진짜 inline-only면 <br><br> / 빈 줄 기준으로 paragraph 분리
     const hasOnlyInlineContent =
       inner &&
       !/<(p|div|figure|blockquote|ul|ol|li|h[1-6]|hr|section|article|iframe|video)\b/i.test(inner);
 
     if (hasOnlyInlineContent) {
+      const paragraphBlocks = splitInlineHtmlToParagraphBlocks(
+        inner,
+        detectAlign(inner)
+      );
+
+      if (paragraphBlocks.length > 0) {
+        blocks.push(...paragraphBlocks);
+        continue;
+      }
+
       blocks.push({
-        type: 'unknown',
-        html: inner,
+        type: 'paragraph',
+        html: `<p>${inner}</p>`,
         align: detectAlign(inner),
       });
       continue;
