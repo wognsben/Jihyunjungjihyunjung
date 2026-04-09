@@ -122,12 +122,36 @@ export const WorkProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const translateWorksByIds = useCallback(async (_ids: string[], lang: Language) => {
+  setIsWorksLoading(true);
+  setError(null);
+
+  try {
+    const fetchedWorks = await fetchWorks();
+    setWorks(fetchedWorks);
     setCurrentLang(lang);
-  }, []);
+  } catch (err) {
+    console.error('Failed to translate works', err);
+    setError('Failed to translate works');
+  } finally {
+    setIsWorksLoading(false);
+  }
+}, []);
 
   const translateTextsByIds = useCallback(async (_ids: string[], lang: Language) => {
+  setIsTextsLoading(true);
+  setError(null);
+
+  try {
+    const fetchedTexts = await fetchTexts(lang);
+    setTexts(fetchedTexts);
     setCurrentLang(lang);
-  }, []);
+  } catch (err) {
+    console.error('Failed to translate texts', err);
+    setError('Failed to translate texts');
+  } finally {
+    setIsTextsLoading(false);
+  }
+}, []);
 
   return (
     <WorkContext.Provider

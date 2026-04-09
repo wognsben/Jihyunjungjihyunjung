@@ -41,7 +41,7 @@ const getLocalizedWorkPreviewImage = (work: any, lang: string): string => {
 const cleanText = (text: string) => {
   if (!text) return '';
   return text
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&nbsp;/g, '\u00a0')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

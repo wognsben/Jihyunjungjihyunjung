@@ -276,7 +276,7 @@ const sanitizeHtml = (html: string): string => {
   });
 
     cleaned = cleaned.replace(
-    /<p([^>]*)>\s*(&nbsp;|\u00a0|\s)*<\/p>/gi,
+    /<p([^>]*)>(?:[ \t\r\n]|<br\s*\/?>)*<\/p>/gi,
     '<p$1><br></p>'
   );
   // anchor가 단독 block으로 떨어진 경우 앞뒤 문장과 합치기
@@ -472,6 +472,29 @@ const withExternalLinkTarget = (html: string): string => {
   );
 };
 
+const normalizeRenderableHtml = (input: string): string => {
+  if (!input) return '';
+
+  return input
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+
+    // 이미 escape되어 화면에 "&nbsp;" 문자로 보일 수 있는 경우까지 정리
+    .replace(/&amp;nbsp;/gi, '\u00a0')
+
+    // 실제 HTML entity는 실제 non-breaking space로 보존
+    .replace(/&nbsp;/gi, '\u00a0')
+
+    // 빈 문단은 줄바꿈 1개로 유지
+    .replace(/<p([^>]*)>\s*<\/p>/gi, '<p$1><br></p>')
+    .replace(/<p([^>]*)>\s*(<br\s*\/?>\s*)+<\/p>/gi, '<p$1><br></p>')
+    .trim();
+};
+
+const getRenderableHtml = (input: string): string => {
+  return withExternalLinkTarget(normalizeRenderableHtml(input));
+};
+
 // ============================================================
 // Parse WordPress block comments
 // ============================================================
@@ -622,34 +645,51 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
   const doc = parser.parseFromString(normalizedHtml, 'text/html');
 
   const splitInlineHtmlToParagraphBlocks = (
-    rawHtml: string,
-    fallbackAlign?: ParsedBlock['align']
-  ): ParsedBlock[] => {
-    if (!rawHtml || !rawHtml.trim()) return [];
+  rawHtml: string,
+  fallbackAlign?: ParsedBlock['align']
+): ParsedBlock[] => {
+  if (!rawHtml) return [];
 
-    const normalized = rawHtml
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/(?:\n\s*){2,}/g, '<br><br>');
+  const normalized = rawHtml
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/(?:\n\s*){2,}/g, '<br><br>');
 
-    const parts = normalized
-      .split(/(?:<br\s*\/?>\s*){2,}/gi)
-      .map((part) =>
-        part
-          .replace(/^(?:\s|<br\s*\/?>)+/gi, '')
-          .replace(/(?:\s|<br\s*\/?>)+$/gi, '')
-          .trim()
-      )
-      .filter(Boolean);
+  const parts = normalized
+    .split(/(?:<br\s*\/?>\s*){2,}/gi)
+    .map((part) => {
+      const withoutLeadingTrailingRegularWhitespace = part
+        .replace(/^[ \t\r\n]*(?:<br\s*\/?>[ \t\r\n]*)*/gi, '')
+        .replace(/(?:[ \t\r\n]*<br\s*\/?>)*[ \t\r\n]*$/gi, '');
 
-    if (parts.length === 0) return [];
+      const withoutHtmlTags = withoutLeadingTrailingRegularWhitespace.replace(/<[^>]+>/g, '');
+      const withoutRegularWhitespace = withoutHtmlTags.replace(/[ \t\r\n]/g, '');
+      const hasNbsp = withoutHtmlTags.includes('\u00a0') || withoutHtmlTags.includes('&nbsp;');
 
-    return parts.map((part) => ({
+      if (!withoutRegularWhitespace && !hasNbsp) {
+        return '';
+      }
+
+      return withoutLeadingTrailingRegularWhitespace;
+    })
+    .filter((part) => part !== '');
+
+  if (parts.length === 0) return [];
+
+  return parts.map((part) => {
+    const onlyNbspAfterTagStrip =
+      part
+        .replace(/<[^>]+>/g, '')
+        .replace(/[ \t\r\n]/g, '')
+        .replace(/\u00a0/g, '') === '';
+
+    return {
       type: 'paragraph' as const,
-      html: `<p>${part}</p>`,
+      html: onlyNbspAfterTagStrip ? `<p><br></p>` : `<p>${part}</p>`,
       align: detectAlign(part) || fallbackAlign,
-    }));
-  };
+    };
+  });
+};
 
   const flushInlineBuffer = (buffer: string[]) => {
     const joined = buffer.join('').trim();
@@ -679,9 +719,12 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || '';
 
-      // 공백/줄바꿈만 있는 텍스트 노드는 무시
-      // (HTML 소스 포맷팅용 개행을 실제 문단/줄바꿈으로 렌더하지 않기 위함)
-      if (!text.replace(/\u00a0/g, ' ').trim()) continue;
+      // 일반 공백/줄바꿈만 있는 텍스트 노드는 무시하되,
+      // non-breaking space(\u00a0)는 유지
+      const hasOnlyRegularWhitespace = text.replace(/[ \t\r\n]/g, '') === '';
+      const hasNbsp = text.includes('\u00a0');
+
+      if (hasOnlyRegularWhitespace && !hasNbsp) continue;
 
       const escapedText = text
         .replace(/&/g, '&amp;')
@@ -692,7 +735,12 @@ const parseOrphanHtml = (html: string): ParsedBlock[] => {
         .replace(/\r\n/g, '\n')
         .replace(/\n/g, '<br>');
 
-      if (!normalizedText.replace(/<br\s*\/?>/gi, '').trim()) continue;
+      const textWithoutBreaks = normalizedText.replace(/<br\s*\/?>/gi, '');
+      const hasOnlyRegularWhitespaceAfterNormalize =
+        textWithoutBreaks.replace(/[ \t\r\n]/g, '') === '';
+      const hasNbspAfterNormalize = textWithoutBreaks.includes('\u00a0');
+
+      if (hasOnlyRegularWhitespaceAfterNormalize && !hasNbspAfterNormalize) continue;
 
       inlineBuffer.push(normalizedText);
       continue;
@@ -992,7 +1040,7 @@ const getBestImageUrl = (html: string): string | null => {
 
 const decodeHtmlEntities = (text: string): string => {
   return text
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&nbsp;/g, '\u00a0')
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -1189,31 +1237,20 @@ const ImageFrame = ({
   lang: string;
   align?: ParsedBlock['align'];
 }) => {
-  const normalizeParagraphHtml = (input: string): string => {
-    if (!input) return '';
-
-    return input
-      .replace(/\r\n/g, '\n')
-      .replace(/\r/g, '\n')
-      .replace(/&nbsp;/gi, ' ')
-      .replace(/\u00a0/g, ' ')
-      .replace(/<p([^>]*)>\s*<\/p>/gi, '<p$1><br></p>')
-      .replace(/<p([^>]*)>\s*(<br\s*\/?>\s*)+<\/p>/gi, '<p$1><br></p>')
-      .trim();
-  };
-
-  const normalizedHtml = normalizeParagraphHtml(html);
+  const normalizedHtml = normalizeRenderableHtml(html);
 
   const textOnly = normalizedHtml
     .replace(/<br\s*\/?>/gi, '')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/\u00a0/g, ' ')
+    .replace(/&nbsp;/gi, '')
+    .replace(/\u00a0/g, '')
     .trim();
 
   const hasVisibleLineBreakOnly =
     /<br\s*\/?>/i.test(normalizedHtml) ||
-    /<p[^>]*>\s*<br\s*\/?>\s*<\/p>/i.test(normalizedHtml);
+    /<p[^>]*>\s*<br\s*\/?>\s*<\/p>/i.test(normalizedHtml) ||
+    /<p[^>]*>\s*\u00a0+\s*<\/p>/i.test(normalizedHtml) ||
+    /<div[^>]*>\s*\u00a0+\s*<\/div>/i.test(normalizedHtml);
 
   if (!textOnly && !hasVisibleLineBreakOnly) return null;
 
@@ -1242,7 +1279,7 @@ const ImageFrame = ({
           [&_ol]:my-1
           [&_li]:my-1
           ${wpContentStyles}`}
-        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(normalizedHtml) }}
+        dangerouslySetInnerHTML={{ __html: getRenderableHtml(normalizedHtml) }}
       />
     </div>
   );
@@ -1315,7 +1352,7 @@ const HeadingBlock = ({
           [&_h6]:mb-2
 
           ${wpContentStyles}`}
-        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+        dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
       />
     </div>
   );
@@ -1701,7 +1738,7 @@ const EmbedBlock = ({
     <div className="max-w-5xl mx-auto px-6 md:px-12">
       <div
         className="[&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:h-auto [&_iframe]:max-w-full"
-        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+        dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
       />
     </div>
   );
@@ -1723,7 +1760,7 @@ const ListBlock = ({
       } text-foreground/80 text-sm md:text-base leading-[1.8] opacity-80 [&_li]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 ${textAlignClass(
         align
       )} ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+      dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
     />
   </div>
 );
@@ -1748,7 +1785,7 @@ const QuoteBlock = ({
 } text-foreground/70 text-sm md:text-base leading-[1.8] italic ${textAlignClass(
   align
 )} ${wpContentStyles}`}
-      dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(html) }}
+      dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
     />
   </div>
 );
@@ -1895,7 +1932,7 @@ export const BlockRenderer = ({
           [&_ol]:my-1
           [&_li]:my-1
           ${wpContentStyles}`}
-        dangerouslySetInnerHTML={{ __html: withExternalLinkTarget(block.html) }}
+        dangerouslySetInnerHTML={{ __html: getRenderableHtml(block.html) }}
       />
     </div>
   );

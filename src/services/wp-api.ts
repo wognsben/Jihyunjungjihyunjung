@@ -205,6 +205,49 @@ const escapeNonHtmlAngleBrackets = (html: string): string => {
   });
 };
 
+const normalizeAcfTextHtml = (html: string): string => {
+  if (!html) return '';
+
+  const normalized = html
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim();
+
+  if (!normalized) return '';
+
+  // 이미 문단/블록 태그가 있으면 기존 구조 최대한 보존
+  if (
+    /<p[\s>]/i.test(normalized) ||
+    /<div[\s>]/i.test(normalized) ||
+    /<h[1-6][\s>]/i.test(normalized) ||
+    /<figure[\s>]/i.test(normalized) ||
+    /<blockquote[\s>]/i.test(normalized) ||
+    /<ul[\s>]/i.test(normalized) ||
+    /<ol[\s>]/i.test(normalized)
+  ) {
+    return normalized
+      .replace(/(^|\n)\s*&nbsp;\s*(?=\n|$)/gi, '$1<p>&nbsp;</p>')
+      .replace(/<p([^>]*)>\s*&nbsp;\s*<\/p>/gi, '<p$1>&nbsp;</p>')
+      .replace(/<p([^>]*)>\s*<\/p>/gi, '<p$1><br></p>')
+      .replace(/<p([^>]*)>\s*(<br\s*\/?>\s*)+<\/p>/gi, '<p$1><br></p>');
+  }
+
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((chunk) => {
+      if (/^&nbsp;$/i.test(chunk)) {
+        return '<p>&nbsp;</p>';
+      }
+
+      const withLineBreaks = chunk.replace(/\n/g, '<br />');
+      return `<p>${withLineBreaks}</p>`;
+    });
+
+  return paragraphs.join('\n');
+};
+
 const transformAcfGalleryToSliderHtml = (
   html: string,
   galleryImageMap: Record<string, string>
@@ -876,14 +919,14 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
   // ACF multilingual fields
   const acf = post.acf || {};
 
-  // EN
- const title_en = acf['text_제목en']
-  ? decode(acf['text_제목en'])
-  : acf['text_제목_en']
-  ? decode(acf['text_제목_en'])
-  : acf.title_en
-  ? decode(acf.title_en)
-  : '';
+    // EN
+  const title_en = acf['text_제목en']
+    ? decode(acf['text_제목en'])
+    : acf['text_제목_en']
+    ? decode(acf['text_제목_en'])
+    : acf.title_en
+    ? decode(acf.title_en)
+    : '';
 
     const content_en_source =
     acf['TEXT_작품_설명en'] ||
@@ -892,25 +935,28 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
     acf.content_en ||
     '';
 
-  const content_en_raw = escapeNonHtmlAngleBrackets(
-    await resolveGalleryShortcodes(content_en_source)
+  const content_en_resolved = await resolveGalleryShortcodes(content_en_source);
+
+  const content_en_raw = normalizeAcfTextHtml(
+    escapeNonHtmlAngleBrackets(content_en_resolved)
   );
-  
+
   const summary_en = acf.summary_en ? decode(acf.summary_en) : '';
+
   const content_en = content_en_raw
-  ? decode(stripHtmlToText(content_en_raw))
-  : '';
+    ? decode(stripHtmlToText(content_en_raw))
+    : '';
 
   // JP
   const title_jp = acf['text_제목jp']
-  ? decode(acf['text_제목jp'])
-  : acf['text_제목_jp']
-  ? decode(acf['text_제목_jp'])
-  : acf.title_jp
-  ? decode(acf.title_jp)
-  : '';
+    ? decode(acf['text_제목jp'])
+    : acf['text_제목_jp']
+    ? decode(acf['text_제목_jp'])
+    : acf.title_jp
+    ? decode(acf.title_jp)
+    : '';
 
-    const content_jp_source =
+  const content_jp_source =
     acf['TEXT_작품_설명jp'] ||
     acf['text_작품_설명jp'] ||
     acf['TEXT_작품_설명_jp'] ||
@@ -918,13 +964,17 @@ const transformText = async (post: WPPost): Promise<TextItem> => {
     acf.content_jp ||
     '';
 
-  const content_jp_raw = escapeNonHtmlAngleBrackets(
-    await resolveGalleryShortcodes(content_jp_source)
+  const content_jp_resolved = await resolveGalleryShortcodes(content_jp_source);
+
+  const content_jp_raw = normalizeAcfTextHtml(
+    escapeNonHtmlAngleBrackets(content_jp_resolved)
   );
+
   const summary_jp = acf.summary_jp ? decode(acf.summary_jp) : '';
+
   const content_jp = content_jp_raw
-  ? decode(stripHtmlToText(content_jp_raw))
-  : '';
+    ? decode(stripHtmlToText(content_jp_raw))
+    : '';
 
   // DEBUG: Log final values
   console.log('[transformText Debug] Final values:', {
