@@ -433,7 +433,7 @@ export const Header = ({
             ${!isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
           `}
         >
-          <div className="h-[58px] md:h-[70px] bg-white border-b border-black/5" />
+          <div className="h-[65px] md:h-[70px] bg-white border-b border-black/5" />
         </div>
       )}
 
