@@ -779,7 +779,7 @@ export const About = () => {
 
     const onWheel = (e: WheelEvent) => {
       let delta = e.deltaY;
-      delta *= 0.8;
+      delta *= 0.9;
       s.target += delta;
       s.target = Math.max(0, Math.min(s.target, s.maxScroll));
     };
