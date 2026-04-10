@@ -1274,7 +1274,11 @@ const ImageFrame = ({
           [&_div+p]:mt-5
           [&_strong]:font-bold [&_strong]:text-foreground [&_strong]:opacity-100
           [&_em]:italic
-          [&_i]:italic
+[&_em]:text-foreground
+[&_em]:tracking-[0.01em]
+[&_i]:italic
+[&_i]:text-foreground
+[&_i]:tracking-[0.01em]
           [&_ul]:my-1
           [&_ol]:my-1
           [&_li]:my-1
@@ -1693,14 +1697,42 @@ const VideoBlock = ({
   html: string;
   align?: ParsedBlock['align'];
 }) => {
-  const iframeSrcMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
-  const videoSrcMatch = html.match(/<video[^>]+src="([^"]+)"/);
-  const sourceSrcMatch = html.match(/<source[^>]+src="([^"]+)"/);
+  const iframeSrcMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
+  const videoSrcMatch = html.match(/<video[^>]+src=['"]([^'"]+)['"]/i);
+  const sourceSrcMatch = html.match(/<source[^>]+src=['"]([^'"]+)['"]/i);
 
-  const src = iframeSrcMatch?.[1] || videoSrcMatch?.[1] || sourceSrcMatch?.[1];
-  if (!src) return null;
+  const src =
+    iframeSrcMatch?.[1] ||
+    videoSrcMatch?.[1] ||
+    sourceSrcMatch?.[1];
 
-  return <VideoEmbedRenderer src={src} isIframe={!!iframeSrcMatch} align={align} />;
+  if (src) {
+    return (
+      <VideoEmbedRenderer
+        src={src}
+        isIframe={!!iframeSrcMatch}
+        align={align}
+      />
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-6 md:px-12 mb-12 md:mb-20">
+      <div
+        className="
+          [&_iframe]:w-full
+          [&_iframe]:aspect-video
+          [&_iframe]:h-auto
+          [&_iframe]:max-w-full
+          [&_video]:w-full
+          [&_video]:h-auto
+          [&_video]:max-w-full
+          [&_source]:hidden
+        "
+        dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
+      />
+    </div>
+  );
 };
 
 const EmbedBlock = ({
@@ -1710,7 +1742,7 @@ const EmbedBlock = ({
   html: string;
   align?: ParsedBlock['align'];
 }) => {
-  const iframeSrcMatch = html.match(/<iframe[^>]+src="([^"]+)"/);
+  const iframeSrcMatch = html.match(/<iframe[^>]+src=['"]([^'"]+)['"]/i);
   const urlMatch = html.match(
     /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/)([^\s<"]+)/
   );
@@ -1737,7 +1769,16 @@ const EmbedBlock = ({
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-12">
       <div
-        className="[&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:h-auto [&_iframe]:max-w-full"
+        className="
+          [&_iframe]:w-full
+          [&_iframe]:aspect-video
+          [&_iframe]:h-auto
+          [&_iframe]:max-w-full
+          [&_video]:w-full
+          [&_video]:h-auto
+          [&_video]:max-w-full
+          [&_source]:hidden
+        "
         dangerouslySetInnerHTML={{ __html: getRenderableHtml(html) }}
       />
     </div>
@@ -1884,6 +1925,8 @@ export const BlockRenderer = ({
             return <SingleImageBlock key={blockKey} block={block} lang={lang} />;
           case 'video':
             return <VideoBlock key={blockKey} html={block.html} align={block.align} />;
+          case 'embed':
+            return <EmbedBlock key={blockKey} html={block.html} align={block.align} />;
           case 'list':
             return (
               <ListBlock
