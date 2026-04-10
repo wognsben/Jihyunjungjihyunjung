@@ -366,33 +366,17 @@ export const About = () => {
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>(historyItemsCache);
   const [loading, setLoading] = useState(!aboutDataCache);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const scrollbarRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLDivElement>(null);
   const tooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInTooltip = useRef(false);
   const isRestoringMobileAboutRef = useRef(false);
   const skipSaveOnUnmountRef = useRef(false);
 
-  const state = useRef({
-    current: 0,
-    target: 0,
-    ease: 0.08,
-    last: 0,
-    delta: 0,
-    touch: { start: 0, prev: 0 },
-    isTouching: false,
-    maxScroll: 0,
-    winH: 0,
-    rafId: 0,
-  });
-
-  const saveAboutScrollPosition = () => {
+    const saveAboutScrollPosition = () => {
     if (typeof window === 'undefined') return;
 
-    const scrollValue =
-      window.innerWidth < 1025 ? containerRef.current?.scrollTop ?? 0 : state.current.target;
+    const scrollValue = containerRef.current?.scrollTop ?? 0;
 
     sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(scrollValue)));
   };
@@ -463,102 +447,55 @@ export const About = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-    useEffect(() => {
-  if (loading) return;
-  if (typeof window === 'undefined') return;
+      useEffect(() => {
+    if (loading) return;
+    if (typeof window === 'undefined') return;
 
-  const isFreshEntry = sessionStorage.getItem(ABOUT_FRESH_ENTRY_KEY) === 'true';
+    const isFreshEntry = sessionStorage.getItem(ABOUT_FRESH_ENTRY_KEY) === 'true';
 
-  // header -> about 은 무조건 top
-  if (isFreshEntry) {
-    sessionStorage.removeItem(ABOUT_FRESH_ENTRY_KEY);
-    sessionStorage.removeItem(ABOUT_SCROLL_STORAGE_KEY);
+    if (isFreshEntry) {
+      sessionStorage.removeItem(ABOUT_FRESH_ENTRY_KEY);
+      sessionStorage.removeItem(ABOUT_SCROLL_STORAGE_KEY);
 
-    const applyFreshTop = () => {
-      if (window.innerWidth < 1025) {
+      const applyFreshTop = () => {
         if (containerRef.current) {
           containerRef.current.scrollTop = 0;
         }
-        return;
-      }
+      };
 
-      const s = state.current;
-      s.winH = window.innerHeight;
+      let rafId: number | null = null;
+      let timeoutId: number | null = null;
 
-      if (contentRef.current) {
-        s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
-        contentRef.current.style.transform = `translate3d(0, 0px, 0)`;
-      }
-
-      s.current = 0;
-      s.target = 0;
-
-      if (thumbRef.current) {
-        thumbRef.current.style.transform = `translate3d(0, 0px, 0)`;
-      }
-    };
-
-    let timeoutId: number | null = null;
-
-    const raf1 = requestAnimationFrame(() => {
-      applyFreshTop();
-
-      timeoutId = window.setTimeout(() => {
+      rafId = requestAnimationFrame(() => {
         applyFreshTop();
-      }, 180);
-    });
 
-    return () => {
-      cancelAnimationFrame(raf1);
-      if (timeoutId !== null) {
-        window.clearTimeout(timeoutId);
-      }
-    };
-  }
+        timeoutId = window.setTimeout(() => {
+          applyFreshTop();
+        }, 180);
+      });
 
-  const raw = sessionStorage.getItem(ABOUT_SCROLL_STORAGE_KEY);
-  if (!raw) return;
+      return () => {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+      };
+    }
 
-  const saved = parseInt(raw, 10);
-  if (Number.isNaN(saved)) return;
+    const raw = sessionStorage.getItem(ABOUT_SCROLL_STORAGE_KEY);
+    if (!raw) return;
 
-  const applySavedScroll = () => {
-    if (window.innerWidth < 1025) {
+    const saved = parseInt(raw, 10);
+    if (Number.isNaN(saved)) return;
+
+    const applySavedScroll = () => {
       if (containerRef.current) {
         containerRef.current.scrollTop = saved;
       }
-      return;
-    }
+    };
 
-    const s = state.current;
-    s.winH = window.innerHeight;
+    let rafId1: number | null = null;
+    let rafId2: number | null = null;
+    let timeoutId: number | null = null;
 
-    if (contentRef.current) {
-      s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
-    }
-
-    const clamped = Math.max(0, Math.min(saved, s.maxScroll || saved));
-
-    s.current = clamped;
-    s.target = clamped;
-
-    if (contentRef.current) {
-      contentRef.current.style.transform = `translate3d(0, ${-clamped}px, 0)`;
-    }
-
-    if (thumbRef.current && s.maxScroll > 0) {
-      const progress = clamped / s.maxScroll;
-      const trackH = s.winH - 80;
-      const thumbY = progress * (trackH - 60);
-      thumbRef.current.style.transform = `translate3d(0, ${thumbY}px, 0)`;
-    }
-  };
-
-  let rafId1: number | null = null;
-  let rafId2: number | null = null;
-  let timeoutId: number | null = null;
-
-  if (window.innerWidth < 1025) {
     isRestoringMobileAboutRef.current = true;
 
     rafId1 = requestAnimationFrame(() => {
@@ -573,23 +510,14 @@ export const About = () => {
         }, 220);
       });
     });
-  } else {
-    rafId1 = requestAnimationFrame(() => {
-      applySavedScroll();
-    });
 
-    timeoutId = window.setTimeout(() => {
-      applySavedScroll();
-    }, 180);
-  }
-
-  return () => {
-    if (rafId1 !== null) cancelAnimationFrame(rafId1);
-    if (rafId2 !== null) cancelAnimationFrame(rafId2);
-    if (timeoutId !== null) window.clearTimeout(timeoutId);
-    isRestoringMobileAboutRef.current = false;
-  };
-}, [loading, processedContentSafeKey(aboutData, lang, works)]);
+    return () => {
+      if (rafId1 !== null) cancelAnimationFrame(rafId1);
+      if (rafId2 !== null) cancelAnimationFrame(rafId2);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      isRestoringMobileAboutRef.current = false;
+    };
+  }, [loading, processedContentSafeKey(aboutData, lang, works)]);
 
   useEffect(() => {
   const container = containerRef.current;
@@ -722,10 +650,8 @@ export const About = () => {
     }, 300);
   };
 
-  useEffect(() => {
+    useEffect(() => {
     if (!tooltipWorkId) return;
-
-    const scrollTarget = containerRef.current || window;
 
     const handleScroll = () => {
       setTooltipWorkId(null);
@@ -735,117 +661,23 @@ export const About = () => {
       setTooltipWorkId(null);
     };
 
-    scrollTarget.addEventListener('scroll', handleScroll, { passive: true });
-    if (scrollTarget !== window) {
-      window.addEventListener('scroll', handleScroll, { passive: true });
-    }
+    const container = containerRef.current;
+
+    container?.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('wheel', handleWheel, { passive: true });
 
     return () => {
-      scrollTarget.removeEventListener('scroll', handleScroll);
-      if (scrollTarget !== window) {
-        window.removeEventListener('scroll', handleScroll);
-      }
+      container?.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wheel', handleWheel);
     };
   }, [tooltipWorkId]);
 
   void visibleWorkRows;
   void observerRef;
-  void scrollbarRef;
   void isManualHover;
   void isMobile;
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || loading) return;
-    if (window.innerWidth < 1025) return;
-
-    const s = state.current;
-
-    const onResize = () => {
-      s.winH = window.innerHeight;
-      if (contentRef.current) {
-        s.maxScroll = Math.max(0, contentRef.current.scrollHeight - s.winH);
-      }
-    };
-
-    const resizeObserver = new ResizeObserver(() => onResize());
-    if (contentRef.current) resizeObserver.observe(contentRef.current);
-
-    window.addEventListener('resize', onResize);
-    setTimeout(onResize, 100);
-    setTimeout(onResize, 500);
-    setTimeout(onResize, 1500);
-
-    const onWheel = (e: WheelEvent) => {
-      let delta = e.deltaY;
-      delta *= 0.9;
-      s.target += delta;
-      s.target = Math.max(0, Math.min(s.target, s.maxScroll));
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      s.isTouching = true;
-      s.touch.start = e.touches[0].clientY;
-      s.touch.prev = s.target;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!s.isTouching) return;
-
-      const y = e.touches[0].clientY;
-      const distance = (s.touch.start - y) * 2;
-      s.target = s.touch.prev + distance;
-      s.target = Math.max(0, Math.min(s.target, s.maxScroll));
-    };
-
-    const onTouchEnd = () => {
-      s.isTouching = false;
-    };
-
-    window.addEventListener('wheel', onWheel, { passive: false });
-    window.addEventListener('touchstart', onTouchStart);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd);
-
-    const render = () => {
-      s.current += (s.target - s.current) * s.ease;
-
-      if (Math.abs(s.target - s.current) < 0.1) {
-        s.current = s.target;
-      }
-
-      if (contentRef.current) {
-        contentRef.current.style.transform = `translate3d(0, ${-s.current}px, 0)`;
-      }
-
-      if (window.innerWidth >= 1025) {
-        sessionStorage.setItem(ABOUT_SCROLL_STORAGE_KEY, String(Math.round(s.target)));
-      }
-
-      if (thumbRef.current && s.maxScroll > 0) {
-        const progress = s.current / s.maxScroll;
-        const trackH = s.winH - 80;
-        const thumbY = progress * (trackH - 60);
-        thumbRef.current.style.transform = `translate3d(0, ${thumbY}px, 0)`;
-      }
-
-      s.rafId = requestAnimationFrame(render);
-    };
-
-    s.rafId = requestAnimationFrame(render);
-
-    return () => {
-      saveAboutScrollPosition();
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('wheel', onWheel);
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-      cancelAnimationFrame(s.rafId);
-      resizeObserver.disconnect();
-    };
-  }, [loading, processedContent]);
 
   const groupedHistory = historyItems.reduce((acc, item) => {
     const year = item.year;
@@ -882,24 +714,24 @@ export const About = () => {
       ].filter(c => c.value)
     : [];
 
-  return (
-    <div
-      ref={containerRef}
-      className="fixed inset-0 min-[1025px]:fixed min-[1025px]:inset-0 w-full h-full bg-background text-foreground min-[1025px]:overflow-hidden font-sans selection:bg-foreground selection:text-background overflow-y-auto"
+ return (
+  <div
+    ref={containerRef}
+    className="fixed inset-0 min-[1025px]:fixed min-[1025px]:inset-0 w-full h-full bg-background text-foreground font-sans selection:bg-foreground selection:text-background overflow-y-auto"
       style={{
         fontFamily:
           'Pretendard, "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       }}
     >
-      <div className="w-full min-h-full min-[1025px]:h-full px-6 md:px-12 relative flex">
-        <div className="hidden md:flex flex-col w-[20%] md:sticky md:top-0 md:h-screen md:overflow-hidden min-[1025px]:static min-[1025px]:h-full pt-28 md:pt-32 relative z-20 md:justify-between min-[1025px]:justify-start">
-          <div className="flex flex-col gap-6 max-w-full">
-            <RevealText>
-              <div className="flex flex-col gap-1">
-                <h1
-                  className={`text-xl font-medium tracking-tight mb-4${
-                    lang === 'en' ? ' notranslate' : ''
-                  }`}
+      <div className="w-full min-h-full px-6 md:px-12 relative flex">
+  <div className="hidden md:flex flex-col w-[20%] md:sticky md:top-0 md:h-screen md:overflow-hidden min-[1025px]:sticky min-[1025px]:top-0 min-[1025px]:h-screen pt-28 md:pt-32 relative z-20 md:justify-between min-[1025px]:justify-start">
+    <div className="flex flex-col gap-6 max-w-full">
+      <RevealText>
+        <div className="flex flex-col gap-1">
+          <h1
+            className={`text-xl font-medium tracking-tight mb-4${
+              lang === 'en' ? ' notranslate' : ''
+            }`}
                   translate={lang === 'en' ? 'no' : undefined}
                 >
                   {lang === 'en'
@@ -952,12 +784,12 @@ export const About = () => {
         </div>
 
         <div
-          ref={contentRef}
-          onClick={handleContentClick}
-          onMouseOver={handleContentMouseOver}
-          onMouseOut={handleContentMouseOut}
-          className="relative min-[1025px]:absolute top-0 right-0 w-full md:w-[75%] md:ml-auto pt-32 md:pt-10 pb-8 flex flex-col gap-10 min-[1025px]:will-change-transform min-[1025px]:w-[80%] min-[1025px]:ml-0 min-[1025px]:pl-22"
-        >
+  ref={contentRef}
+  onClick={handleContentClick}
+  onMouseOver={handleContentMouseOver}
+  onMouseOut={handleContentMouseOut}
+  className="relative w-full md:w-[75%] md:ml-auto pt-32 md:pt-10 pb-8 flex flex-col gap-10 min-[1025px]:w-[80%] min-[1025px]:ml-0 min-[1025px]:pl-22"
+>
           <div className="md:hidden flex flex-col gap-6 mb-12">
             {aboutData && (
               <>
@@ -1021,7 +853,7 @@ export const About = () => {
             <div className="flex flex-col gap-6 max-w-3xl">
               <RevealText>
                 <div
-                  className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-sans [&_h2]:uppercase [&_h2]:tracking-[0.15em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-10 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-2 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[40px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[40px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug max-[1025px]:[&_tr>*:last-child]:truncate [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${
+                  className={`text-[16px] leading-normal text-foreground [&_p]:mb-4 [&_h2]:text-[12px] [&_h2]:font-sans [&_h2]:uppercase [&_h2]:tracking-[0.15em] [&_h2]:text-muted-foreground/70 [&_h2]:font-normal [&_h2]:mt-24 [&_h2]:mb-10 [&_ul]:list-none [&_ul]:pl-0 [&_li]:mb-2 [&_table]:!w-full [&_table]:!block [&_tbody]:!block [&_tr]:!flex [&_tr]:!flex-row [&_tr]:gap-2 md:[&_tr]:gap-0 [&_tr]:mb-1.5 [&_tr>*:first-child]:!block [&_tr>*:last-child]:!block [&_tr>*:first-child]:!w-[40px] md:[&_tr>*:first-child]:!w-[64px] [&_tr>*:first-child]:!min-w-[40px] md:[&_tr>*:first-child]:!min-w-[64px] [&_tr>*:first-child]:shrink-0 md:[&_tr>*:first-child]:!mr-8 [&_tr>*:first-child]:font-mono [&_tr>*:first-child]:!text-[12px] [&_tr>*:first-child]:text-muted-foreground/50 [&_tr>*:first-child]:!font-normal [&_tr>*:first-child]:text-left [&_tr>*:last-child]:flex-1 [&_tr>*:last-child]:text-sm [&_tr>*:last-child]:font-light [&_tr>*:last-child]:leading-snug [&_tr]:relative [&_tr]:-mx-4 [&_tr]:px-4 [&_tr]:py-2 [&_tr]:rounded-lg [&_tr]:transition-all [&_tr]:duration-300 [&_tr.hover-line]:cursor-pointer [&_tr.hover-line:hover]:bg-white [&_tr.hover-line:hover]:!text-foreground [&_tr.hover-line:hover_>_*]:!text-foreground md:[&_tr.hover-line_>_*]:transition-transform md:[&_tr.hover-line_>_*]:duration-300 md:[&_tr.hover-line:hover_>_*]:translate-x-2 [&_tr_p]:!mb-0 md:[&_tr]:items-baseline${
                     lang === 'ko' ? ' notranslate' : ''
                   }`}
                   translate={lang === 'ko' ? 'no' : undefined}
