@@ -20,6 +20,26 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
   const [isTablet, setIsTablet] = useState(false);
   const prefetchedWorkIdsRef = useRef<Set<string>>(new Set());
 
+  // ================================
+// Popup (오늘 보지 않기) 상태
+// ================================
+const [showPopup, setShowPopup] = useState(false);
+
+// 한국 시간 기준 오늘 날짜 (YYYY-MM-DD)
+const getKoreanDateString = () => {
+  const now = new Date();
+
+  const koreaTime = new Date(
+    now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
+  );
+
+  const year = koreaTime.getFullYear();
+  const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+  const day = String(koreaTime.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
   const filterLabels = {
     ko: {
       all: '전체',
@@ -41,6 +61,24 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     },
   };
 
+  const popupLabels = {
+  ko: {
+    message: '현재 Work 페이지는 리뉴얼 중입니다.',
+    hideToday: '오늘 보지 않기',
+    close: '닫기',
+  },
+  en: {
+    message: 'The Work page is currently being redesigned.',
+    hideToday: 'Do not show again today',
+    close: 'Close',
+  },
+  jp: {
+    message: '現在、Workページはリニューアル中です。',
+    hideToday: '今日は表示しない',
+    close: '閉じる',
+  },
+};
+
   const handleFilterChange = (filter: string) => {
     onFilterChange(filter);
   };
@@ -56,6 +94,18 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // ================================
+// Popup 표시 여부 체크
+// ================================
+useEffect(() => {
+  const today = getKoreanDateString();
+  const savedDate = localStorage.getItem('workgrid_popup_hide_date');
+
+  if (savedDate !== today) {
+    setShowPopup(true);
+  }
+}, []);
 
   const extractFirstImageFromHtml = (html: string): string => {
     if (!html) return '';
@@ -156,12 +206,25 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
   }, [filteredWorks, isMobile, isTablet]);
 
   const getTitle = (work: any) =>
-    lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en;
+  lang === 'ko' ? work.title_ko : lang === 'jp' ? work.title_jp : work.title_en;
 
-  const getMedium = (work: any) =>
-    lang === 'ko' ? work.medium_ko : lang === 'jp' ? work.medium_jp : work.medium_en;
+const getMedium = (work: any) =>
+  lang === 'ko' ? work.medium_ko : lang === 'jp' ? work.medium_jp : work.medium_en;
 
-  const prefetchWorkDetail = async (work: any) => {
+// ================================
+// Popup handlers
+// ================================
+const handleClosePopup = () => {
+  setShowPopup(false);
+};
+
+const handleHideToday = () => {
+  const today = getKoreanDateString();
+  localStorage.setItem('workgrid_popup_hide_date', today);
+  setShowPopup(false);
+};
+
+const prefetchWorkDetail = async (work: any) => {
   const key = `${work.id}_${lang}`;
 
   if (prefetchedWorkIdsRef.current.has(key)) return;
@@ -216,7 +279,7 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
         </div>
       </div>
 
-      <div className="px-4 md:px-6">
+            <div className="px-4 md:px-6">
         <div className="flex flex-col md:flex-row gap-1 w-full items-start justify-center">
           {columns.map((colWorks, colIndex) => (
             <div
@@ -286,6 +349,35 @@ export const WorkGrid = ({ currentFilter, onFilterChange }: WorkGridProps) => {
           ))}
         </div>
       </div>
+
+      {/* ================================
+          Popup UI
+      ================================= */}
+      {showPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+          <div className="bg-white px-6 py-6 w-[90%] max-w-md text-center">
+            <p className="text-sm mb-4 tracking-wide">
+  {popupLabels[lang].message}
+</p>
+
+<div className="flex justify-center gap-4 text-xs tracking-widest">
+  <button
+    onClick={handleHideToday}
+    className="text-gray-500 hover:text-black transition"
+  >
+    {popupLabels[lang].hideToday}
+  </button>
+
+  <button
+    onClick={handleClosePopup}
+    className="text-black font-bold"
+  >
+    {popupLabels[lang].close}
+  </button>
+</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
