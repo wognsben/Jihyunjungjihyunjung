@@ -63,17 +63,17 @@ const getKoreanDateString = () => {
 
   const popupLabels = {
   ko: {
-    message: '현재 Work 페이지는 리뉴얼 중입니다.',
+    message: '현재 홈페이지는 리뉴얼 중입니다.',
     hideToday: '오늘 보지 않기',
     close: '닫기',
   },
   en: {
-    message: 'The Work page is currently being redesigned.',
+    message: 'The website is currently being redesigned.',
     hideToday: 'Do not show again today',
     close: 'Close',
   },
   jp: {
-    message: '現在、Workページはリニューアル中です。',
+    message: '現在、ページはリニューアル中です。',
     hideToday: '今日は表示しない',
     close: '閉じる',
   },
